@@ -71,12 +71,12 @@ Take an existing `SKILL.md` (or any markdown playbook) and drop in curtain delim
 Audit existing tables in `src/db/schema.ts`. Write a non-destructive migration script in `migrations/002_user_prefs.sql`.
 Do not apply the migration yet.
 
-## <curtain:gate>
+<!-- intermission -->
 
 ## Act 2: Local Verification
 Run the migration script against local test Postgres container. Run existing test suite to check for regressions.
 
-## <curtain>
+<!-- curtain -->
 
 ## Act 3: Cleanup & Documentation
 Update the ORM models and export types. Update schema docs in `docs/db.md`.
@@ -88,13 +88,12 @@ Start execution with `/curtain path/to/SKILL.md` or any markdown playbook (Codex
 
 ## Syntax & Delimiters
 
-Playbooks are standard Markdown files separated by curtain delimiters:
+Skills and playbooks are standard Markdown files separated by HTML comment delimiters:
 
 | Delimiter | Type | Behavior |
 | :--- | :--- | :--- |
-| `## <curtain>` | Automatic | The `Stop` hook automatically intercepts turn completion, raises the curtain, and feeds the next Act immediately. |
-| `## <curtain:gate>` | Intermission Gate | Pauses execution and yields control to the developer for review (synonym: `## <curtain:pause>`). Resume with `/curtain raise`. |
-| `## <curtain:auto>` | Automatic | Synonym for `## <curtain>`. |
+| `<!-- curtain -->` | Automatic | Intercepts turn completion via the `Stop` hook, raises the curtain, and feeds the next Act immediately. |
+| `<!-- intermission -->` | Intermission Gate | Pauses execution and yields control to the developer for review. Resume with `/curtain raise`. |
 
 ## Commands & Controls
 

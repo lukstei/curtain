@@ -11,7 +11,7 @@
 
 ### Root (`src/`)
 - `cli.ts`: Entry point for the CLI, parsing subcommands and flags.
-- `parser.ts`: Pure string parser splitting Markdown scripts by curtain delimiters (`## <curtain>`, `## <curtain:gate>`, `## <curtain:auto>`).
+- `parser.ts`: Pure string parser splitting Markdown scripts by curtain delimiters (`<!-- curtain -->`, `<!-- intermission -->`).
 - `transitions.ts`: Pure state transition functions and status mutations for runner lifecycle.
 - `state.ts`: Reads, writes, and paths `curtain-state.json` on disk keyed by conversation ID.
 - `resolver.ts`: Locates and loads script files across workspace paths.

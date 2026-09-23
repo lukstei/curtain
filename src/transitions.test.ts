@@ -11,9 +11,9 @@ describe("transitions.ts", () => {
 		[
 			"# Script Title",
 			"Step 1: Scaffolding",
-			"## <curtain:gate>",
+			"<!-- intermission -->",
 			"Step 2: Verification",
-			"## <curtain>",
+			"<!-- curtain -->",
 			"Step 3: Cleanup",
 		].join("\n"),
 		"sample.md",

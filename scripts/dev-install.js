@@ -13,8 +13,7 @@ const targetDir = path.resolve(
 );
 
 if (!fs.existsSync(targetDir)) {
-	console.error(`Error: Target directory does not exist: ${targetDir}`);
-	process.exit(1);
+	fs.mkdirSync(targetDir, { recursive: true });
 }
 
 const subdirs = fs

@@ -20,19 +20,19 @@ describe("parser.ts", () => {
 		`);
 	});
 
-	it("parses multi-step script with gate and auto delimiters", () => {
+	it("parses multi-step script with intermission and curtain delimiters", () => {
 		const content = [
 			"# Database Migration",
 			"",
 			"## Phase 1: Audit",
 			"Check table columns.",
 			"",
-			"## <curtain:gate>",
+			"<!-- intermission -->",
 			"",
 			"## Phase 2: Run Migration",
 			"Execute migration script locally.",
 			"",
-			"## <curtain>",
+			"<!-- curtain -->",
 			"",
 			"## Phase 3: Cleanup",
 			"Update docs and types.",
@@ -68,22 +68,27 @@ describe("parser.ts", () => {
 		`);
 	});
 
-	it("handles <curtain:pause> syntax synonym for gate", () => {
+	it("handles case-insensitivity and variable whitespace", () => {
 		const content = [
 			"Step 1 content",
-			"## <curtain:pause>",
+			"<!--   INTERMISSION   -->",
 			"Step 2 content",
+			"<!--curtain-->",
+			"Step 3 content",
 		].join("\n");
 
 		const script = parseScript(content, "test.md");
-		expect(script.steps).toHaveLength(2);
+		expect(script.steps).toHaveLength(3);
 		expect(script.steps[1].type).toBe("pause");
+		expect(script.steps[2].type).toBe("auto");
 	});
 
-	it("defaults bare <curtain> to auto transition", () => {
-		const content = ["Step 1 content", "## <curtain>", "Step 2 content"].join(
-			"\n",
-		);
+	it("defaults <!-- curtain --> to auto transition", () => {
+		const content = [
+			"Step 1 content",
+			"<!-- curtain -->",
+			"Step 2 content",
+		].join("\n");
 
 		const script = parseScript(content, "test.md");
 		expect(script.steps).toHaveLength(2);

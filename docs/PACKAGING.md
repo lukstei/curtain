@@ -18,7 +18,7 @@ Maintaining separate plugins per harness leads to configuration drift and mainte
 
 1. **Shared Knowledge & Rules**: A single set of `skills/` (`SKILL.md`) and behavioral instructions (`rules/AGENTS.md`) shared across all harnesses.
 2. **Dedicated Manifest Zones**: Partitioned manifest directories (`.claude-plugin/`, `.codex-plugin/`, `.agents/`) that co-exist without collision.
-3. **Modular Harness Adapters**: Dedicated adapters in `src/harnesses/` implementing a common [`HarnessAdapter`](file:///Users/Lukas.Steinbrecher/dev/wf/src/harnesses/types.ts) interface.
+3. **Modular Harness Adapters**: Dedicated adapters in `src/harnesses/` implementing a common [`HarnessAdapter`](../src/harnesses/types.ts) interface.
 4. **Zero-Dependency Bundled Hook Shim**: A single, bundled script (`dist/curtain.cjs`) built via `esbuild` that auto-detects the host harness, normalizes events, executes core runner logic, and formats egress per harness specification.
 
 ---
@@ -27,10 +27,10 @@ Maintaining separate plugins per harness leads to configuration drift and mainte
 
 Detailed specifications, wire schemas, lifecycle protocols, and egress formats are documented in each harness guide:
 
-- [OpenAI Codex CLI Specification](file:///Users/Lukas.Steinbrecher/dev/wf/src/harnesses/codex.md)
-- [Anthropic Claude Code Specification](file:///Users/Lukas.Steinbrecher/dev/wf/src/harnesses/claude.md)
-- [Google Antigravity (AGY) Specification](file:///Users/Lukas.Steinbrecher/dev/wf/src/harnesses/agy.md)
-- [GitHub Copilot / VS Code Agent Specification](file:///Users/Lukas.Steinbrecher/dev/wf/src/harnesses/copilot.md)
+- [OpenAI Codex CLI Specification](../src/harnesses/codex.md)
+- [Anthropic Claude Code Specification](../src/harnesses/claude.md)
+- [Google Antigravity (AGY) Specification](../src/harnesses/agy.md)
+- [GitHub Copilot / VS Code Agent Specification](../src/harnesses/copilot.md)
 
 ---
 
@@ -161,7 +161,7 @@ flowchart LR
 
 ### Modular Harness Adapter Architecture
 
-Each harness implements the [`HarnessAdapter`](file:///Users/Lukas.Steinbrecher/dev/wf/src/harnesses/types.ts) interface:
+Each harness implements the [`HarnessAdapter`](../src/harnesses/types.ts) interface:
 
 ```typescript
 export interface HarnessAdapter {
@@ -177,9 +177,9 @@ export interface HarnessAdapter {
 }
 ```
 
-1. **Detection**: Checked in sequence by [`detectHarness`](file:///Users/Lukas.Steinbrecher/dev/wf/src/harnesses/index.ts). Returns `HarnessType | null`. If unhandled, the shim exits `0` with no output.
+1. **Detection**: Checked in sequence by [`detectHarness`](../src/harnesses/index.ts). Returns `HarnessType | null`. If unhandled, the shim exits `0` with no output.
 2. **Normalization**: Performed by `adapter.normalize(payload, modeArg, env)` to build a harness-specific `NormalizedEvent` (`pre`, `stop`, or `tool`) containing the conversation ID, workspace path, prompt, tool call, and `latestMessage`.
-3. **Execution**: Core handlers parse commands, update runner state via [`src/transitions.ts`](file:///Users/Lukas.Steinbrecher/dev/wf/src/transitions.ts), and produce a standard `HookResponse`.
+3. **Execution**: Core handlers parse commands, update runner state via [`src/transitions.ts`](../src/transitions.ts), and produce a standard `HookResponse`.
 4. **Egress**: The adapter translates `HookResponse` into stdout JSON or stderr exit codes matching the host harness.
 
 ---
@@ -188,8 +188,8 @@ export interface HarnessAdapter {
 
 CLI hooks run as isolated, ephemeral processes. State across turns is persisted to disk keyed by conversation ID:
 
-- Session paths resolve via [`src/state.ts`](file:///Users/Lukas.Steinbrecher/dev/wf/src/state.ts), respecting harness-provided directories (`PLUGIN_DATA`, `CLAUDE_PLUGIN_DATA`, `AGY_PLUGIN_DATA`, `COPILOT_PLUGIN_DATA`) and falling back to temporary directories.
-- All state transitions and mutations are centralized in [`src/transitions.ts`](file:///Users/Lukas.Steinbrecher/dev/wf/src/transitions.ts).
+- Session paths resolve via [`src/state.ts`](../src/state.ts), respecting harness-provided directories (`PLUGIN_DATA`, `CLAUDE_PLUGIN_DATA`, `AGY_PLUGIN_DATA`, `COPILOT_PLUGIN_DATA`) and falling back to temporary directories.
+- All state transitions and mutations are centralized in [`src/transitions.ts`](../src/transitions.ts).
 
 ---
 

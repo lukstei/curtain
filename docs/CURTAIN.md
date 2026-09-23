@@ -26,13 +26,13 @@ LLMs routinely disregard instructions to stop. They anticipate downstream phases
 
 ## 2. Syntax & Delimiters
 
-Playbooks are standard Markdown files separated by curtain heading tags:
+Playbooks and skills are standard Markdown files separated by HTML comment delimiters:
 
-### 1. `## <curtain>` — Automatic Transition
+### 1. `<!-- curtain -->` — Automatic Transition
 A brief drop between tightly coupled phases (e.g., between scaffolding and testing). When the agent finishes Act 1 and attempts to conclude its turn, the `Stop` hook automatically intercepts termination, raises the curtain, and feeds Act 2.
 
-### 2. `## <curtain:gate>` — Intermission Gate (Human Review)
-A full intermission for human-in-the-loop verification (synonym: `## <curtain:pause>`). The `Stop` hook permits the agent to stop its turn, present its findings, and yield control to the developer. The next Act is only injected when the developer explicitly raises the curtain.
+### 2. `<!-- intermission -->` — Intermission Gate (Human Review)
+A full intermission for human-in-the-loop verification. The `Stop` hook permits the agent to stop its turn, present its findings, and yield control to the developer. The next Act is only injected when the developer explicitly raises the curtain.
 
 ### Example Playbook (`PLAYBOOK.md`)
 ```markdown
@@ -42,12 +42,12 @@ A full intermission for human-in-the-loop verification (synonym: `## <curtain:pa
 Audit existing tables in `src/db/schema.ts`. Write a non-destructive migration script in `migrations/002_user_prefs.sql`.
 Do not apply the migration yet.
 
-## <curtain:gate>
+<!-- intermission -->
 
 ## Act 2: Local Verification
 Run the migration script against local test Postgres container. Run existing test suite to check for regressions.
 
-## <curtain>
+<!-- curtain -->
 
 ## Act 3: Cleanup & Documentation
 Update the ORM models and export types. Update schema docs in `docs/db.md`.
@@ -101,7 +101,7 @@ flowchart TD
 | `/curtain status` | Slash Command | Outputs current Act number, total Acts, and whether currently in intermission. |
 
 ### The Revision Loop During Intermission
-When the curtain drops at `## <curtain:gate>` (or `## <curtain:pause>`):
+When the curtain drops at `<!-- intermission -->`:
 1. The agent finishes speaking and stops.
 2. If the work is incomplete or incorrect, the developer enters regular conversational feedback:
    > *"The SQL migration is missing a foreign key constraint on team_id. Add it."*
@@ -138,7 +138,7 @@ When the final Act completes or `/curtain drop` is called, `.curtain-state.json`
 | Dimension | Curtain (`@lukstei/curtain`) | Full Workflow Engine (`wf`) |
 | :--- | :--- | :--- |
 | **Code Footprint** | ~120 lines of TypeScript | ~2,500+ lines across 20+ modules |
-| **Syntax Overhead** | Zero schema. Plain Markdown with `## <curtain*>` | YAML frontmatter, strict step schemas, DAG definitions |
+| **Syntax Overhead** | Zero schema. Plain Markdown with `<!-- curtain -->` and `<!-- intermission -->` | YAML frontmatter, strict step schemas, DAG definitions |
 | **Branching / Loops** | Linear sequence only | Condition steps (`[DECISION: YES/NO]`), cycles, DAG transitions |
 | **Skip-Ahead Prevention**| **100% deterministic** (tokens withheld) | **100% deterministic** (tokens withheld) |
 | **Failure Modes** | None (pure string splitting) | Schema validation errors, AST compilation failures |

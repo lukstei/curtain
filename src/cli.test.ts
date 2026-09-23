@@ -66,7 +66,7 @@ describe("cli.ts", () => {
 		fs.mkdirSync(tmpDir, { recursive: true });
 		fs.writeFileSync(
 			fixturePath,
-			["Step 1 content", "## <curtain>", "Step 2 content"].join("\n"),
+			["Step 1 content", "<!-- curtain -->", "Step 2 content"].join("\n"),
 		);
 
 		// 1. Start execution

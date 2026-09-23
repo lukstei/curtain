@@ -11,7 +11,7 @@ export interface Script {
 	steps: Step[];
 }
 
-const DELIMITER_REGEX = /^##\s*<curtain(?::(auto|gate|pause))?>\s*$/gim;
+const DELIMITER_REGEX = /^[ \t]*<!--\s*(curtain|intermission)\s*-->[ \t]*$/gim;
 
 export function parseScript(content: string, filePath: string): Script {
 	assert(typeof content === "string", "Script content must be a string");
@@ -25,11 +25,11 @@ export function parseScript(content: string, filePath: string): Script {
 
 	let match: RegExpExecArray | null = DELIMITER_REGEX.exec(content);
 	while (match !== null) {
-		const subtype = match[1]?.toLowerCase();
+		const tag = match[1]?.toLowerCase();
 		matches.push({
 			index: match.index,
 			length: match[0].length,
-			type: subtype === "gate" || subtype === "pause" ? "pause" : "auto",
+			type: tag === "intermission" ? "pause" : "auto",
 		});
 		match = DELIMITER_REGEX.exec(content);
 	}

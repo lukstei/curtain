@@ -107,7 +107,9 @@ describe("handlers/pre.ts", () => {
 		fs.mkdirSync(tmpDir, { recursive: true });
 		fs.writeFileSync(
 			scriptPath,
-			["Step 1 instruction", "## <curtain>", "Step 2 instruction"].join("\n"),
+			["Step 1 instruction", "<!-- curtain -->", "Step 2 instruction"].join(
+				"\n",
+			),
 		);
 
 		const info: HookInfo = {
