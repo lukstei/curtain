@@ -12,7 +12,7 @@ When you give an AI coding agent a multi-phase task in a single prompt or file, 
 **Prompting does not fix this.** If tokens exist in the context window, the model can and will attend to them.
 
 **Curtain** solves this by physically withholding future instructions from the context window:
-- A playbook is structured like a play divided into **Acts**.
+- Works directly with your existing skills: divide any `SKILL.md` or markdown playbook into **Acts**.
 - The agent only ever receives the text for the **current Act**.
 - Between Acts hangs a **curtain**.
 - An agent physically cannot skip ahead because downstream tokens do not exist in its prompt window.
@@ -60,10 +60,12 @@ codex plugin trust curtain
 
 ## Quickstart
 
-### 1. Write a playbook (`migration.md`)
+### 1. Annotate your current skills
+
+Take an existing `SKILL.md` (or any markdown playbook) and drop in curtain delimiters to separate your acts:
 
 ```markdown
-# Database Migration Playbook
+# Database Migration (`SKILL.md`)
 
 ## Act 1: Schema Audit & Draft Migration
 Audit existing tables in `src/db/schema.ts`. Write a non-destructive migration script in `migrations/002_user_prefs.sql`.
@@ -82,7 +84,7 @@ Update the ORM models and export types. Update schema docs in `docs/db.md`.
 
 ### 2. Run in chat
 
-Start execution with `/curtain migration.md` (Codex: `$curtain:start migration.md` or `curtain migration.md` in shell).
+Start execution with `/curtain path/to/SKILL.md` or any markdown playbook (Codex: `$curtain:start path/to/SKILL.md`).
 
 ## Syntax & Delimiters
 
