@@ -1,6 +1,7 @@
-# @lukstei/curtain
+# curtain
 
-> Minimal multi-act instruction runner for AI agents. Prevents skip-ahead by physically withholding future instructions behind theatrical curtains.
+> **Nobody likes spoilers, especially agents.**  
+> Show them the ending and they skip the plot. Curtain keeps the script backstage until the curtain rises.
 
 [![CI](https://github.com/lukstei/curtain/actions/workflows/ci.yml/badge.svg)](https://github.com/lukstei/curtain/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
