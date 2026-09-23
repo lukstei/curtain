@@ -1,5 +1,11 @@
-import type { HookResponse } from "../types.ts";
-import { defaultExtractLatestMessage } from "./common.ts";
+import * as path from "node:path";
+import type { HookResponse, ToolCall } from "../types.ts";
+import {
+	defaultExtractLatestMessage,
+	extractToolCall,
+	getGenericSkillDirs,
+	resolveToolReadPath,
+} from "./common.ts";
 import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
 
 export const copilotHarness: HarnessAdapter = {
@@ -23,13 +29,19 @@ export const copilotHarness: HarnessAdapter = {
 		const workspacePath = String(payload.cwd ?? env.PWD ?? ".");
 		const eventName = payload.hook_event_name ?? payload.hookEventName;
 
-		const isStop =
-			modeArg === "stop" ||
-			eventName === "Stop" ||
-			payload.stop_hook_active !== undefined ||
-			payload.stopHookActive !== undefined;
+		const isTool =
+			modeArg === "tool" ||
+			eventName === "preToolUse" ||
+			eventName === "PreToolUse";
 
-		const type: "pre" | "stop" = isStop ? "stop" : "pre";
+		const isStop =
+			!isTool &&
+			(modeArg === "stop" ||
+				eventName === "Stop" ||
+				payload.stop_hook_active !== undefined ||
+				payload.stopHookActive !== undefined);
+
+		const type = isTool ? "tool" : isStop ? "stop" : "pre";
 
 		const prompt =
 			typeof payload.prompt === "string"
@@ -43,6 +55,10 @@ export const copilotHarness: HarnessAdapter = {
 		const stopHookActive = Boolean(
 			payload.stop_hook_active ?? payload.stopHookActive,
 		);
+		const toolCall = extractToolCall(payload);
+		const readTargetFilePath = toolCall
+			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
+			: null;
 
 		const partialEvent: NormalizedEvent = {
 			type,
@@ -54,11 +70,26 @@ export const copilotHarness: HarnessAdapter = {
 			stopHookActive,
 			isInterrupted: false,
 			latestMessage: null,
+			toolCall,
+			readTargetFilePath,
 			rawPayload: payload,
 		};
 
 		partialEvent.latestMessage = this.extractLatestMessage(partialEvent);
 		return partialEvent;
+	},
+
+	extractFileReadTarget(
+		toolCall: ToolCall,
+		workspacePath: string,
+	): string | null {
+		if (toolCall.name !== "read_file" && toolCall.name !== "view_file") {
+			return null;
+		}
+		return resolveToolReadPath(
+			toolCall.args.path ?? toolCall.args.file_path,
+			workspacePath,
+		);
 	},
 
 	extractLatestMessage: defaultExtractLatestMessage,
@@ -75,6 +106,22 @@ export const copilotHarness: HarnessAdapter = {
 				};
 			}
 			return { exitCode: 0, stdout: "{}" };
+		}
+
+		if (event.type === "tool") {
+			if (response.decision === "deny") {
+				return {
+					exitCode: 0,
+					stdout: JSON.stringify({
+						permissionDecision: "deny",
+						permissionDecisionReason: response.reason,
+					}),
+				};
+			}
+			return {
+				exitCode: 0,
+				stdout: JSON.stringify({ permissionDecision: "allow" }),
+			};
 		}
 
 		if (event.type === "pre") {
@@ -99,5 +146,12 @@ export const copilotHarness: HarnessAdapter = {
 
 	resolveStorageDir(env: NodeJS.ProcessEnv): string | null {
 		return env.COPILOT_PLUGIN_DATA || null;
+	},
+
+	getSkillDirs(workspacePath: string): string[] {
+		return [
+			...getGenericSkillDirs(workspacePath),
+			path.join(workspacePath, ".github/skills"),
+		];
 	},
 };

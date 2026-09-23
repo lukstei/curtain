@@ -213,4 +213,133 @@ describe("handlers/pre.ts", () => {
 			"[STEP 1 OF 2]",
 		);
 	});
+
+	it("implicitly starts execution when user invokes an annotated skill via slash command", () => {
+		const skillDir = path.join(tmpDir, ".agents/skills/deploy-skill");
+		fs.mkdirSync(skillDir, { recursive: true });
+		fs.writeFileSync(
+			path.join(skillDir, "SKILL.md"),
+			[
+				"---",
+				"name: deploy-skill",
+				"description: Deploy procedure",
+				"---",
+				"# Deploy",
+				"Step 1: Check environment",
+				"> [!CURTAIN]",
+				"Step 2: Deploy",
+			].join("\n"),
+		);
+
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-skill-implicit",
+			workspacePath: tmpDir,
+			harness: "agy",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "/deploy-skill",
+			},
+		};
+
+		const { state, response } = handlePre(info, null, env);
+		expect(state?.status).toBe("running");
+		expect(state?.currentStep).toBe(0);
+		expect(state?.totalSteps).toBe(2);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+			"[STEP 1 OF 2]",
+		);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+			"Step 1: Check environment",
+		);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+			"name: deploy-skill",
+		);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+			"Perform ONLY this step. Conclude when complete.",
+		);
+	});
+
+	it("does not start execution if invoked skill has only 1 step despite mentioning delimiter in code block", () => {
+		const skillDir = path.join(tmpDir, ".agents/skills/doc-skill");
+		fs.mkdirSync(skillDir, { recursive: true });
+		fs.writeFileSync(
+			path.join(skillDir, "SKILL.md"),
+			[
+				"---",
+				"name: doc-skill",
+				"description: Documentation with code example",
+				"---",
+				"# Curtain Guide",
+				"Here is an example:",
+				"```markdown",
+				"> [!CURTAIN]",
+				"```",
+			].join("\n"),
+		);
+
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-skill-doc",
+			workspacePath: tmpDir,
+			harness: "agy",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "/doc-skill",
+			},
+		};
+
+		const { state, response } = handlePre(info, null, env);
+		expect(state).toBeNull();
+		expect(response).toEqual({});
+	});
+
+	it("does not start execution if invoked skill has no curtain annotations", () => {
+		const skillDir = path.join(tmpDir, ".agents/skills/plain-skill");
+		fs.mkdirSync(skillDir, { recursive: true });
+		fs.writeFileSync(
+			path.join(skillDir, "SKILL.md"),
+			[
+				"---",
+				"name: plain-skill",
+				"description: Normal skill without curtains",
+				"---",
+				"# Normal Skill",
+				"1. Step one",
+				"2. Step two",
+			].join("\n"),
+		);
+
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-skill-plain",
+			workspacePath: tmpDir,
+			harness: "agy",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "/plain-skill",
+			},
+		};
+
+		const { state, response } = handlePre(info, null, env);
+		expect(state).toBeNull();
+		expect(response).toEqual({});
+	});
+
+	it("does not trigger implicit mode for regular conversational chat", () => {
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-chat",
+			workspacePath: tmpDir,
+			harness: "agy",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "Can you help me write a new function?",
+			},
+		};
+
+		const { state, response } = handlePre(info, null, env);
+		expect(state).toBeNull();
+		expect(response).toEqual({});
+	});
 });

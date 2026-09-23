@@ -2,6 +2,7 @@
 - Always place runner state transitions and status mutations in `src/transitions.ts`
 - Run `npm run verify` when completing a task (not after every intermediate edit)
 - Never add any backwards compatibility regarding the code, there is no external consumer of the code
+- Ignore dist/curtain.cjs and .agents/plugins/curtain/dist/curtain.cjs, these are automatically built from the source code
 - Reference implementations for cross-agent integrations:
   - Universal packaging & shims: `ponytail` (`~/.gemini/config/plugins/ponytail/`, analyzed in `docs/PACKAGING.md`)
   - Loop interception (`Stop` hook): `ralph-loop` (`~/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop/`)

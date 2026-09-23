@@ -1,4 +1,9 @@
+import type { HarnessType } from "../harnesses/types.ts";
 import { getHelpText, parseCommand } from "../lib/parseCommand.ts";
+import {
+	hasCurtainAnnotations,
+	resolveSkillPath,
+} from "../lib/resolveSkill.ts";
 import { loadScript } from "../resolver.ts";
 import { deleteState, type RunnerState, saveState } from "../state.ts";
 import {
@@ -121,6 +126,37 @@ export function handlePre(
 					state: nextState,
 					response: { injectSteps: [{ ephemeralMessage: msg }] },
 				};
+			}
+		} else if (!state) {
+			const skillMatch = userInput.trim().match(/^[/$]([a-zA-Z0-9_.:-]+)$/);
+			if (skillMatch) {
+				const commandName = skillMatch[1];
+				const harness = info.harness as HarnessType | undefined;
+				const resolvedSkill = resolveSkillPath(
+					commandName,
+					harness,
+					info.workspacePath,
+					env,
+				);
+				if (resolvedSkill && hasCurtainAnnotations(resolvedSkill)) {
+					const loaded = loadScript(resolvedSkill, [info.workspacePath]);
+					if (
+						loaded &&
+						!("error" in loaded) &&
+						loaded.script.steps.length > 1
+					) {
+						const nextState = startExecution(loaded.script);
+						saveState(info.conversationId, nextState, env);
+						const firstStep = nextState.steps[0];
+						const msg = formatStepPrompt(firstStep, nextState.totalSteps);
+						return {
+							state: nextState,
+							response: {
+								injectSteps: [{ ephemeralMessage: msg }],
+							},
+						};
+					}
+				}
 			}
 		}
 	}

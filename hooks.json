@@ -6,6 +6,17 @@
 				"command": "node ./dist/curtain.cjs hook pre"
 			}
 		],
+		"PreToolUse": [
+			{
+				"matcher": "view_file",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node ./dist/curtain.cjs hook tool"
+					}
+				]
+			}
+		],
 		"Stop": [
 			{
 				"type": "command",

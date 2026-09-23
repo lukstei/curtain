@@ -25,12 +25,15 @@ export async function runShim(
 	logDebug.conversationId = event.conversationId;
 
 	const hookInfo: HookInfo = {
-		type: event.type === "stop" ? "stop" : "pre",
+		type: event.type,
 		conversationId: event.conversationId,
 		workspacePath: event.workspacePath,
 		prompt: event.prompt,
 		terminationReason: event.terminationReason,
 		latestMessage: event.latestMessage,
+		harness: event.harness,
+		toolCall: event.toolCall ?? undefined,
+		readTargetFilePath: event.readTargetFilePath ?? undefined,
 	};
 
 	const state = loadState(event.conversationId, env);

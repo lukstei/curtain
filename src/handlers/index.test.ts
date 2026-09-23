@@ -23,6 +23,17 @@ describe("handlers index dispatch", () => {
 		expect(res).toEqual({ state: null, response: { decision: "allow" } });
 	});
 
+	it("dispatches tool hooks to handlePreTool", () => {
+		const info: HookInfo = {
+			type: "tool",
+			conversationId: "curtain-test-tool",
+			workspacePath: "/test",
+			toolCall: { name: "view_file", args: { AbsolutePath: "/test/file.md" } },
+		};
+		const res = handle(info, null);
+		expect(res).toEqual({ state: null, response: { decision: "allow" } });
+	});
+
 	it("throws on unknown hook type", () => {
 		const info = {
 			type: "unknown",

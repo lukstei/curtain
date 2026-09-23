@@ -1,8 +1,15 @@
+import * as os from "node:os";
+import * as path from "node:path";
 import {
 	getLatestMessage,
 	defaultTranscriptParser as parseAgyMessage,
 } from "../lib/getLatestMessage.ts";
-import type { HookResponse, LatestMessage } from "../types.ts";
+import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
+import {
+	extractToolCall,
+	getGenericSkillDirs,
+	resolveToolReadPath,
+} from "./common.ts";
 import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
 
 export { parseAgyMessage };
@@ -40,11 +47,17 @@ export const agyHarness: HarnessAdapter = {
 				? payload.terminationReason
 				: undefined;
 
+		const isTool = modeArg === "tool" || payload.toolCall !== undefined;
 		const isStop =
-			modeArg === "stop" ||
-			Boolean(terminationReason && payload.invocationNum === undefined);
+			!isTool &&
+			(modeArg === "stop" ||
+				Boolean(terminationReason && payload.invocationNum === undefined));
 
-		const type: "pre" | "stop" = isStop ? "stop" : "pre";
+		const type: "pre" | "stop" | "tool" = isTool
+			? "tool"
+			: isStop
+				? "stop"
+				: "pre";
 
 		const prompt =
 			typeof payload.prompt === "string" ? payload.prompt : undefined;
@@ -54,6 +67,11 @@ export const agyHarness: HarnessAdapter = {
 		const stopHookActive = Boolean(
 			typeof payload.executionNum === "number" && payload.executionNum > 1,
 		);
+
+		const toolCall = extractToolCall(payload);
+		const readTargetFilePath = toolCall
+			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
+			: null;
 
 		const partialEvent: NormalizedEvent = {
 			type,
@@ -66,11 +84,24 @@ export const agyHarness: HarnessAdapter = {
 			terminationReason,
 			isInterrupted,
 			latestMessage: null,
+			toolCall,
+			readTargetFilePath,
 			rawPayload: payload,
 		};
 
 		partialEvent.latestMessage = this.extractLatestMessage(partialEvent);
 		return partialEvent;
+	},
+
+	extractFileReadTarget(
+		toolCall: ToolCall,
+		workspacePath: string,
+	): string | null {
+		if (toolCall.name !== "view_file") return null;
+		return resolveToolReadPath(
+			toolCall.args.AbsolutePath ?? toolCall.args.path,
+			workspacePath,
+		);
 	},
 
 	extractLatestMessage(event: NormalizedEvent): LatestMessage | null {
@@ -145,6 +176,22 @@ export const agyHarness: HarnessAdapter = {
 			};
 		}
 
+		if (event.type === "tool") {
+			if (response.decision === "deny") {
+				return {
+					exitCode: 0,
+					stdout: JSON.stringify({
+						decision: "deny",
+						reason: response.reason,
+					}),
+				};
+			}
+			return {
+				exitCode: 0,
+				stdout: JSON.stringify({ decision: "allow" }),
+			};
+		}
+
 		return { exitCode: 0, stdout: JSON.stringify(response) };
 	},
 
@@ -154,5 +201,19 @@ export const agyHarness: HarnessAdapter = {
 
 	resolveStorageDir(env: NodeJS.ProcessEnv): string | null {
 		return env.AGY_PLUGIN_DATA || null;
+	},
+
+	getSkillDirs(
+		workspacePath: string,
+		env: NodeJS.ProcessEnv = process.env,
+	): string[] {
+		const home = env.HOME || os.homedir();
+		return [
+			...getGenericSkillDirs(workspacePath),
+			path.join(workspacePath, ".agents/plugins"),
+			path.join(home, ".gemini/config/skills"),
+			path.join(home, ".gemini/config/plugins"),
+			path.join(home, ".gemini/antigravity/builtin/skills"),
+		];
 	},
 };

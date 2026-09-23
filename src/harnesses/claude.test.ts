@@ -62,7 +62,9 @@ describe("claudeHarness", () => {
 				    "prompt": "/next",
 				    "session_id": "claude-s1",
 				  },
+				  "readTargetFilePath": null,
 				  "stopHookActive": false,
+				  "toolCall": null,
 				  "type": "pre",
 				  "workspacePath": "/claude/workspace",
 				}
@@ -77,6 +79,44 @@ describe("claudeHarness", () => {
 			});
 			expect(event.type).toBe("stop");
 			expect(event.isStop).toBe(true);
+		});
+
+		it("normalizes tool event and extracts readTargetFilePath", () => {
+			const event = claudeHarness.normalize({
+				session_id: "claude-s1",
+				cwd: "/claude/workspace",
+				hook_event_name: "PreToolUse",
+				tool_name: "View",
+				tool_input: { file_path: "/claude/workspace/SKILL.md" },
+			});
+			expect(event.type).toBe("tool");
+			expect(event.readTargetFilePath).toBe("/claude/workspace/SKILL.md");
+		});
+	});
+
+	describe("extractFileReadTarget", () => {
+		it("extracts file_path for View", () => {
+			const target = claudeHarness.extractFileReadTarget?.(
+				{ name: "View", args: { file_path: "/path/to/SKILL.md" } },
+				"/workspace",
+			);
+			expect(target).toBe("/path/to/SKILL.md");
+		});
+
+		it("resolves relative path for read_file", () => {
+			const target = claudeHarness.extractFileReadTarget?.(
+				{ name: "read_file", args: { file_path: "SKILL.md" } },
+				"/workspace",
+			);
+			expect(target).toBe("/workspace/SKILL.md");
+		});
+
+		it("returns null for non-reading tools", () => {
+			const target = claudeHarness.extractFileReadTarget?.(
+				{ name: "Bash", args: { command: "ls" } },
+				"/workspace",
+			);
+			expect(target).toBeNull();
 		});
 	});
 
@@ -144,6 +184,42 @@ describe("claudeHarness", () => {
 				  },
 				}
 			`);
+		});
+
+		it("formats PreToolUse deny as exitCode 2 with stderr", () => {
+			const event = createMockEvent({ type: "tool" });
+			const egress = claudeHarness.formatEgress(event, {
+				decision: "deny",
+				reason: "Blocked by Curtain",
+			});
+			expect(egress.exitCode).toBe(2);
+			expect(egress.stderr).toBe("Blocked by Curtain");
+		});
+
+		it("formats PreToolUse allow as exitCode 0 with empty stdout", () => {
+			const event = createMockEvent({ type: "tool" });
+			const egress = claudeHarness.formatEgress(event, { decision: "allow" });
+			expect(egress.exitCode).toBe(0);
+			expect(egress.stdout).toBe("{}");
+		});
+	});
+
+	describe("getSkillDirs", () => {
+		it("returns generic and Claude skill directories", () => {
+			const dirs = claudeHarness.getSkillDirs?.("/workspace", {
+				HOME: "/home/user",
+				CLAUDE_PLUGIN_ROOT: "/opt/curtain",
+			});
+			expect(dirs).toEqual([
+				"/workspace/.agents/skills",
+				"/workspace/skills",
+				"/workspace/.claude/skills",
+				"/workspace/.claude/plugins",
+				"/home/user/.claude/skills",
+				"/home/user/.claude/plugins/marketplaces",
+				"/home/user/.claude/plugins/cache",
+				"/opt/curtain/skills",
+			]);
 		});
 	});
 });

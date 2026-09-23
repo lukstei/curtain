@@ -73,8 +73,10 @@ describe("agyHarness", () => {
 				      "/agy/project",
 				    ],
 				  },
+				  "readTargetFilePath": null,
 				  "stopHookActive": false,
 				  "terminationReason": undefined,
+				  "toolCall": null,
 				  "type": "pre",
 				  "workspacePath": "/agy/project",
 				}
@@ -89,6 +91,45 @@ describe("agyHarness", () => {
 			});
 			expect(event.type).toBe("stop");
 			expect(event.isStop).toBe(true);
+		});
+
+		it("normalizes tool event and extracts readTargetFilePath", () => {
+			const event = agyHarness.normalize({
+				conversationId: "c-agy",
+				workspacePaths: ["/agy/project"],
+				toolCall: {
+					name: "view_file",
+					args: { AbsolutePath: "/agy/project/SKILL.md" },
+				},
+			});
+			expect(event.type).toBe("tool");
+			expect(event.readTargetFilePath).toBe("/agy/project/SKILL.md");
+		});
+	});
+
+	describe("extractFileReadTarget", () => {
+		it("extracts AbsolutePath for view_file", () => {
+			const target = agyHarness.extractFileReadTarget?.(
+				{ name: "view_file", args: { AbsolutePath: "/path/to/SKILL.md" } },
+				"/workspace",
+			);
+			expect(target).toBe("/path/to/SKILL.md");
+		});
+
+		it("resolves relative path against workspace", () => {
+			const target = agyHarness.extractFileReadTarget?.(
+				{ name: "view_file", args: { AbsolutePath: "SKILL.md" } },
+				"/workspace",
+			);
+			expect(target).toBe("/workspace/SKILL.md");
+		});
+
+		it("returns null for non-reading tools", () => {
+			const target = agyHarness.extractFileReadTarget?.(
+				{ name: "run_command", args: { CommandLine: "ls" } },
+				"/workspace",
+			);
+			expect(target).toBeNull();
 		});
 	});
 
@@ -175,6 +216,48 @@ describe("agyHarness", () => {
 				  ],
 				}
 			`);
+		});
+
+		it("formats tool deny decision", () => {
+			const event = createMockEvent({ type: "tool" });
+			const egress = agyHarness.formatEgress(event, {
+				decision: "deny",
+				reason: "Blocked by Curtain",
+			});
+			expect(egress.exitCode).toBe(0);
+			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
+				{
+				  "decision": "deny",
+				  "reason": "Blocked by Curtain",
+				}
+			`);
+		});
+
+		it("formats tool allow decision", () => {
+			const event = createMockEvent({ type: "tool" });
+			const egress = agyHarness.formatEgress(event, { decision: "allow" });
+			expect(egress.exitCode).toBe(0);
+			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
+				{
+				  "decision": "allow",
+				}
+			`);
+		});
+	});
+
+	describe("getSkillDirs", () => {
+		it("returns generic and AGY skill directories", () => {
+			const dirs = agyHarness.getSkillDirs?.("/workspace", {
+				HOME: "/home/user",
+			});
+			expect(dirs).toEqual([
+				"/workspace/.agents/skills",
+				"/workspace/skills",
+				"/workspace/.agents/plugins",
+				"/home/user/.gemini/config/skills",
+				"/home/user/.gemini/config/plugins",
+				"/home/user/.gemini/antigravity/builtin/skills",
+			]);
 		});
 	});
 });

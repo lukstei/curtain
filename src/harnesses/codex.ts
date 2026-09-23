@@ -1,5 +1,12 @@
-import type { HookResponse } from "../types.ts";
-import { defaultExtractLatestMessage } from "./common.ts";
+import * as os from "node:os";
+import * as path from "node:path";
+import type { HookResponse, ToolCall } from "../types.ts";
+import {
+	defaultExtractLatestMessage,
+	extractToolCall,
+	getGenericSkillDirs,
+	resolveToolReadPath,
+} from "./common.ts";
 import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
 
 export const codexHarness: HarnessAdapter = {
@@ -20,19 +27,29 @@ export const codexHarness: HarnessAdapter = {
 		const workspacePath = String(payload.cwd ?? env.PWD ?? ".");
 		const eventName = payload.hook_event_name ?? payload.hookEventName;
 
+		const isTool = modeArg === "tool" || eventName === "PreToolUse";
 		const isStop =
-			modeArg === "stop" ||
-			eventName === "Stop" ||
-			payload.stop_hook_active !== undefined ||
-			payload.stopHookActive !== undefined;
+			!isTool &&
+			(modeArg === "stop" ||
+				eventName === "Stop" ||
+				payload.stop_hook_active !== undefined ||
+				payload.stopHookActive !== undefined);
 
-		const type: "pre" | "stop" = isStop ? "stop" : "pre";
+		const type: "pre" | "stop" | "tool" = isTool
+			? "tool"
+			: isStop
+				? "stop"
+				: "pre";
 
 		const prompt =
 			typeof payload.prompt === "string" ? payload.prompt : undefined;
 		const stopHookActive = Boolean(
 			payload.stop_hook_active ?? payload.stopHookActive,
 		);
+		const toolCall = extractToolCall(payload);
+		const readTargetFilePath = toolCall
+			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
+			: null;
 
 		const partialEvent: NormalizedEvent = {
 			type,
@@ -44,11 +61,26 @@ export const codexHarness: HarnessAdapter = {
 			stopHookActive,
 			isInterrupted: false,
 			latestMessage: null,
+			toolCall,
+			readTargetFilePath,
 			rawPayload: payload,
 		};
 
 		partialEvent.latestMessage = this.extractLatestMessage(partialEvent);
 		return partialEvent;
+	},
+
+	extractFileReadTarget(
+		toolCall: ToolCall,
+		workspacePath: string,
+	): string | null {
+		if (toolCall.name !== "read_file" && toolCall.name !== "view_file") {
+			return null;
+		}
+		return resolveToolReadPath(
+			toolCall.args.path ?? toolCall.args.file_path,
+			workspacePath,
+		);
 	},
 
 	extractLatestMessage: defaultExtractLatestMessage,
@@ -62,6 +94,22 @@ export const codexHarness: HarnessAdapter = {
 						decision: "block",
 						reason: response.reason,
 						suppressOutput: true,
+					}),
+				};
+			}
+			return { exitCode: 0, stdout: "{}" };
+		}
+
+		if (event.type === "tool") {
+			if (response.decision === "deny") {
+				return {
+					exitCode: 0,
+					stdout: JSON.stringify({
+						hookSpecificOutput: {
+							hookEventName: "PreToolUse",
+							permissionDecision: "deny",
+							permissionDecisionReason: response.reason,
+						},
 					}),
 				};
 			}
@@ -101,5 +149,20 @@ export const codexHarness: HarnessAdapter = {
 
 	resolveStorageDir(env: NodeJS.ProcessEnv): string | null {
 		return env.PLUGIN_DATA || null;
+	},
+
+	getSkillDirs(
+		workspacePath: string,
+		env: NodeJS.ProcessEnv = process.env,
+	): string[] {
+		const home = env.HOME || os.homedir();
+		return [
+			...getGenericSkillDirs(workspacePath),
+			path.join(workspacePath, ".codex/skills"),
+			path.join(workspacePath, ".codex/plugins"),
+			path.join(home, ".codex/skills"),
+			path.join(home, ".codex/plugins/cache"),
+			path.join(home, ".codex/plugins/marketplaces"),
+		];
 	},
 };

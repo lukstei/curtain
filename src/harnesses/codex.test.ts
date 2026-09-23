@@ -65,7 +65,9 @@ describe("codexHarness", () => {
 				    "prompt": "/next",
 				    "session_id": "codex-s1",
 				  },
+				  "readTargetFilePath": null,
 				  "stopHookActive": false,
+				  "toolCall": null,
 				  "type": "pre",
 				  "workspacePath": "/codex/workspace",
 				}
@@ -80,6 +82,44 @@ describe("codexHarness", () => {
 			});
 			expect(event.type).toBe("stop");
 			expect(event.isStop).toBe(true);
+		});
+
+		it("normalizes tool event and extracts readTargetFilePath", () => {
+			const event = codexHarness.normalize({
+				session_id: "codex-s1",
+				cwd: "/codex/workspace",
+				hook_event_name: "PreToolUse",
+				tool_name: "read_file",
+				tool_input: { path: "/codex/workspace/SKILL.md" },
+			});
+			expect(event.type).toBe("tool");
+			expect(event.readTargetFilePath).toBe("/codex/workspace/SKILL.md");
+		});
+	});
+
+	describe("extractFileReadTarget", () => {
+		it("extracts path for read_file", () => {
+			const target = codexHarness.extractFileReadTarget?.(
+				{ name: "read_file", args: { path: "/path/to/SKILL.md" } },
+				"/workspace",
+			);
+			expect(target).toBe("/path/to/SKILL.md");
+		});
+
+		it("resolves relative path for view_file", () => {
+			const target = codexHarness.extractFileReadTarget?.(
+				{ name: "view_file", args: { path: "SKILL.md" } },
+				"/workspace",
+			);
+			expect(target).toBe("/workspace/SKILL.md");
+		});
+
+		it("returns null for non-reading tools", () => {
+			const target = codexHarness.extractFileReadTarget?.(
+				{ name: "Bash", args: { command: "ls" } },
+				"/workspace",
+			);
+			expect(target).toBeNull();
 		});
 	});
 
@@ -155,6 +195,48 @@ describe("codexHarness", () => {
 				  "systemMessage": "[CURTAIN]",
 				}
 			`);
+		});
+
+		it("formats PreToolUse deny as permissionDecision deny", () => {
+			const event = createMockEvent({ type: "tool" });
+			const egress = codexHarness.formatEgress(event, {
+				decision: "deny",
+				reason: "Blocked by Curtain",
+			});
+			expect(egress.exitCode).toBe(0);
+			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
+				{
+				  "hookSpecificOutput": {
+				    "hookEventName": "PreToolUse",
+				    "permissionDecision": "deny",
+				    "permissionDecisionReason": "Blocked by Curtain",
+				  },
+				}
+			`);
+		});
+
+		it("formats PreToolUse allow as empty JSON", () => {
+			const event = createMockEvent({ type: "tool" });
+			const egress = codexHarness.formatEgress(event, { decision: "allow" });
+			expect(egress.exitCode).toBe(0);
+			expect(egress.stdout).toBe("{}");
+		});
+	});
+
+	describe("getSkillDirs", () => {
+		it("returns generic and Codex skill directories", () => {
+			const dirs = codexHarness.getSkillDirs?.("/workspace", {
+				HOME: "/home/user",
+			});
+			expect(dirs).toEqual([
+				"/workspace/.agents/skills",
+				"/workspace/skills",
+				"/workspace/.codex/skills",
+				"/workspace/.codex/plugins",
+				"/home/user/.codex/skills",
+				"/home/user/.codex/plugins/cache",
+				"/home/user/.codex/plugins/marketplaces",
+			]);
 		});
 	});
 });

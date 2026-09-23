@@ -61,7 +61,9 @@ describe("copilotHarness", () => {
 				    "cwd": "/copilot/workspace",
 				    "prompt": "/next",
 				  },
+				  "readTargetFilePath": null,
 				  "stopHookActive": false,
+				  "toolCall": null,
 				  "type": "pre",
 				  "workspacePath": "/copilot/workspace",
 				}
@@ -76,6 +78,44 @@ describe("copilotHarness", () => {
 			});
 			expect(event.type).toBe("stop");
 			expect(event.isStop).toBe(true);
+		});
+
+		it("normalizes tool event and extracts readTargetFilePath", () => {
+			const event = copilotHarness.normalize({
+				conversationId: "copilot-c1",
+				cwd: "/copilot/workspace",
+				hook_event_name: "preToolUse",
+				tool_name: "read_file",
+				tool_input: { path: "/copilot/workspace/SKILL.md" },
+			});
+			expect(event.type).toBe("tool");
+			expect(event.readTargetFilePath).toBe("/copilot/workspace/SKILL.md");
+		});
+	});
+
+	describe("extractFileReadTarget", () => {
+		it("extracts path for read_file", () => {
+			const target = copilotHarness.extractFileReadTarget?.(
+				{ name: "read_file", args: { path: "/path/to/SKILL.md" } },
+				"/workspace",
+			);
+			expect(target).toBe("/path/to/SKILL.md");
+		});
+
+		it("resolves relative path for view_file", () => {
+			const target = copilotHarness.extractFileReadTarget?.(
+				{ name: "view_file", args: { file_path: "SKILL.md" } },
+				"/workspace",
+			);
+			expect(target).toBe("/workspace/SKILL.md");
+		});
+
+		it("returns null for non-reading tools", () => {
+			const target = copilotHarness.extractFileReadTarget?.(
+				{ name: "Bash", args: { command: "ls" } },
+				"/workspace",
+			);
+			expect(target).toBeNull();
 		});
 	});
 
@@ -131,6 +171,32 @@ describe("copilotHarness", () => {
 			expect(egress.stdout).toBe("{}");
 		});
 
+		it("formats PreToolUse deny decision", () => {
+			const event = createMockEvent({ type: "tool" });
+			const egress = copilotHarness.formatEgress(event, {
+				decision: "deny",
+				reason: "Blocked by Curtain",
+			});
+			expect(egress.exitCode).toBe(0);
+			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
+				{
+				  "permissionDecision": "deny",
+				  "permissionDecisionReason": "Blocked by Curtain",
+				}
+			`);
+		});
+
+		it("formats PreToolUse allow decision", () => {
+			const event = createMockEvent({ type: "tool" });
+			const egress = copilotHarness.formatEgress(event, { decision: "allow" });
+			expect(egress.exitCode).toBe(0);
+			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
+				{
+				  "permissionDecision": "allow",
+				}
+			`);
+		});
+
 		it("formats PreInvocation with additionalContext", () => {
 			const event = createMockEvent({ type: "pre" });
 			const egress = copilotHarness.formatEgress(event, {
@@ -142,6 +208,17 @@ describe("copilotHarness", () => {
 				  "additionalContext": "Instruction for step 1",
 				}
 			`);
+		});
+	});
+
+	describe("getSkillDirs", () => {
+		it("returns generic and Copilot skill directories", () => {
+			const dirs = copilotHarness.getSkillDirs?.("/workspace");
+			expect(dirs).toEqual([
+				"/workspace/.agents/skills",
+				"/workspace/skills",
+				"/workspace/.github/skills",
+			]);
 		});
 	});
 });

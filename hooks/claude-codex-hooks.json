@@ -23,6 +23,18 @@
 				]
 			}
 		],
+		"PreToolUse": [
+			{
+				"matcher": "View|read_file",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.cjs\" hook tool",
+						"timeout": 10
+					}
+				]
+			}
+		],
 		"Stop": [
 			{
 				"hooks": [

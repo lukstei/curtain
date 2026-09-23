@@ -1,5 +1,12 @@
-import type { HookResponse } from "../types.ts";
-import { defaultExtractLatestMessage } from "./common.ts";
+import * as os from "node:os";
+import * as path from "node:path";
+import type { HookResponse, ToolCall } from "../types.ts";
+import {
+	defaultExtractLatestMessage,
+	extractToolCall,
+	getGenericSkillDirs,
+	resolveToolReadPath,
+} from "./common.ts";
 import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
 
 export const claudeHarness: HarnessAdapter = {
@@ -21,16 +28,26 @@ export const claudeHarness: HarnessAdapter = {
 		const workspacePath = String(payload.cwd ?? env.PWD ?? ".");
 		const eventName = payload.hook_event_name;
 
+		const isTool = modeArg === "tool" || eventName === "PreToolUse";
 		const isStop =
-			modeArg === "stop" ||
-			eventName === "Stop" ||
-			payload.stop_hook_active !== undefined;
+			!isTool &&
+			(modeArg === "stop" ||
+				eventName === "Stop" ||
+				payload.stop_hook_active !== undefined);
 
-		const type: "pre" | "stop" = isStop ? "stop" : "pre";
+		const type: "pre" | "stop" | "tool" = isTool
+			? "tool"
+			: isStop
+				? "stop"
+				: "pre";
 
 		const prompt =
 			typeof payload.prompt === "string" ? payload.prompt : undefined;
 		const stopHookActive = Boolean(payload.stop_hook_active);
+		const toolCall = extractToolCall(payload);
+		const readTargetFilePath = toolCall
+			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
+			: null;
 
 		const partialEvent: NormalizedEvent = {
 			type,
@@ -42,11 +59,26 @@ export const claudeHarness: HarnessAdapter = {
 			stopHookActive,
 			isInterrupted: false,
 			latestMessage: null,
+			toolCall,
+			readTargetFilePath,
 			rawPayload: payload,
 		};
 
 		partialEvent.latestMessage = this.extractLatestMessage(partialEvent);
 		return partialEvent;
+	},
+
+	extractFileReadTarget(
+		toolCall: ToolCall,
+		workspacePath: string,
+	): string | null {
+		if (toolCall.name !== "View" && toolCall.name !== "read_file") {
+			return null;
+		}
+		return resolveToolReadPath(
+			toolCall.args.file_path ?? toolCall.args.path,
+			workspacePath,
+		);
 	},
 
 	extractLatestMessage: defaultExtractLatestMessage,
@@ -60,6 +92,16 @@ export const claudeHarness: HarnessAdapter = {
 						decision: "block",
 						reason: response.reason,
 					}),
+				};
+			}
+			return { exitCode: 0, stdout: "{}" };
+		}
+
+		if (event.type === "tool") {
+			if (response.decision === "deny") {
+				return {
+					exitCode: 2,
+					stderr: response.reason ?? "Blocked by Curtain",
 				};
 			}
 			return { exitCode: 0, stdout: "{}" };
@@ -94,5 +136,24 @@ export const claudeHarness: HarnessAdapter = {
 
 	resolveStorageDir(env: NodeJS.ProcessEnv): string | null {
 		return env.CLAUDE_PLUGIN_DATA || null;
+	},
+
+	getSkillDirs(
+		workspacePath: string,
+		env: NodeJS.ProcessEnv = process.env,
+	): string[] {
+		const home = env.HOME || os.homedir();
+		const dirs = [
+			...getGenericSkillDirs(workspacePath),
+			path.join(workspacePath, ".claude/skills"),
+			path.join(workspacePath, ".claude/plugins"),
+			path.join(home, ".claude/skills"),
+			path.join(home, ".claude/plugins/marketplaces"),
+			path.join(home, ".claude/plugins/cache"),
+		];
+		if (env.CLAUDE_PLUGIN_ROOT) {
+			dirs.push(path.join(env.CLAUDE_PLUGIN_ROOT, "skills"));
+		}
+		return dirs;
 	},
 };
