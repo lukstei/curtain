@@ -241,7 +241,7 @@ describe("transitions.ts", () => {
 			instruction: "Ensure 100% pass rate",
 		};
 		expect(formatStepPrompt(stepWithPauseInstruction, 3)).toBe(
-			"[STEP 1 OF 3]\n\nRun test suite\n\n[INTERMISSION CRITERIA]\nEnsure 100% pass rate\n\nPerform ONLY this step. Conclude when complete.",
+			"[STEP 1 OF 3]\n\nRun test suite\n\n[INTERMISSION CRITERIA]\nEnsure 100% pass rate\n\nPerform ONLY this step. Conclude when complete. When concluding your turn, inform the user that only /next will proceed.",
 		);
 
 		const stepWithAutoInstruction = {

@@ -43,7 +43,7 @@ describe("claudeHarness", () => {
 				session_id: "claude-s1",
 				cwd: "/claude/workspace",
 				hook_event_name: "UserPromptSubmit",
-				prompt: "/curtain raise",
+				prompt: "/next",
 			});
 			expect(event).toMatchInlineSnapshot(`
 				{
@@ -52,14 +52,14 @@ describe("claudeHarness", () => {
 				  "isInterrupted": false,
 				  "isStop": false,
 				  "latestMessage": {
-				    "content": "/curtain raise",
+				    "content": "/next",
 				    "type": "USER_INPUT",
 				  },
-				  "prompt": "/curtain raise",
+				  "prompt": "/next",
 				  "rawPayload": {
 				    "cwd": "/claude/workspace",
 				    "hook_event_name": "UserPromptSubmit",
-				    "prompt": "/curtain raise",
+				    "prompt": "/next",
 				    "session_id": "claude-s1",
 				  },
 				  "stopHookActive": false,
@@ -97,12 +97,12 @@ describe("claudeHarness", () => {
 		it("extracts user prompt on pre", () => {
 			const event = createMockEvent({
 				type: "pre",
-				prompt: "/curtain raise",
+				prompt: "/next",
 			});
 			const res = claudeHarness.extractLatestMessage(event);
 			expect(res).toEqual({
 				type: "USER_INPUT",
-				content: "/curtain raise",
+				content: "/next",
 			});
 		});
 	});

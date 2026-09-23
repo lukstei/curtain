@@ -28,7 +28,7 @@ export function getCliHelp(): string {
 		"Usage:",
 		"  curtain <file.md>        Start execution of a multi-act script",
 		"  curtain start <file.md>  Start execution of a multi-act script",
-		"  curtain raise            Advance to next step when paused at a curtain",
+		"  curtain next             Advance to next step when paused at an intermission",
 		"  curtain drop             Stop execution and reset state",
 		"  curtain status           Display current step and runner status",
 		"  curtain hook <event>     Execute harness lifecycle hook (pre, stop)",
@@ -120,7 +120,7 @@ export async function runCli(
 		return { exitCode: 0, output: msg };
 	}
 
-	if (parsed.command === "raise" || parsed.command === "next") {
+	if (parsed.command === "next") {
 		const state = loadState(conversationId, env);
 		if (!state) {
 			const err =

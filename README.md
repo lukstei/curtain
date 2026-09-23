@@ -94,7 +94,7 @@ Skills and playbooks are standard Markdown files separated by GitHub-style callo
 | Delimiter | Type | Behavior |
 | :--- | :--- | :--- |
 | `> [!CURTAIN]` | Automatic | Delimiter concluding the active Act. Intercepts turn completion via the `Stop` hook, raises the curtain, and feeds the next Act immediately. |
-| `> [!INTERMISSION]` | Intermission Gate | Intermission concluding the active Act. Pauses execution and yields control to the developer for review. Feedback messages replay the intermission criteria. Resume with `/curtain raise`. |
+| `> [!INTERMISSION]` | Intermission Gate | Intermission concluding the active Act. Pauses execution and yields control to the developer for review. Feedback messages replay the intermission criteria. Resume with `/next`. |
 
 Delimiters support optional instructions:
 - `> [!INTERMISSION] Criteria` formats as `[INTERMISSION CRITERIA]` and replays as `[INTERMISSION REVIEW]` during review turns.
@@ -105,7 +105,7 @@ Delimiters support optional instructions:
 | Command (Claude / AGY) | Command (Codex CLI) | Description |
 | :--- | :--- | :--- |
 | `/curtain <file.md>` | `$curtain:start <file.md>` | Start execution of a multi-act script. |
-| `/curtain raise` | `$curtain:raise` | Lift the curtain at a gate, advancing to and injecting the next Act. |
+| `/next` | `$curtain:next` | Advance to the next Act when paused at an intermission. |
 | `/curtain drop` | `$curtain:drop` | Abort execution, delete state, and stop the runner. |
 | `/curtain status` | `$curtain:status` | Display current Act number, total Acts, and runner status. |
 | `/curtain help` | `$curtain:help` | Display usage instructions and supported runner commands. |

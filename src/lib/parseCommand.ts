@@ -1,5 +1,5 @@
 export type CurtainCommand =
-	| { name: "raise" }
+	| { name: "next" }
 	| { name: "drop" }
 	| { name: "status" }
 	| { name: "run"; path: string }
@@ -31,6 +31,10 @@ export function parseCommand(input?: string): ParseResult {
 	if (!input) return { isCurtainCommand: false };
 	const trimmed = input.trim();
 
+	if (/^[/$]next$/i.test(trimmed)) {
+		return { isCurtainCommand: true, command: { name: "next" } };
+	}
+
 	// Match /curtain, $curtain, $curtain:curtain followed by delimiters or end
 	const match = trimmed.match(
 		/^(?:\/curtain|\$curtain(?::curtain)?|\$curtain)(?:[:\s-]+(.*)|$)/i,
@@ -47,8 +51,8 @@ export function parseCommand(input?: string): ParseResult {
 	const tokens = rest.split(/\s+/);
 	const sub = tokens[0].toLowerCase();
 
-	if (sub === "raise" || sub === "next") {
-		return { isCurtainCommand: true, command: { name: "raise" } };
+	if (sub === "next") {
+		return { isCurtainCommand: true, command: { name: "next" } };
 	}
 
 	if (sub === "drop" || sub === "stop" || sub === "abort") {
@@ -87,7 +91,7 @@ export function getHelpText(): string {
 	return [
 		"Curtain Commands:",
 		"  /curtain <file.md>      Start execution of a multi-act script",
-		"  /curtain raise          Advance to next step when paused at a curtain",
+		"  /next                   Advance to next step when paused at an intermission",
 		"  /curtain drop           Stop execution and reset state",
 		"  /curtain status         Display current step and runner status",
 		"  /curtain help           Display this help message",

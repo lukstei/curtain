@@ -3,17 +3,21 @@ import { parseCommand } from "./parseCommand.ts";
 
 describe("parseCommand.ts", () => {
 	it("parses slash commands", () => {
-		expect(parseCommand("/curtain raise")).toEqual({
+		expect(parseCommand("/next")).toEqual({
 			isCurtainCommand: true,
-			command: { name: "raise" },
+			command: { name: "next" },
+		});
+		expect(parseCommand("$next")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "next" },
 		});
 		expect(parseCommand("/curtain next")).toEqual({
 			isCurtainCommand: true,
-			command: { name: "raise" },
+			command: { name: "next" },
 		});
-		expect(parseCommand("/curtain-raise")).toEqual({
+		expect(parseCommand("/curtain-next")).toEqual({
 			isCurtainCommand: true,
-			command: { name: "raise" },
+			command: { name: "next" },
 		});
 		expect(parseCommand("/curtain drop")).toEqual({
 			isCurtainCommand: true,
@@ -45,9 +49,9 @@ describe("parseCommand.ts", () => {
 	});
 
 	it("parses codex mentions", () => {
-		expect(parseCommand("$curtain:raise")).toEqual({
+		expect(parseCommand("$curtain:next")).toEqual({
 			isCurtainCommand: true,
-			command: { name: "raise" },
+			command: { name: "next" },
 		});
 		expect(parseCommand("$curtain:status")).toEqual({
 			isCurtainCommand: true,

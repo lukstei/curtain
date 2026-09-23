@@ -21,7 +21,7 @@ Users and agents interact with Curtain via slash commands (Claude Code / AGY) or
 | Command (Claude / AGY) | Command (Codex CLI) | Description |
 | :--- | :--- | :--- |
 | `/curtain <file.md>` | `$curtain:start <file.md>` | Start execution of a multi-act script. |
-| `/curtain raise` | `$curtain:raise` | Lift the curtain at a pause, advancing to the next step. |
+| `/next` | `$curtain:next` | Advance to the next step when paused at an intermission. |
 | `/curtain drop` | `$curtain:drop` | Abort and reset the currently active script execution. |
 | `/curtain status` | `$curtain:status` | Display current step number, total steps, and status. |
 | `/curtain help` | `$curtain:help` | Display usage instructions and supported runner commands. |

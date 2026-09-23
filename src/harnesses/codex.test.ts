@@ -46,7 +46,7 @@ describe("codexHarness", () => {
 				session_id: "codex-s1",
 				cwd: "/codex/workspace",
 				hook_event_name: "UserPromptSubmit",
-				prompt: "/curtain raise",
+				prompt: "/next",
 			});
 			expect(event).toMatchInlineSnapshot(`
 				{
@@ -55,14 +55,14 @@ describe("codexHarness", () => {
 				  "isInterrupted": false,
 				  "isStop": false,
 				  "latestMessage": {
-				    "content": "/curtain raise",
+				    "content": "/next",
 				    "type": "USER_INPUT",
 				  },
-				  "prompt": "/curtain raise",
+				  "prompt": "/next",
 				  "rawPayload": {
 				    "cwd": "/codex/workspace",
 				    "hook_event_name": "UserPromptSubmit",
-				    "prompt": "/curtain raise",
+				    "prompt": "/next",
 				    "session_id": "codex-s1",
 				  },
 				  "stopHookActive": false,

@@ -43,7 +43,7 @@ describe("copilotHarness", () => {
 			const event = copilotHarness.normalize({
 				conversationId: "copilot-c1",
 				cwd: "/copilot/workspace",
-				prompt: "/curtain raise",
+				prompt: "/next",
 			});
 			expect(event).toMatchInlineSnapshot(`
 				{
@@ -52,14 +52,14 @@ describe("copilotHarness", () => {
 				  "isInterrupted": false,
 				  "isStop": false,
 				  "latestMessage": {
-				    "content": "/curtain raise",
+				    "content": "/next",
 				    "type": "USER_INPUT",
 				  },
-				  "prompt": "/curtain raise",
+				  "prompt": "/next",
 				  "rawPayload": {
 				    "conversationId": "copilot-c1",
 				    "cwd": "/copilot/workspace",
-				    "prompt": "/curtain raise",
+				    "prompt": "/next",
 				  },
 				  "stopHookActive": false,
 				  "type": "pre",
@@ -83,12 +83,12 @@ describe("copilotHarness", () => {
 		it("extracts prompt on pre", () => {
 			const event = createMockEvent({
 				type: "pre",
-				prompt: "/curtain raise",
+				prompt: "/next",
 			});
 			const res = copilotHarness.extractLatestMessage(event);
 			expect(res).toEqual({
 				type: "USER_INPUT",
-				content: "/curtain raise",
+				content: "/next",
 			});
 		});
 

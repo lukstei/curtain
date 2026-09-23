@@ -21,7 +21,7 @@ Acts are bounded by GitHub-style callout alert blockquotes:
 | Delimiter | Type | Behavior |
 | :--- | :--- | :--- |
 | `> [!CURTAIN]` | Automatic Transition | Delimiter concluding the active Act. Intercepts turn conclusion via the `Stop` hook and automatically feeds the next Act without waiting for user confirmation. |
-| `> [!INTERMISSION]` | Intermission Gate | Intermission for human-in-the-loop review concluding the active Act. The `Stop` hook permits the agent to stop its turn and report back. The next Act is only injected when the developer explicitly raises the curtain via `/curtain raise`. |
+| `> [!INTERMISSION]` | Intermission Gate | Intermission for human-in-the-loop review concluding the active Act. The `Stop` hook permits the agent to stop its turn and report back. The next Act is only injected when the developer enters `/next`. |
 
 ### Grammar Rules
 
@@ -104,12 +104,12 @@ Update schema docs in `docs/db.md`.
   [INTERMISSION REVIEW]
   <intermission instruction>
 
-  Conclude your turn when complete. The curtain remains paused until the user enters /curtain raise.
+  Conclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed.
   ```
 - Downstream Acts remain completely withheld from context.
-- Once satisfied, the developer raises the curtain:
+- Once satisfied, the developer advances to the next step:
   ```bash
-  /curtain raise
+  /next
   ```
 - The `PreInvocation` hook advances `currentStep`, sets `status: "running"`, and injects Act $N+1$.
 
@@ -123,7 +123,7 @@ Update schema docs in `docs/db.md`.
 | Command (Claude / AGY) | Command (Codex CLI) | CLI Terminal | Description |
 | :--- | :--- | :--- | :--- |
 | `/curtain <file.md>` | `$curtain:start <file.md>` | `curtain <file.md>` | Start execution of a multi-act script. |
-| `/curtain raise` | `$curtain:raise` | `curtain raise` | Advance to the next Act when paused at an intermission. |
+| `/next` | `$curtain:next` | `curtain next` | Advance to the next Act when paused at an intermission. |
 | `/curtain drop` | `$curtain:drop` | `curtain drop` | Abort execution and delete state. |
 | `/curtain status` | `$curtain:status` | `curtain status` | Display current step number, total steps, and runner status (including intermission criteria if paused). |
 | `/curtain help` | `$curtain:help` | `curtain help` | Display usage instructions and supported runner commands. |

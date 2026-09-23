@@ -55,14 +55,14 @@ describe("util library functions", () => {
 					step_index: 4,
 					source: "USER_EXPLICIT",
 					type: "USER_INPUT",
-					content: "/curtain raise",
+					content: "/next",
 				}),
 		);
 
 		const nextMsg = getLatestMessage(transcriptPath);
 		expect(nextMsg).toBeDefined();
 		expect(nextMsg?.type).toBe("USER_INPUT");
-		expect(nextMsg?.content).toBe("/curtain raise");
+		expect(nextMsg?.content).toBe("/next");
 
 		// Append Claude Code style assistant message
 		fs.appendFileSync(

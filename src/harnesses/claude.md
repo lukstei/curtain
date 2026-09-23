@@ -62,7 +62,7 @@ Claude Code discovers plugins via `.claude-plugin/`:
 - **Runaway Loop Protection**: The curtain runner terminates when execution is complete or paused. Claude Code's platform block cap (`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`) prevents runaway loops. Intermediate continuation turns have `stop_hook_active: true` and continue with `{"decision": "block"}` until complete.
 
 ### 4.2 UserPromptSubmit Hook
-- Triggers when a user enters a prompt or runs a command like `/curtain raise`.
+- Triggers when a user enters a prompt or runs a command like `/next`.
 - Injects context via `hookSpecificOutput`:
   ```json
   {

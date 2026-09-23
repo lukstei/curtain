@@ -61,7 +61,7 @@ export function handlePre(
 				};
 			}
 
-			if (parsed.command.name === "raise") {
+			if (parsed.command.name === "next") {
 				if (!state) {
 					return {
 						state: null,
@@ -88,9 +88,7 @@ export function handlePre(
 					return {
 						state: null,
 						response: {
-							injectSteps: [
-								{ ephemeralMessage: "Curtain raised. Execution complete." },
-							],
+							injectSteps: [{ ephemeralMessage: "Execution complete." }],
 						},
 					};
 				}
@@ -129,15 +127,16 @@ export function handlePre(
 
 	if (state?.status === "paused") {
 		const currentStep = state.steps[state.currentStep];
-		if (currentStep?.instruction) {
-			const msg = `[INTERMISSION REVIEW]\n${currentStep.instruction}\n\nConclude your turn when complete. The curtain remains paused until the user enters /curtain raise.`;
-			return {
-				state,
-				response: {
-					injectSteps: [{ ephemeralMessage: msg }],
-				},
-			};
-		}
+		const criteriaPart = currentStep?.instruction
+			? `${currentStep.instruction}\n\n`
+			: "";
+		const msg = `[INTERMISSION REVIEW]\n${criteriaPart}Conclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed.`;
+		return {
+			state,
+			response: {
+				injectSteps: [{ ephemeralMessage: msg }],
+			},
+		};
 	}
 
 	return { state, response: {} };

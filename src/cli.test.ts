@@ -32,8 +32,8 @@ describe("cli.ts", () => {
 			args: ["playbook.md"],
 			options: {},
 		});
-		expect(parseCliArgs(["raise"])).toEqual({
-			command: "raise",
+		expect(parseCliArgs(["next"])).toEqual({
+			command: "next",
 			subcommand: undefined,
 			args: [],
 			options: {},
@@ -95,7 +95,7 @@ describe("cli.ts", () => {
 		);
 	});
 
-	it("completes execution when curtain raise is run on final step intermission", async () => {
+	it("completes execution when curtain next is run on final step intermission", async () => {
 		const scriptPath = path.join(tmpDir, "single-pause.md");
 		fs.writeFileSync(
 			scriptPath,
@@ -119,11 +119,11 @@ describe("cli.ts", () => {
 			saveState(conversationId, { ...state, status: "paused" }, testEnv);
 		}
 
-		// 2. Raise curtain on final step
-		const ioRaise = createIo();
-		const resRaise = await runCli(["raise"], ioRaise.io, testEnv);
-		expect(resRaise.exitCode).toBe(0);
-		expect(resRaise.output).toBe("[CURTAIN STATUS] Execution complete.");
+		// 2. Advance curtain on final step
+		const ioNext = createIo();
+		const resNext = await runCli(["next"], ioNext.io, testEnv);
+		expect(resNext.exitCode).toBe(0);
+		expect(resNext.output).toBe("[CURTAIN STATUS] Execution complete.");
 
 		// 3. Verify state is deleted
 		expect(loadState(conversationId, testEnv)).toBeNull();

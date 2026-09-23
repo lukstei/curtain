@@ -26,14 +26,14 @@ describe("handlers/pre.ts", () => {
 		],
 	};
 
-	it("resumes execution when user sends /curtain raise", () => {
+	it("resumes execution when user sends /next", () => {
 		const info: HookInfo = {
 			type: "pre",
 			conversationId: "test-c1",
 			workspacePath: "/test",
 			latestMessage: {
 				type: "USER_INPUT",
-				content: "/curtain raise",
+				content: "/next",
 			},
 		};
 
@@ -55,7 +55,7 @@ describe("handlers/pre.ts", () => {
 		`);
 	});
 
-	it("completes execution when user sends /curtain raise on final step intermission", () => {
+	it("completes execution when user sends /next on final step intermission", () => {
 		const singleStepPausedState: RunnerState = {
 			script: "sample.md",
 			status: "paused",
@@ -76,7 +76,7 @@ describe("handlers/pre.ts", () => {
 			workspacePath: "/test",
 			latestMessage: {
 				type: "USER_INPUT",
-				content: "/curtain raise",
+				content: "/next",
 			},
 		};
 
@@ -86,7 +86,7 @@ describe("handlers/pre.ts", () => {
 			{
 			  "injectSteps": [
 			    {
-			      "ephemeralMessage": "Curtain raised. Execution complete.",
+			      "ephemeralMessage": "Execution complete.",
 			    },
 			  ],
 			}
@@ -149,14 +149,14 @@ describe("handlers/pre.ts", () => {
 			      "ephemeralMessage": "[INTERMISSION REVIEW]
 			Check table schema
 
-			Conclude your turn when complete. The curtain remains paused until the user enters /curtain raise.",
+			Conclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed.",
 			    },
 			  ],
 			}
 		`);
 	});
 
-	it("passes normal user messages through when paused without intermission instruction", () => {
+	it("replays intermission review reminder when paused without intermission instruction", () => {
 		const stateWithoutInstruction: RunnerState = {
 			...sampleState,
 			steps: [
@@ -176,7 +176,16 @@ describe("handlers/pre.ts", () => {
 
 		const { state, response } = handlePre(info, stateWithoutInstruction, env);
 		expect(state).toEqual(stateWithoutInstruction);
-		expect(response).toEqual({});
+		expect(response).toMatchInlineSnapshot(`
+			{
+			  "injectSteps": [
+			    {
+			      "ephemeralMessage": "[INTERMISSION REVIEW]
+			Conclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed.",
+			    },
+			  ],
+			}
+		`);
 	});
 
 	it("starts script on /curtain run <file>", () => {

@@ -28,7 +28,7 @@ export function startExecution(script: Script): RunnerState {
 }
 
 /**
- * Resumes execution from a paused gate to the next step (e.g. via /curtain raise).
+ * Resumes execution from a paused gate to the next step (e.g. via /next).
  */
 export function resumeExecution(state: RunnerState): ResumeResult {
 	assert(state, "State must be provided to resume");
@@ -99,7 +99,11 @@ export function formatStepPrompt(step: Step, totalSteps: number): string {
 	const criteria = step.instruction
 		? `[${step.type === "pause" ? "INTERMISSION" : "TRANSITION"} CRITERIA]\n${step.instruction}\n\n`
 		: "";
-	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete.`;
+	const pauseNotice =
+		step.type === "pause"
+			? " When concluding your turn, inform the user that only /next will proceed."
+			: "";
+	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete.${pauseNotice}`;
 }
 
 /**

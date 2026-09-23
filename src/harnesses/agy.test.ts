@@ -53,7 +53,7 @@ describe("agyHarness", () => {
 			const event = agyHarness.normalize({
 				conversationId: "c-agy",
 				workspacePaths: ["/agy/project"],
-				prompt: "/curtain raise",
+				prompt: "/next",
 			});
 			expect(event).toMatchInlineSnapshot(`
 				{
@@ -62,13 +62,13 @@ describe("agyHarness", () => {
 				  "isInterrupted": false,
 				  "isStop": false,
 				  "latestMessage": {
-				    "content": "/curtain raise",
+				    "content": "/next",
 				    "type": "USER_INPUT",
 				  },
-				  "prompt": "/curtain raise",
+				  "prompt": "/next",
 				  "rawPayload": {
 				    "conversationId": "c-agy",
-				    "prompt": "/curtain raise",
+				    "prompt": "/next",
 				    "workspacePaths": [
 				      "/agy/project",
 				    ],
@@ -96,20 +96,20 @@ describe("agyHarness", () => {
 		it("extracts user prompt when present on first invocation", () => {
 			const event = createMockEvent({
 				type: "pre",
-				prompt: "/curtain raise",
+				prompt: "/next",
 				rawPayload: { invocationNum: 1 },
 			});
 			const res = agyHarness.extractLatestMessage(event);
 			expect(res).toEqual({
 				type: "USER_INPUT",
-				content: "/curtain raise",
+				content: "/next",
 			});
 		});
 
 		it("returns null on pre when invocationNum > 1 (prevent stale input re-injection)", () => {
 			const event = createMockEvent({
 				type: "pre",
-				prompt: "/curtain raise",
+				prompt: "/next",
 				rawPayload: { invocationNum: 2 },
 			});
 			expect(agyHarness.extractLatestMessage(event)).toBeNull();
