@@ -27,10 +27,10 @@ Maintaining separate plugins per harness leads to configuration drift and mainte
 
 Detailed specifications, wire schemas, lifecycle protocols, and egress formats are documented in each harness guide:
 
-- [OpenAI Codex CLI Specification](../src/harnesses/codex.md)
-- [Anthropic Claude Code Specification](../src/harnesses/claude.md)
-- [Google Antigravity (AGY) Specification](../src/harnesses/agy.md)
-- [GitHub Copilot / VS Code Agent Specification](../src/harnesses/copilot.md)
+- [OpenAI Codex CLI Specification](harnesses/codex.md)
+- [Anthropic Claude Code Specification](harnesses/claude.md)
+- [Google Antigravity (AGY) Specification](harnesses/agy.md)
+- [GitHub Copilot / VS Code Agent Specification](harnesses/copilot.md)
 
 ---
 
@@ -112,13 +112,13 @@ curtain/
 │   └── AGENTS.md                     # Behavioral guidelines
 │
 ├── src/
-│   ├── harnesses/                    # Harness-specific adapters & docs
+│   ├── harnesses/                    # Harness-specific adapters
 │   │   ├── types.ts                  # HarnessAdapter & EgressOutput types
 │   │   ├── index.ts                  # Registry & detection router
-│   │   ├── codex.ts & codex.md       # Codex adapter & spec
-│   │   ├── claude.ts & claude.md     # Claude Code adapter & spec
-│   │   ├── agy.ts & agy.md           # Antigravity adapter & spec
-│   │   └── copilot.ts & copilot.md   # Copilot adapter & spec
+│   │   ├── codex.ts                  # Codex adapter
+│   │   ├── claude.ts                 # Claude Code adapter
+│   │   ├── agy.ts                    # Antigravity adapter
+│   │   └── copilot.ts                # Copilot adapter
 │   │
 │   ├── shim/                         # Runtime CLI shim
 │   │   ├── runtime-shim.ts           # Entry point: stdin buffering & execution

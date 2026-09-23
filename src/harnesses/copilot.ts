@@ -1,3 +1,4 @@
+// see reference docs: docs/harnesses/copilot.md
 import * as path from "node:path";
 import type { HookResponse, ToolCall } from "../types.ts";
 import {

@@ -24,7 +24,7 @@
 - **Objective:** Support running multi-act instructions provided directly via prompt text or standard input while addressing the trade-off between soft in-memory execution and hard token withholding via scratch-file spilling.
 - **Agent Triage:** Detect inline delimiters in `parseCommand` to allow in-memory execution via `parseScript(text, "<inline>")`, or route through a skill wrapper that spills instructions to disk before runner invocation.
 
-### [ ] 4. Distill Actual Reference Docs for Harness Docs
+### [x] 4. Distill Actual Reference Docs for Harness Docs
 - **Current State:** Harness specifications in `src/harnesses/*.md` (`agy.md`, `claude.md`, `codex.md`, `copilot.md`) contain synthesized integration notes and reverse-engineered behavior that risk drifting from upstream agent runtime contracts.
 - **Objective:** Distill authoritative, up-to-date reference documentation for each harness from official ecosystem sources, reference plugins (`ponytail`, `ralph-loop`, `superpowers`), and runtime specs into structured harness reference docs.
 - **Agent Triage:** Verify official hook schemas and payload specs against upstream docs. Replace assumed behavior with tested cross-harness contracts.
