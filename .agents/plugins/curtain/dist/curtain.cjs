@@ -496,56 +496,521 @@ var path = __toESM(require("node:path"), 1);
 
 // src/parser.ts
 var import_strict2 = __toESM(require("node:assert/strict"), 1);
-var DELIMITER_REGEX = /^##\s*<curtain(?::(auto|gate|pause))?>\s*$/gim;
+
+// src/lib/markdown/parsing.ts
+function parse(markdown) {
+  return MarkdownParser.parse(markdown);
+}
+var MismatchError = class _MismatchError extends Error {
+  constructor() {
+    super("Mismatched token");
+    Object.setPrototypeOf(this, _MismatchError.prototype);
+  }
+};
+var MarkdownParser = class _MarkdownParser {
+  chars;
+  index = 0;
+  static NEWLINE = ["\r\n", "\r", "\n"];
+  static NEW_PARAGRAPH = _MarkdownParser.NEWLINE.flatMap(
+    (prefix) => _MarkdownParser.NEWLINE.map((suffix) => prefix + suffix)
+  );
+  constructor(input) {
+    this.chars = [...input];
+  }
+  static parse(input) {
+    return new _MarkdownParser(input).parseNext();
+  }
+  parseNext(end = "") {
+    const root = {
+      type: "fragment",
+      children: [],
+      source: ""
+    };
+    const startIndex = this.index;
+    let text = "";
+    let lastBlockIndex = 0;
+    let paragraphStartIndex = this.index;
+    let textStartIndex = this.index;
+    const flushParagraph = (endIndex) => {
+      if (text !== "") {
+        const trimmedText = text.replace(/[\r\n]+$/, "");
+        const trailingLen = text.length - trimmedText.length;
+        const contentEndIndex = endIndex - trailingLen;
+        if (trimmedText !== "") {
+          root.children.push({
+            type: "text",
+            content: trimmedText,
+            source: this.getSlice(textStartIndex, contentEndIndex)
+          });
+        }
+        text = "";
+        endIndex = contentEndIndex;
+      }
+      const inlineChildren = root.children.splice(lastBlockIndex);
+      if (inlineChildren.length > 0) {
+        const paragraph = {
+          type: "paragraph",
+          children: inlineChildren,
+          source: this.getSlice(paragraphStartIndex, endIndex)
+        };
+        root.children.push(paragraph);
+      }
+      lastBlockIndex = root.children.length;
+    };
+    while (!this.done) {
+      const escapedText = this.parseText("");
+      if (escapedText !== "") {
+        text += escapedText;
+        continue;
+      }
+      if (end !== "" && (this.matches(end) || this.matches(..._MarkdownParser.NEWLINE))) {
+        break;
+      }
+      const codeBlockMatch = end === "" && this.atLineStart() ? this.matchCodeBlockPrefix() : null;
+      if (codeBlockMatch !== null) {
+        flushParagraph(this.index);
+        const node2 = this.parseCodeBlock(codeBlockMatch);
+        root.children.push(node2);
+        lastBlockIndex = root.children.length;
+        paragraphStartIndex = this.index;
+        textStartIndex = this.index;
+        continue;
+      }
+      const blockquoteMatch = end === "" && this.atLineStart() ? this.matchBlockquotePrefix() : false;
+      if (blockquoteMatch) {
+        flushParagraph(this.index);
+        const node2 = this.parseBlockquote();
+        root.children.push(node2);
+        lastBlockIndex = root.children.length;
+        paragraphStartIndex = this.index;
+        textStartIndex = this.index;
+        continue;
+      }
+      const headingMatch = end === "" && this.atLineStart() ? this.matchHeadingPrefix() : null;
+      if (headingMatch !== null) {
+        flushParagraph(this.index);
+        const headingStartIndex = this.index;
+        this.advance(headingMatch.prefixLength);
+        const inlines = this.parseNext("\n");
+        const children = inlines.type === "fragment" ? inlines.children : [inlines];
+        const headingEndIndex = this.index;
+        this.stripTrailingHeadingHashes(children);
+        while (_MarkdownParser.NEWLINE.includes(this.current)) {
+          this.advance();
+        }
+        root.children.push({
+          type: "heading",
+          depth: headingMatch.depth,
+          children,
+          source: this.getSlice(headingStartIndex, headingEndIndex)
+        });
+        lastBlockIndex = root.children.length;
+        paragraphStartIndex = this.index;
+        textStartIndex = this.index;
+        continue;
+      }
+      if (this.matches(..._MarkdownParser.NEW_PARAGRAPH)) {
+        const paragraphEndIndex = this.index;
+        while (_MarkdownParser.NEWLINE.includes(this.current)) {
+          this.advance();
+        }
+        flushParagraph(paragraphEndIndex);
+        paragraphStartIndex = this.index;
+        textStartIndex = this.index;
+        continue;
+      }
+      const nodeStartIndex = this.index;
+      let node = null;
+      try {
+        node = this.parseCurrent();
+      } catch (error) {
+        if (!(error instanceof MismatchError)) {
+          throw error;
+        }
+      }
+      if (node === null) {
+        this.seek(nodeStartIndex);
+        text += this.current;
+        this.advance();
+        continue;
+      }
+      if (text !== "") {
+        root.children.push({
+          type: "text",
+          content: text,
+          source: this.getSlice(textStartIndex, nodeStartIndex)
+        });
+      }
+      text = "";
+      textStartIndex = this.index;
+      root.children.push(node);
+    }
+    if (lastBlockIndex > 0) {
+      flushParagraph(this.index);
+    } else {
+      if (text !== "") {
+        root.children.push({
+          type: "text",
+          content: text,
+          source: this.getSlice(textStartIndex, this.index)
+        });
+      }
+    }
+    if (root.children.length === 1) {
+      return root.children[0];
+    }
+    root.source = this.getSlice(startIndex, this.index);
+    return root;
+  }
+  stripTrailingHeadingHashes(children) {
+    const last = children[children.length - 1];
+    if (last?.type === "text") {
+      last.content = last.content.replace(/\s+#+\s*$/, "");
+      if (!last.content.trim()) {
+        children.pop();
+      }
+    }
+  }
+  parseCurrent() {
+    const char = this.lookAhead();
+    const startIndex = this.index;
+    switch (char) {
+      case "*":
+      case "_": {
+        const delimiter = this.matches("**") ? "**" : char;
+        this.advance(delimiter.length);
+        const children = this.parseNext(delimiter);
+        this.match(delimiter);
+        return {
+          type: delimiter.length === 1 ? "italic" : "bold",
+          children,
+          source: this.getSlice(startIndex, this.index)
+        };
+      }
+      case "~": {
+        this.match("~~");
+        const children = this.parseNext("~~");
+        this.match("~~");
+        return {
+          type: "strike",
+          children,
+          source: this.getSlice(startIndex, this.index)
+        };
+      }
+      case "`": {
+        if (this.matches("```")) {
+          return null;
+        }
+        const delimiter = this.matches("``") ? "``" : "`";
+        this.match(delimiter);
+        const content = this.parseText(delimiter).trim();
+        if (this.matches("```")) {
+          return null;
+        }
+        this.match(delimiter);
+        return {
+          type: "code",
+          content,
+          source: this.getSlice(startIndex, this.index)
+        };
+      }
+      case "!": {
+        this.advance();
+        this.match("[");
+        const alt = this.parseText("]");
+        this.match("](");
+        const src = this.parseText(")");
+        this.match(")");
+        return {
+          type: "image",
+          src,
+          alt,
+          source: this.getSlice(startIndex, this.index)
+        };
+      }
+      case "[": {
+        this.advance();
+        const label = this.parseNext("]");
+        this.match("](");
+        const href = this.parseText(")", '"');
+        let title;
+        if (this.matches('"')) {
+          this.match('"');
+          title = this.parseText('"');
+          this.match('"');
+        }
+        this.match(")");
+        return {
+          type: "link",
+          href: href.trim(),
+          ...title !== void 0 ? { title } : {},
+          children: label,
+          source: this.getSlice(startIndex, this.index)
+        };
+      }
+      default:
+        return null;
+    }
+  }
+  parseText(...end) {
+    let text = "";
+    while (!this.done) {
+      if (this.current === "\\" && this.index + 1 < this.length) {
+        this.advance();
+        text += this.current;
+        this.advance();
+        continue;
+      }
+      if (end.some((token) => token === "" || this.matches(token)) || this.matches(..._MarkdownParser.NEWLINE)) {
+        break;
+      }
+      text += this.current;
+      this.advance();
+    }
+    return text;
+  }
+  atLineStart() {
+    if (this.index === 0) return true;
+    const prev = this.chars[this.index - 1];
+    return prev === "\n" || prev === "\r";
+  }
+  matchHeadingPrefix() {
+    if (!this.atLineStart()) return null;
+    const slice = this.getSlice(this.index, this.index + 64);
+    const match = slice.match(/^[ ]{0,3}(#{1,6})(?:[ \t]+|(?=[\r\n]|$))/);
+    if (!match) return null;
+    return { depth: match[1].length, prefixLength: match[0].length };
+  }
+  getLineEnd(fromIndex) {
+    let i = fromIndex;
+    while (i < this.length && this.chars[i] !== "\n" && this.chars[i] !== "\r") {
+      i++;
+    }
+    return i;
+  }
+  getNewlineLength(index) {
+    if (index >= this.length) return 0;
+    if (this.chars[index] === "\r" && this.chars[index + 1] === "\n") return 2;
+    if (this.chars[index] === "\n" || this.chars[index] === "\r") return 1;
+    return 0;
+  }
+  matchCodeBlockPrefix() {
+    if (!this.atLineStart()) return null;
+    let indent = 0;
+    while (indent < 3 && this.chars[this.index + indent] === " ") {
+      indent++;
+    }
+    const char = this.chars[this.index + indent];
+    if (char !== "`" && char !== "~") return null;
+    const openLineEnd = this.getLineEnd(this.index);
+    const line = this.getSlice(this.index, openLineEnd);
+    const match = line.match(/^[ ]{0,3}(`{3,}|~{3,})[ \t]*(\S*)/);
+    if (!match) return null;
+    const fence = match[1];
+    const fenceChar = fence[0];
+    if (fenceChar === "`" && line.slice(indent + fence.length).includes("`")) {
+      return null;
+    }
+    return {
+      fenceChar,
+      fenceLength: fence.length,
+      language: match[2] !== "" ? match[2] : void 0,
+      openLineEnd
+    };
+  }
+  parseCodeBlock(info) {
+    const blockStartIndex = this.index;
+    const openNewlineLen = this.getNewlineLength(info.openLineEnd);
+    let cursor = info.openLineEnd + openNewlineLen;
+    const contentStartIndex = cursor;
+    const closingRegex = new RegExp(
+      `^[ ]{0,3}\\${info.fenceChar}{${info.fenceLength},}[ \\t]*$`
+    );
+    let contentEndIndex = this.length;
+    let blockEndIndex = this.length;
+    let closingFound = false;
+    while (cursor < this.length) {
+      const curLineEnd = this.getLineEnd(cursor);
+      const curLine = this.getSlice(cursor, curLineEnd);
+      if (closingRegex.test(curLine)) {
+        closingFound = true;
+        contentEndIndex = cursor;
+        blockEndIndex = curLineEnd;
+        cursor = curLineEnd + this.getNewlineLength(curLineEnd);
+        break;
+      }
+      const nlLen = this.getNewlineLength(curLineEnd);
+      if (nlLen === 0) {
+        cursor = curLineEnd;
+        break;
+      }
+      cursor = curLineEnd + nlLen;
+    }
+    if (!closingFound) {
+      contentEndIndex = this.length;
+      blockEndIndex = this.length;
+    }
+    this.seek(cursor);
+    while (_MarkdownParser.NEWLINE.includes(this.current)) {
+      this.advance();
+    }
+    const content = this.getSlice(contentStartIndex, contentEndIndex);
+    const source = this.getSlice(blockStartIndex, blockEndIndex);
+    return {
+      type: "codeblock",
+      ...info.language !== void 0 ? { language: info.language } : {},
+      content,
+      source
+    };
+  }
+  matchBlockquotePrefix() {
+    if (!this.atLineStart()) return false;
+    let indent = 0;
+    while (indent < 3 && this.chars[this.index + indent] === " ") {
+      indent++;
+    }
+    return this.chars[this.index + indent] === ">";
+  }
+  parseBlockquote() {
+    const blockquoteStartIndex = this.index;
+    const innerLines = [];
+    let cursor = this.index;
+    let lastLineEnd = cursor;
+    while (cursor < this.length) {
+      let lineIndent = 0;
+      while (lineIndent < 3 && this.chars[cursor + lineIndent] === " ") {
+        lineIndent++;
+      }
+      if (this.chars[cursor + lineIndent] !== ">") {
+        break;
+      }
+      const curLineEnd = this.getLineEnd(cursor);
+      const rawLine = this.getSlice(cursor, curLineEnd);
+      const strippedLine = rawLine.replace(/^[ ]{0,3}>[ \t]?/, "");
+      innerLines.push(strippedLine);
+      lastLineEnd = curLineEnd;
+      const nlLen = this.getNewlineLength(curLineEnd);
+      if (nlLen === 0) {
+        cursor = curLineEnd;
+        break;
+      }
+      cursor = curLineEnd + nlLen;
+    }
+    this.seek(cursor);
+    while (_MarkdownParser.NEWLINE.includes(this.current)) {
+      this.advance();
+    }
+    const innerContent = innerLines.join("\n");
+    let children = [];
+    if (innerContent.trim() !== "") {
+      const parsed = _MarkdownParser.parse(innerContent);
+      children = parsed.type === "fragment" ? parsed.children : [parsed];
+    }
+    const source = this.getSlice(blockquoteStartIndex, lastLineEnd);
+    return {
+      type: "blockquote",
+      children,
+      source
+    };
+  }
+  get done() {
+    return this.index >= this.length;
+  }
+  get length() {
+    return this.chars.length;
+  }
+  get current() {
+    return this.chars[this.index];
+  }
+  advance(length = 1) {
+    this.index += length;
+  }
+  seek(index) {
+    this.index = index;
+  }
+  matches(...lookahead) {
+    return lookahead.some(
+      (substring) => this.lookAhead(substring.length) === substring
+    );
+  }
+  match(...lookahead) {
+    for (const substring of lookahead) {
+      if (this.lookAhead(substring.length) === substring) {
+        this.advance(substring.length);
+        return;
+      }
+    }
+    throw new MismatchError();
+  }
+  lookAhead(length = 1) {
+    if (length === 1) {
+      return this.current;
+    }
+    return this.getSlice(this.index, this.index + length);
+  }
+  getSlice(start, end) {
+    return this.chars.slice(start, end).join("");
+  }
+};
+
+// src/parser.ts
+var CALLOUT_REGEX = /^[ \t]*\[!(CURTAIN|INTERMISSION)\][ \t]*(.*)$/i;
+function getDelimiterInfo(node) {
+  if (node.type !== "blockquote") {
+    return null;
+  }
+  const rawLines = node.source.split(/\r?\n/).map((line) => line.replace(/^[ ]{0,3}>[ \t]?/, ""));
+  const match = CALLOUT_REGEX.exec(rawLines[0]);
+  if (!match) {
+    return null;
+  }
+  const type = match[1].toLowerCase() === "curtain" ? "auto" : "pause";
+  const fullInstruction = [match[2], ...rawLines.slice(1)].join("\n").trim();
+  const instruction = fullInstruction.length > 0 ? fullInstruction : void 0;
+  return {
+    type,
+    ...instruction ? { instruction } : {}
+  };
+}
 function parseScript(content, filePath) {
   (0, import_strict2.default)(typeof content === "string", "Script content must be a string");
   (0, import_strict2.default)(filePath.trim().length > 0, "filePath must be provided");
-  const matches = [];
-  let match = DELIMITER_REGEX.exec(content);
-  while (match !== null) {
-    const subtype = match[1]?.toLowerCase();
-    matches.push({
-      index: match.index,
-      length: match[0].length,
-      type: subtype === "gate" || subtype === "pause" ? "pause" : "auto"
-    });
-    match = DELIMITER_REGEX.exec(content);
-  }
+  const trimmed = content.trim();
+  (0, import_strict2.default)(trimmed.length > 0, `Script file "${filePath}" contains no content.`);
+  const ast = parse(content);
+  const topLevelBlocks = ast.type === "fragment" ? ast.children : [ast];
   const steps = [];
-  if (matches.length === 0) {
-    const trimmed = content.trim();
-    (0, import_strict2.default)(
-      trimmed.length > 0,
-      `Script file "${filePath}" contains no content.`
-    );
-    steps.push({
-      index: 0,
-      type: "auto",
-      content: trimmed
-    });
-    return { filePath, steps };
+  let currentBlocks = [];
+  for (const block of topLevelBlocks) {
+    const delimiter = getDelimiterInfo(block);
+    if (delimiter !== null) {
+      (0, import_strict2.default)(
+        currentBlocks.length > 0,
+        `Curtain delimiters cannot appear consecutively or at the beginning of script "${filePath}".`
+      );
+      const chunk = currentBlocks.map((b) => b.source).join("\n\n").trim();
+      if (chunk.length > 0) {
+        steps.push({
+          index: steps.length,
+          type: delimiter.type,
+          content: chunk,
+          ...delimiter.instruction ? { instruction: delimiter.instruction } : {}
+        });
+      }
+      currentBlocks = [];
+    } else {
+      currentBlocks.push(block);
+    }
   }
-  let lastEnd = 0;
-  let currentType = "auto";
-  for (const m of matches) {
-    const chunk = content.slice(lastEnd, m.index).trim();
+  if (currentBlocks.length > 0) {
+    const chunk = currentBlocks.map((b) => b.source).join("\n\n").trim();
     if (chunk.length > 0) {
       steps.push({
         index: steps.length,
-        type: currentType,
+        type: "auto",
         content: chunk
       });
     }
-    currentType = m.type;
-    lastEnd = m.index + m.length;
-  }
-  const finalChunk = content.slice(lastEnd).trim();
-  if (finalChunk.length > 0) {
-    steps.push({
-      index: steps.length,
-      type: currentType,
-      content: finalChunk
-    });
   }
   (0, import_strict2.default)(
     steps.length > 0,
@@ -628,6 +1093,9 @@ function parseFilePath(raw) {
 function parseCommand(input) {
   if (!input) return { isCurtainCommand: false };
   const trimmed = input.trim();
+  if (/^[/$]next$/i.test(trimmed)) {
+    return { isCurtainCommand: true, command: { name: "next" } };
+  }
   const match = trimmed.match(
     /^(?:\/curtain|\$curtain(?::curtain)?|\$curtain)(?:[:\s-]+(.*)|$)/i
   );
@@ -640,8 +1108,8 @@ function parseCommand(input) {
   }
   const tokens = rest.split(/\s+/);
   const sub = tokens[0].toLowerCase();
-  if (sub === "raise" || sub === "next") {
-    return { isCurtainCommand: true, command: { name: "raise" } };
+  if (sub === "next") {
+    return { isCurtainCommand: true, command: { name: "next" } };
   }
   if (sub === "drop" || sub === "stop" || sub === "abort") {
     return { isCurtainCommand: true, command: { name: "drop" } };
@@ -672,7 +1140,7 @@ function getHelpText() {
   return [
     "Curtain Commands:",
     "  /curtain <file.md>      Start execution of a multi-act script",
-    "  /curtain raise          Advance to next step when paused at a curtain",
+    "  /next                   Advance to next step when paused at an intermission",
     "  /curtain drop           Stop execution and reset state",
     "  /curtain status         Display current step and runner status",
     "  /curtain help           Display this help message"
@@ -747,20 +1215,17 @@ function resumeExecution(state) {
   (0, import_strict4.default)(state, "State must be provided to resume");
   if (state.status !== "paused") {
     return {
-      success: false,
+      action: "error",
       error: "The curtain is not currently paused."
     };
   }
   const nextStepIndex = state.currentStep + 1;
   if (nextStepIndex >= state.totalSteps) {
-    return {
-      success: false,
-      error: "All steps have already been completed."
-    };
+    return { action: "finish" };
   }
   const nextStep = state.steps[nextStepIndex];
   return {
-    success: true,
+    action: "advance",
     state: {
       ...state,
       currentStep: nextStepIndex,
@@ -772,12 +1237,8 @@ function resumeExecution(state) {
 function advanceExecution(state) {
   (0, import_strict4.default)(state, "State must be provided to advance");
   (0, import_strict4.default)(state.status === "running", "Cannot advance when not running");
-  const nextStepIndex = state.currentStep + 1;
-  if (nextStepIndex >= state.totalSteps) {
-    return { action: "finish" };
-  }
-  const nextStep = state.steps[nextStepIndex];
-  if (nextStep.type === "pause") {
+  const currentStep = state.steps[state.currentStep];
+  if (currentStep?.type === "pause") {
     return {
       action: "pause",
       state: {
@@ -786,6 +1247,11 @@ function advanceExecution(state) {
       }
     };
   }
+  const nextStepIndex = state.currentStep + 1;
+  if (nextStepIndex >= state.totalSteps) {
+    return { action: "finish" };
+  }
+  const nextStep = state.steps[nextStepIndex];
   return {
     action: "advance",
     state: {
@@ -795,6 +1261,27 @@ function advanceExecution(state) {
     },
     step: nextStep
   };
+}
+function formatStepPrompt(step, totalSteps) {
+  const criteria = step.instruction ? `[${step.type === "pause" ? "INTERMISSION" : "TRANSITION"} CRITERIA]
+${step.instruction}
+
+` : "";
+  const pauseNotice = step.type === "pause" ? " When concluding your turn, inform the user that only /next will proceed." : "";
+  return `[STEP ${step.index + 1} OF ${totalSteps}]
+
+${step.content}
+
+${criteria}Perform ONLY this step. Conclude when complete.${pauseNotice}`;
+}
+function formatStatus(state) {
+  if (!state) {
+    return "[CURTAIN STATUS] No active script running.";
+  }
+  const currentStep = state.steps[state.currentStep];
+  const firstLineInstruction = currentStep?.instruction?.split(/\r?\n/)[0]?.trim();
+  const intermissionPart = state.status === "paused" && firstLineInstruction ? ` | Intermission: ${firstLineInstruction}` : "";
+  return `[CURTAIN STATUS] Step ${state.currentStep + 1}/${state.totalSteps} | State: ${state.status} | Script: ${state.script}${intermissionPart}`;
 }
 
 // src/handlers/pre.ts
@@ -816,7 +1303,7 @@ function handlePre(info, state, env = process.env) {
         };
       }
       if (parsed.command.name === "status") {
-        const msg = state ? `[CURTAIN STATUS] Step ${state.currentStep + 1}/${state.totalSteps} | State: ${state.status} | Script: ${state.script}` : "[CURTAIN STATUS] No active script running.";
+        const msg = formatStatus(state);
         return {
           state,
           response: { injectSteps: [{ ephemeralMessage: msg }] }
@@ -833,7 +1320,7 @@ function handlePre(info, state, env = process.env) {
           }
         };
       }
-      if (parsed.command.name === "raise") {
+      if (parsed.command.name === "next") {
         if (!state) {
           return {
             state: null,
@@ -845,7 +1332,7 @@ function handlePre(info, state, env = process.env) {
           };
         }
         const res = resumeExecution(state);
-        if (!res.success) {
+        if (res.action === "error") {
           return {
             state,
             response: {
@@ -853,12 +1340,17 @@ function handlePre(info, state, env = process.env) {
             }
           };
         }
+        if (res.action === "finish") {
+          deleteState(info.conversationId, env);
+          return {
+            state: null,
+            response: {
+              injectSteps: [{ ephemeralMessage: "Execution complete." }]
+            }
+          };
+        }
         saveState(info.conversationId, res.state, env);
-        const msg = `[STEP ${res.state.currentStep + 1} OF ${res.state.totalSteps}]
-
-${res.step.content}
-
-Perform ONLY this step. Conclude when complete.`;
+        const msg = formatStepPrompt(res.step, res.state.totalSteps);
         return {
           state: res.state,
           response: { injectSteps: [{ ephemeralMessage: msg }] }
@@ -876,17 +1368,27 @@ Perform ONLY this step. Conclude when complete.`;
         const nextState = startExecution(loaded.script);
         saveState(info.conversationId, nextState, env);
         const firstStep = nextState.steps[0];
-        const msg = `[STEP 1 OF ${nextState.totalSteps}]
-
-${firstStep.content}
-
-Perform ONLY this step. Conclude when complete.`;
+        const msg = formatStepPrompt(firstStep, nextState.totalSteps);
         return {
           state: nextState,
           response: { injectSteps: [{ ephemeralMessage: msg }] }
         };
       }
     }
+  }
+  if (state?.status === "paused") {
+    const currentStep = state.steps[state.currentStep];
+    const criteriaPart = currentStep?.instruction ? `${currentStep.instruction}
+
+` : "";
+    const msg = `[INTERMISSION REVIEW]
+${criteriaPart}Conclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed.`;
+    return {
+      state,
+      response: {
+        injectSteps: [{ ephemeralMessage: msg }]
+      }
+    };
   }
   return { state, response: {} };
 }
@@ -912,11 +1414,7 @@ function handleStop(info, state, env = process.env) {
     return { state: result.state, response: { decision: "allow" } };
   }
   saveState(info.conversationId, result.state, env);
-  const msg = `[STEP ${result.state.currentStep + 1} OF ${result.state.totalSteps}]
-
-${result.step.content}
-
-Perform ONLY this step. Conclude when complete.`;
+  const msg = formatStepPrompt(result.step, result.state.totalSteps);
   return {
     state: result.state,
     response: {
@@ -1027,7 +1525,7 @@ function getCliHelp() {
     "Usage:",
     "  curtain <file.md>        Start execution of a multi-act script",
     "  curtain start <file.md>  Start execution of a multi-act script",
-    "  curtain raise            Advance to next step when paused at a curtain",
+    "  curtain next             Advance to next step when paused at an intermission",
     "  curtain drop             Stop execution and reset state",
     "  curtain status           Display current step and runner status",
     "  curtain hook <event>     Execute harness lifecycle hook (pre, stop)",
@@ -1089,11 +1587,11 @@ async function runCli(args = process.argv.slice(2), io = defaultIo, env = proces
   }
   if (parsed.command === "status") {
     const state = loadState(conversationId, env);
-    const msg = state ? `[CURTAIN STATUS] Step ${state.currentStep + 1}/${state.totalSteps} | State: ${state.status} | Script: ${state.script}` : "[CURTAIN STATUS] No active script running.";
+    const msg = formatStatus(state);
     writeOut(msg);
     return { exitCode: 0, output: msg };
   }
-  if (parsed.command === "raise" || parsed.command === "next") {
+  if (parsed.command === "next") {
     const state = loadState(conversationId, env);
     if (!state) {
       const err = "No script is currently loaded. Start with 'curtain <script.md>'.";
@@ -1101,16 +1599,18 @@ async function runCli(args = process.argv.slice(2), io = defaultIo, env = proces
       return { exitCode: 1, output: err };
     }
     const res = resumeExecution(state);
-    if (!res.success) {
+    if (res.action === "error") {
       writeErr(res.error);
       return { exitCode: 1, output: res.error };
     }
+    if (res.action === "finish") {
+      deleteState(conversationId, env);
+      const msg2 = "[CURTAIN STATUS] Execution complete.";
+      writeOut(msg2);
+      return { exitCode: 0, output: msg2 };
+    }
     saveState(conversationId, res.state, env);
-    const msg = `[STEP ${res.state.currentStep + 1} OF ${res.state.totalSteps}]
-
-${res.step.content}
-
-Perform ONLY this step. Conclude when complete.`;
+    const msg = formatStepPrompt(res.step, res.state.totalSteps);
     writeOut(msg);
     return { exitCode: 0, output: msg };
   }
@@ -1126,11 +1626,7 @@ Perform ONLY this step. Conclude when complete.`;
     const nextState = startExecution(loaded.script);
     saveState(conversationId, nextState, env);
     const firstStep = nextState.steps[0];
-    const msg = `[STEP 1 OF ${nextState.totalSteps}]
-
-${firstStep.content}
-
-Perform ONLY this step. Conclude when complete.`;
+    const msg = formatStepPrompt(firstStep, nextState.totalSteps);
     writeOut(msg);
     return { exitCode: 0, output: msg };
   }

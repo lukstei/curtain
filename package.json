@@ -1,6 +1,6 @@
 {
 	"name": "@lukstei/curtain",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"description": "Minimal multi-act instruction runner for AI agents",
 	"license": "MIT",
 	"author": "Lukas Steinbrecher",
