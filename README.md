@@ -112,6 +112,10 @@ npm run build       # builds dist/curtain.cjs
 npm run test:watch  # test watcher
 ```
 
+## Changelog
+
+See [CHANGELOG](docs/CHANGELOG.md) for release history and notable changes.
+
 ## License
 
 [MIT](LICENSE) © 2026 Lukas Steinbrecher
