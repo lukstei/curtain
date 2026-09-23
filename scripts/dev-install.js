@@ -12,9 +12,7 @@ const targetDir = path.resolve(
 	targetArg.replace(/^~(?=$|\/|\\)/, os.homedir()),
 );
 
-if (!fs.existsSync(targetDir)) {
-	fs.mkdirSync(targetDir, { recursive: true });
-}
+fs.mkdirSync(targetDir, { recursive: true });
 
 const subdirs = fs
 	.readdirSync(targetDir, { withFileTypes: true })

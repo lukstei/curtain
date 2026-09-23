@@ -26,13 +26,20 @@ LLMs routinely disregard instructions to stop. They anticipate downstream phases
 
 ## 2. Syntax & Delimiters
 
-Playbooks and skills are standard Markdown files separated by HTML comment delimiters:
+Playbooks and skills are standard Markdown files separated by GitHub-style callout alert blockquotes:
 
-### 1. `<!-- curtain -->` — Automatic Transition
-A brief drop between tightly coupled phases (e.g., between scaffolding and testing). When the agent finishes Act 1 and attempts to conclude its turn, the `Stop` hook automatically intercepts termination, raises the curtain, and feeds Act 2.
+### 1. `> [!CURTAIN]` — Automatic Transition
+A transition concluding tightly coupled phases (e.g., between scaffolding and testing). When the agent finishes Act 1 and attempts to conclude its turn, the `Stop` hook automatically intercepts termination, raises the curtain, and feeds Act 2. Supports optional transition criteria instructions:
+```markdown
+> [!CURTAIN] Verify build artifacts before advancing
+```
 
-### 2. `<!-- intermission -->` — Intermission Gate (Human Review)
-A full intermission for human-in-the-loop verification. The `Stop` hook permits the agent to stop its turn, present its findings, and yield control to the developer. The next Act is only injected when the developer explicitly raises the curtain.
+### 2. `> [!INTERMISSION]` — Intermission Gate (Human Review)
+An intermission for human-in-the-loop verification concluding the active Act. The `Stop` hook permits the agent to stop its turn, present its findings, and yield control to the developer. During review, user feedback messages automatically replay the intermission instruction. The next Act is only injected when the developer explicitly raises the curtain (`/curtain raise`).
+```markdown
+> [!INTERMISSION] Verify migration results
+> Check table indexes and query latency before proceeding.
+```
 
 ### Example Playbook (`PLAYBOOK.md`)
 ```markdown
@@ -42,12 +49,13 @@ A full intermission for human-in-the-loop verification. The `Stop` hook permits 
 Audit existing tables in `src/db/schema.ts`. Write a non-destructive migration script in `migrations/002_user_prefs.sql`.
 Do not apply the migration yet.
 
-<!-- intermission -->
+> [!INTERMISSION] Review migration SQL
+> Ensure all columns have default values and no destructive DROP operations exist.
 
 ## Act 2: Local Verification
 Run the migration script against local test Postgres container. Run existing test suite to check for regressions.
 
-<!-- curtain -->
+> [!CURTAIN]
 
 ## Act 3: Cleanup & Documentation
 Update the ORM models and export types. Update schema docs in `docs/db.md`.

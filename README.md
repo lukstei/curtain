@@ -71,12 +71,13 @@ Take an existing `SKILL.md` (or any markdown playbook) and drop in curtain delim
 Audit existing tables in `src/db/schema.ts`. Write a non-destructive migration script in `migrations/002_user_prefs.sql`.
 Do not apply the migration yet.
 
-<!-- intermission -->
+> [!INTERMISSION] Review migration SQL
+> Ensure all columns have default values and no destructive DROP operations exist.
 
 ## Act 2: Local Verification
 Run the migration script against local test Postgres container. Run existing test suite to check for regressions.
 
-<!-- curtain -->
+> [!CURTAIN] Continue automatically to cleanup
 
 ## Act 3: Cleanup & Documentation
 Update the ORM models and export types. Update schema docs in `docs/db.md`.
@@ -88,12 +89,16 @@ Start execution with `/curtain path/to/SKILL.md` or any markdown playbook (Codex
 
 ## Syntax & Delimiters
 
-Skills and playbooks are standard Markdown files separated by HTML comment delimiters:
+Skills and playbooks are standard Markdown files separated by GitHub-style callout alert blockquotes:
 
 | Delimiter | Type | Behavior |
 | :--- | :--- | :--- |
-| `<!-- curtain -->` | Automatic | Intercepts turn completion via the `Stop` hook, raises the curtain, and feeds the next Act immediately. |
-| `<!-- intermission -->` | Intermission Gate | Pauses execution and yields control to the developer for review. Resume with `/curtain raise`. |
+| `> [!CURTAIN]` | Automatic | Delimiter concluding the active Act. Intercepts turn completion via the `Stop` hook, raises the curtain, and feeds the next Act immediately. |
+| `> [!INTERMISSION]` | Intermission Gate | Intermission concluding the active Act. Pauses execution and yields control to the developer for review. Feedback messages replay the intermission criteria. Resume with `/curtain raise`. |
+
+Delimiters support optional instructions:
+- `> [!INTERMISSION] Criteria` formats as `[INTERMISSION CRITERIA]` and replays as `[INTERMISSION REVIEW]` during review turns.
+- `> [!CURTAIN] Criteria` formats as `[TRANSITION CRITERIA]`.
 
 ## Commands & Controls
 

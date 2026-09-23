@@ -8,8 +8,9 @@ export type AdvanceResult =
 	| { action: "advance"; state: RunnerState; step: Step };
 
 export type ResumeResult =
-	| { success: true; state: RunnerState; step: Step }
-	| { success: false; error: string };
+	| { action: "advance"; state: RunnerState; step: Step }
+	| { action: "finish" }
+	| { action: "error"; error: string };
 
 /**
  * Initializes and starts execution of a script at step 0.
@@ -34,22 +35,19 @@ export function resumeExecution(state: RunnerState): ResumeResult {
 
 	if (state.status !== "paused") {
 		return {
-			success: false,
+			action: "error",
 			error: "The curtain is not currently paused.",
 		};
 	}
 
 	const nextStepIndex = state.currentStep + 1;
 	if (nextStepIndex >= state.totalSteps) {
-		return {
-			success: false,
-			error: "All steps have already been completed.",
-		};
+		return { action: "finish" };
 	}
 
 	const nextStep = state.steps[nextStepIndex];
 	return {
-		success: true,
+		action: "advance",
 		state: {
 			...state,
 			currentStep: nextStepIndex,
@@ -66,13 +64,8 @@ export function advanceExecution(state: RunnerState): AdvanceResult {
 	assert(state, "State must be provided to advance");
 	assert(state.status === "running", "Cannot advance when not running");
 
-	const nextStepIndex = state.currentStep + 1;
-	if (nextStepIndex >= state.totalSteps) {
-		return { action: "finish" };
-	}
-
-	const nextStep = state.steps[nextStepIndex];
-	if (nextStep.type === "pause") {
+	const currentStep = state.steps[state.currentStep];
+	if (currentStep?.type === "pause") {
 		return {
 			action: "pause",
 			state: {
@@ -82,6 +75,12 @@ export function advanceExecution(state: RunnerState): AdvanceResult {
 		};
 	}
 
+	const nextStepIndex = state.currentStep + 1;
+	if (nextStepIndex >= state.totalSteps) {
+		return { action: "finish" };
+	}
+
+	const nextStep = state.steps[nextStepIndex];
 	return {
 		action: "advance",
 		state: {
@@ -91,4 +90,34 @@ export function advanceExecution(state: RunnerState): AdvanceResult {
 		},
 		step: nextStep,
 	};
+}
+
+/**
+ * Formats step prompt injection with optional delimiter criteria.
+ */
+export function formatStepPrompt(step: Step, totalSteps: number): string {
+	const criteria = step.instruction
+		? `[${step.type === "pause" ? "INTERMISSION" : "TRANSITION"} CRITERIA]\n${step.instruction}\n\n`
+		: "";
+	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete.`;
+}
+
+/**
+ * Formats runner status output, including intermission instruction if paused.
+ */
+export function formatStatus(state: RunnerState | null): string {
+	if (!state) {
+		return "[CURTAIN STATUS] No active script running.";
+	}
+
+	const currentStep = state.steps[state.currentStep];
+	const firstLineInstruction = currentStep?.instruction
+		?.split(/\r?\n/)[0]
+		?.trim();
+	const intermissionPart =
+		state.status === "paused" && firstLineInstruction
+			? ` | Intermission: ${firstLineInstruction}`
+			: "";
+
+	return `[CURTAIN STATUS] Step ${state.currentStep + 1}/${state.totalSteps} | State: ${state.status} | Script: ${state.script}${intermissionPart}`;
 }

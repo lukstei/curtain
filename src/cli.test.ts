@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseCliArgs, runCli } from "./cli.ts";
+import { loadState, saveState } from "./state.ts";
 
 function createIo() {
 	const out: string[] = [];
@@ -66,7 +67,7 @@ describe("cli.ts", () => {
 		fs.mkdirSync(tmpDir, { recursive: true });
 		fs.writeFileSync(
 			fixturePath,
-			["Step 1 content", "<!-- curtain -->", "Step 2 content"].join("\n"),
+			["Step 1 content", "> [!CURTAIN]", "Step 2 content"].join("\n"),
 		);
 
 		// 1. Start execution
@@ -92,5 +93,39 @@ describe("cli.ts", () => {
 		expect(ioStatusAfter.getOut()).toBe(
 			"[CURTAIN STATUS] No active script running.",
 		);
+	});
+
+	it("completes execution when curtain raise is run on final step intermission", async () => {
+		const scriptPath = path.join(tmpDir, "single-pause.md");
+		fs.writeFileSync(
+			scriptPath,
+			["Step 1 content", "> [!INTERMISSION] Review carefully"].join("\n"),
+		);
+
+		const conversationId = "cli-test-final-pause";
+		const testEnv = {
+			...env,
+			ANTIGRAVITY_CONVERSATION_ID: conversationId,
+		};
+
+		// 1. Start execution
+		const ioStart = createIo();
+		await runCli([scriptPath], ioStart.io, testEnv);
+
+		// Manually transition to paused as stop hook would
+		const state = loadState(conversationId, testEnv);
+		expect(state).not.toBeNull();
+		if (state) {
+			saveState(conversationId, { ...state, status: "paused" }, testEnv);
+		}
+
+		// 2. Raise curtain on final step
+		const ioRaise = createIo();
+		const resRaise = await runCli(["raise"], ioRaise.io, testEnv);
+		expect(resRaise.exitCode).toBe(0);
+		expect(resRaise.output).toBe("[CURTAIN STATUS] Execution complete.");
+
+		// 3. Verify state is deleted
+		expect(loadState(conversationId, testEnv)).toBeNull();
 	});
 });

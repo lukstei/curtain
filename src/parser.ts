@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import type { MarkdownNode } from "./lib/markdown/ast.ts";
+import { parse } from "./lib/markdown/parsing.ts";
 
 export interface Step {
 	index: number;
-	type: "auto" | "pause";
-	content: string;
+	type: "auto" | "pause"; // Delimiter concluding this step
+	content: string; // Markdown content of the step
+	instruction?: string; // Optional delimiter instruction
 }
 
 export interface Script {
@@ -11,68 +14,86 @@ export interface Script {
 	steps: Step[];
 }
 
-const DELIMITER_REGEX = /^[ \t]*<!--\s*(curtain|intermission)\s*-->[ \t]*$/gim;
+const CALLOUT_REGEX = /^[ \t]*\[!(CURTAIN|INTERMISSION)\][ \t]*(.*)$/i;
+
+function getDelimiterInfo(
+	node: MarkdownNode,
+): { type: "auto" | "pause"; instruction?: string } | null {
+	if (node.type !== "blockquote") {
+		return null;
+	}
+
+	const rawLines = node.source
+		.split(/\r?\n/)
+		.map((line) => line.replace(/^[ ]{0,3}>[ \t]?/, ""));
+	const match = CALLOUT_REGEX.exec(rawLines[0]);
+	if (!match) {
+		return null;
+	}
+
+	const type: "auto" | "pause" =
+		match[1].toLowerCase() === "curtain" ? "auto" : "pause";
+	const fullInstruction = [match[2], ...rawLines.slice(1)].join("\n").trim();
+	const instruction = fullInstruction.length > 0 ? fullInstruction : undefined;
+
+	return {
+		type,
+		...(instruction ? { instruction } : {}),
+	};
+}
 
 export function parseScript(content: string, filePath: string): Script {
 	assert(typeof content === "string", "Script content must be a string");
 	assert(filePath.trim().length > 0, "filePath must be provided");
 
-	const matches: Array<{
-		index: number;
-		length: number;
-		type: "auto" | "pause";
-	}> = [];
+	const trimmed = content.trim();
+	assert(trimmed.length > 0, `Script file "${filePath}" contains no content.`);
 
-	let match: RegExpExecArray | null = DELIMITER_REGEX.exec(content);
-	while (match !== null) {
-		const tag = match[1]?.toLowerCase();
-		matches.push({
-			index: match.index,
-			length: match[0].length,
-			type: tag === "intermission" ? "pause" : "auto",
-		});
-		match = DELIMITER_REGEX.exec(content);
-	}
+	const ast = parse(content);
+	const topLevelBlocks = ast.type === "fragment" ? ast.children : [ast];
 
 	const steps: Step[] = [];
+	let currentBlocks: MarkdownNode[] = [];
 
-	if (matches.length === 0) {
-		const trimmed = content.trim();
-		assert(
-			trimmed.length > 0,
-			`Script file "${filePath}" contains no content.`,
-		);
-		steps.push({
-			index: 0,
-			type: "auto",
-			content: trimmed,
-		});
-		return { filePath, steps };
+	for (const block of topLevelBlocks) {
+		const delimiter = getDelimiterInfo(block);
+		if (delimiter !== null) {
+			assert(
+				currentBlocks.length > 0,
+				`Curtain delimiters cannot appear consecutively or at the beginning of script "${filePath}".`,
+			);
+			const chunk = currentBlocks
+				.map((b) => b.source)
+				.join("\n\n")
+				.trim();
+			if (chunk.length > 0) {
+				steps.push({
+					index: steps.length,
+					type: delimiter.type,
+					content: chunk,
+					...(delimiter.instruction
+						? { instruction: delimiter.instruction }
+						: {}),
+				});
+			}
+			currentBlocks = [];
+		} else {
+			currentBlocks.push(block);
+		}
 	}
 
-	let lastEnd = 0;
-	let currentType: "auto" | "pause" = "auto";
-
-	for (const m of matches) {
-		const chunk = content.slice(lastEnd, m.index).trim();
+	if (currentBlocks.length > 0) {
+		const chunk = currentBlocks
+			.map((b) => b.source)
+			.join("\n\n")
+			.trim();
 		if (chunk.length > 0) {
 			steps.push({
 				index: steps.length,
-				type: currentType,
+				type: "auto",
 				content: chunk,
 			});
 		}
-		currentType = m.type;
-		lastEnd = m.index + m.length;
-	}
-
-	const finalChunk = content.slice(lastEnd).trim();
-	if (finalChunk.length > 0) {
-		steps.push({
-			index: steps.length,
-			type: currentType,
-			content: finalChunk,
-		});
 	}
 
 	assert(

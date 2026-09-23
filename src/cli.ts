@@ -3,7 +3,12 @@ import { resolveConversationIdFromHarnesses } from "./harnesses/index.ts";
 import { loadScript } from "./resolver.ts";
 import { runShim } from "./shim/runtime-shim.ts";
 import { deleteState, loadState, saveState } from "./state.ts";
-import { resumeExecution, startExecution } from "./transitions.ts";
+import {
+	formatStatus,
+	formatStepPrompt,
+	resumeExecution,
+	startExecution,
+} from "./transitions.ts";
 
 export interface ParsedCli {
 	command?: string;
@@ -110,9 +115,7 @@ export async function runCli(
 
 	if (parsed.command === "status") {
 		const state = loadState(conversationId, env);
-		const msg = state
-			? `[CURTAIN STATUS] Step ${state.currentStep + 1}/${state.totalSteps} | State: ${state.status} | Script: ${state.script}`
-			: "[CURTAIN STATUS] No active script running.";
+		const msg = formatStatus(state);
 		writeOut(msg);
 		return { exitCode: 0, output: msg };
 	}
@@ -127,13 +130,20 @@ export async function runCli(
 		}
 
 		const res = resumeExecution(state);
-		if (!res.success) {
+		if (res.action === "error") {
 			writeErr(res.error);
 			return { exitCode: 1, output: res.error };
 		}
 
+		if (res.action === "finish") {
+			deleteState(conversationId, env);
+			const msg = "[CURTAIN STATUS] Execution complete.";
+			writeOut(msg);
+			return { exitCode: 0, output: msg };
+		}
+
 		saveState(conversationId, res.state, env);
-		const msg = `[STEP ${res.state.currentStep + 1} OF ${res.state.totalSteps}]\n\n${res.step.content}\n\nPerform ONLY this step. Conclude when complete.`;
+		const msg = formatStepPrompt(res.step, res.state.totalSteps);
 		writeOut(msg);
 		return { exitCode: 0, output: msg };
 	}
@@ -155,7 +165,7 @@ export async function runCli(
 		const nextState = startExecution(loaded.script);
 		saveState(conversationId, nextState, env);
 		const firstStep = nextState.steps[0];
-		const msg = `[STEP 1 OF ${nextState.totalSteps}]\n\n${firstStep.content}\n\nPerform ONLY this step. Conclude when complete.`;
+		const msg = formatStepPrompt(firstStep, nextState.totalSteps);
 		writeOut(msg);
 		return { exitCode: 0, output: msg };
 	}

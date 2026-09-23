@@ -110,8 +110,8 @@ describe("runShim End-to-End Simulation", () => {
 				currentStep: 0,
 				totalSteps: 2,
 				steps: [
-					{ index: 0, type: "auto", content: "Step 1 content" },
-					{ index: 1, type: "pause", content: "Step 2 content" },
+					{ index: 0, type: "pause", content: "Step 1 content" },
+					{ index: 1, type: "auto", content: "Step 2 content" },
 				],
 			},
 			env,

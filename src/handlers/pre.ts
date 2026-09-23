@@ -1,7 +1,12 @@
 import { getHelpText, parseCommand } from "../lib/parseCommand.ts";
 import { loadScript } from "../resolver.ts";
 import { deleteState, type RunnerState, saveState } from "../state.ts";
-import { resumeExecution, startExecution } from "../transitions.ts";
+import {
+	formatStatus,
+	formatStepPrompt,
+	resumeExecution,
+	startExecution,
+} from "../transitions.ts";
 import type { HookInfo, HookResponse } from "../types.ts";
 
 export interface HandlerResult {
@@ -37,9 +42,7 @@ export function handlePre(
 			}
 
 			if (parsed.command.name === "status") {
-				const msg = state
-					? `[CURTAIN STATUS] Step ${state.currentStep + 1}/${state.totalSteps} | State: ${state.status} | Script: ${state.script}`
-					: "[CURTAIN STATUS] No active script running.";
+				const msg = formatStatus(state);
 				return {
 					state,
 					response: { injectSteps: [{ ephemeralMessage: msg }] },
@@ -71,7 +74,7 @@ export function handlePre(
 				}
 
 				const res = resumeExecution(state);
-				if (!res.success) {
+				if (res.action === "error") {
 					return {
 						state,
 						response: {
@@ -80,8 +83,20 @@ export function handlePre(
 					};
 				}
 
+				if (res.action === "finish") {
+					deleteState(info.conversationId, env);
+					return {
+						state: null,
+						response: {
+							injectSteps: [
+								{ ephemeralMessage: "Curtain raised. Execution complete." },
+							],
+						},
+					};
+				}
+
 				saveState(info.conversationId, res.state, env);
-				const msg = `[STEP ${res.state.currentStep + 1} OF ${res.state.totalSteps}]\n\n${res.step.content}\n\nPerform ONLY this step. Conclude when complete.`;
+				const msg = formatStepPrompt(res.step, res.state.totalSteps);
 				return {
 					state: res.state,
 					response: { injectSteps: [{ ephemeralMessage: msg }] },
@@ -103,12 +118,25 @@ export function handlePre(
 				const nextState = startExecution(loaded.script);
 				saveState(info.conversationId, nextState, env);
 				const firstStep = nextState.steps[0];
-				const msg = `[STEP 1 OF ${nextState.totalSteps}]\n\n${firstStep.content}\n\nPerform ONLY this step. Conclude when complete.`;
+				const msg = formatStepPrompt(firstStep, nextState.totalSteps);
 				return {
 					state: nextState,
 					response: { injectSteps: [{ ephemeralMessage: msg }] },
 				};
 			}
+		}
+	}
+
+	if (state?.status === "paused") {
+		const currentStep = state.steps[state.currentStep];
+		if (currentStep?.instruction) {
+			const msg = `[INTERMISSION REVIEW]\n${currentStep.instruction}\n\nConclude your turn when complete. The curtain remains paused until the user enters /curtain raise.`;
+			return {
+				state,
+				response: {
+					injectSteps: [{ ephemeralMessage: msg }],
+				},
+			};
 		}
 	}
 

@@ -16,8 +16,13 @@ describe("handlers/pre.ts", () => {
 		currentStep: 0,
 		totalSteps: 2,
 		steps: [
-			{ index: 0, type: "auto", content: "Step 1 content" },
-			{ index: 1, type: "pause", content: "Step 2 content" },
+			{
+				index: 0,
+				type: "pause",
+				content: "Step 1 content",
+				instruction: "Check table schema",
+			},
+			{ index: 1, type: "auto", content: "Step 2 content" },
 		],
 	};
 
@@ -50,6 +55,44 @@ describe("handlers/pre.ts", () => {
 		`);
 	});
 
+	it("completes execution when user sends /curtain raise on final step intermission", () => {
+		const singleStepPausedState: RunnerState = {
+			script: "sample.md",
+			status: "paused",
+			currentStep: 0,
+			totalSteps: 1,
+			steps: [
+				{
+					index: 0,
+					type: "pause",
+					content: "Step 1 content",
+					instruction: "Check table schema",
+				},
+			],
+		};
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-c1-final",
+			workspacePath: "/test",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "/curtain raise",
+			},
+		};
+
+		const { state, response } = handlePre(info, singleStepPausedState, env);
+		expect(state).toBeNull();
+		expect(response).toMatchInlineSnapshot(`
+			{
+			  "injectSteps": [
+			    {
+			      "ephemeralMessage": "Curtain raised. Execution complete.",
+			    },
+			  ],
+			}
+		`);
+	});
+
 	it("drops execution when user sends /curtain drop", () => {
 		const info: HookInfo = {
 			type: "pre",
@@ -68,7 +111,7 @@ describe("handlers/pre.ts", () => {
 		);
 	});
 
-	it("reports status when user sends /curtain status", () => {
+	it("reports status with intermission info when user sends /curtain status while paused", () => {
 		const info: HookInfo = {
 			type: "pre",
 			conversationId: "test-c3",
@@ -82,14 +125,48 @@ describe("handlers/pre.ts", () => {
 		const { state, response } = handlePre(info, sampleState, env);
 		expect(state).toEqual(sampleState);
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toBe(
-			"[CURTAIN STATUS] Step 1/2 | State: paused | Script: sample.md",
+			"[CURTAIN STATUS] Step 1/2 | State: paused | Script: sample.md | Intermission: Check table schema",
 		);
 	});
 
-	it("passes normal user messages through without state modification", () => {
+	it("replays intermission review instruction on normal user message while paused", () => {
 		const info: HookInfo = {
 			type: "pre",
-			conversationId: "test-c4",
+			conversationId: "test-c4-review",
+			workspacePath: "/test",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "I have added the missing migration column",
+			},
+		};
+
+		const { state, response } = handlePre(info, sampleState, env);
+		expect(state).toEqual(sampleState);
+		expect(response).toMatchInlineSnapshot(`
+			{
+			  "injectSteps": [
+			    {
+			      "ephemeralMessage": "[INTERMISSION REVIEW]
+			Check table schema
+
+			Conclude your turn when complete. The curtain remains paused until the user enters /curtain raise.",
+			    },
+			  ],
+			}
+		`);
+	});
+
+	it("passes normal user messages through when paused without intermission instruction", () => {
+		const stateWithoutInstruction: RunnerState = {
+			...sampleState,
+			steps: [
+				{ index: 0, type: "pause", content: "Step 1 content" },
+				{ index: 1, type: "auto", content: "Step 2 content" },
+			],
+		};
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-c4-no-inst",
 			workspacePath: "/test",
 			latestMessage: {
 				type: "USER_INPUT",
@@ -97,8 +174,8 @@ describe("handlers/pre.ts", () => {
 			},
 		};
 
-		const { state, response } = handlePre(info, sampleState, env);
-		expect(state).toEqual(sampleState);
+		const { state, response } = handlePre(info, stateWithoutInstruction, env);
+		expect(state).toEqual(stateWithoutInstruction);
 		expect(response).toEqual({});
 	});
 
@@ -107,9 +184,7 @@ describe("handlers/pre.ts", () => {
 		fs.mkdirSync(tmpDir, { recursive: true });
 		fs.writeFileSync(
 			scriptPath,
-			["Step 1 instruction", "<!-- curtain -->", "Step 2 instruction"].join(
-				"\n",
-			),
+			["Step 1 instruction", "> [!CURTAIN]", "Step 2 instruction"].join("\n"),
 		);
 
 		const info: HookInfo = {

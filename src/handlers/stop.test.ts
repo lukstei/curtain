@@ -32,8 +32,8 @@ describe("handlers/stop.ts", () => {
 			currentStep: 0,
 			totalSteps: 2,
 			steps: [
-				{ index: 0, type: "auto", content: "Step 1" },
-				{ index: 1, type: "pause", content: "Step 2" },
+				{ index: 0, type: "pause", content: "Step 1" },
+				{ index: 1, type: "auto", content: "Step 2" },
 			],
 		};
 		const { state, response } = handleStop(info, pausedState, env);
@@ -41,7 +41,7 @@ describe("handlers/stop.ts", () => {
 		expect(response).toEqual({ decision: "allow" });
 	});
 
-	it("transitions to paused and allows stop when next step type is pause", () => {
+	it("transitions to paused and allows stop when current step type is pause", () => {
 		const info: HookInfo = {
 			type: "stop",
 			conversationId: "c3",
@@ -53,8 +53,8 @@ describe("handlers/stop.ts", () => {
 			currentStep: 0,
 			totalSteps: 2,
 			steps: [
-				{ index: 0, type: "auto", content: "Step 1" },
-				{ index: 1, type: "pause", content: "Step 2" },
+				{ index: 0, type: "pause", content: "Step 1" },
+				{ index: 1, type: "auto", content: "Step 2" },
 			],
 		};
 		const { state, response } = handleStop(info, runningState, env);
@@ -62,7 +62,7 @@ describe("handlers/stop.ts", () => {
 		expect(response).toEqual({ decision: "allow" });
 	});
 
-	it("auto-advances and blocks stop when next step type is auto", () => {
+	it("auto-advances and blocks stop when current step type is auto", () => {
 		const info: HookInfo = {
 			type: "stop",
 			conversationId: "c4",

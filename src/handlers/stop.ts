@@ -1,5 +1,5 @@
 import { deleteState, type RunnerState, saveState } from "../state.ts";
-import { advanceExecution } from "../transitions.ts";
+import { advanceExecution, formatStepPrompt } from "../transitions.ts";
 import type { HookInfo } from "../types.ts";
 import type { HandlerResult } from "./pre.ts";
 
@@ -36,7 +36,7 @@ export function handleStop(
 	}
 
 	saveState(info.conversationId, result.state, env);
-	const msg = `[STEP ${result.state.currentStep + 1} OF ${result.state.totalSteps}]\n\n${result.step.content}\n\nPerform ONLY this step. Conclude when complete.`;
+	const msg = formatStepPrompt(result.step, result.state.totalSteps);
 	return {
 		state: result.state,
 		response: {
