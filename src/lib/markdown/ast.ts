@@ -23,6 +23,13 @@ type MarkdownNodeMap = {
 	code: {
 		content: string;
 	};
+	codeblock: {
+		language?: string;
+		content: string;
+	};
+	blockquote: {
+		children: MarkdownNode[];
+	};
 	link: {
 		href: string;
 		title?: string;

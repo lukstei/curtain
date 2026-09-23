@@ -53,12 +53,18 @@ class MarkdownParser {
 
 		const flushParagraph = (endIndex: number) => {
 			if (text !== "") {
-				root.children.push({
-					type: "text",
-					content: text,
-					source: this.getSlice(textStartIndex, endIndex),
-				});
+				const trimmedText = text.replace(/[\r\n]+$/, "");
+				const trailingLen = text.length - trimmedText.length;
+				const contentEndIndex = endIndex - trailingLen;
+				if (trimmedText !== "") {
+					root.children.push({
+						type: "text",
+						content: trimmedText,
+						source: this.getSlice(textStartIndex, contentEndIndex),
+					});
+				}
 				text = "";
+				endIndex = contentEndIndex;
 			}
 
 			const inlineChildren = root.children.splice(lastBlockIndex);
@@ -87,6 +93,36 @@ class MarkdownParser {
 				(this.matches(end) || this.matches(...MarkdownParser.NEWLINE))
 			) {
 				break;
+			}
+
+			const codeBlockMatch =
+				end === "" && this.atLineStart() ? this.matchCodeBlockPrefix() : null;
+			if (codeBlockMatch !== null) {
+				flushParagraph(this.index);
+
+				const node = this.parseCodeBlock(codeBlockMatch);
+				root.children.push(node);
+				lastBlockIndex = root.children.length;
+
+				paragraphStartIndex = this.index;
+				textStartIndex = this.index;
+
+				continue;
+			}
+
+			const blockquoteMatch =
+				end === "" && this.atLineStart() ? this.matchBlockquotePrefix() : false;
+			if (blockquoteMatch) {
+				flushParagraph(this.index);
+
+				const node = this.parseBlockquote();
+				root.children.push(node);
+				lastBlockIndex = root.children.length;
+
+				paragraphStartIndex = this.index;
+				textStartIndex = this.index;
+
+				continue;
 			}
 
 			const headingMatch =
@@ -363,6 +399,175 @@ class MarkdownParser {
 		const match = slice.match(/^[ ]{0,3}(#{1,6})(?:[ \t]+|(?=[\r\n]|$))/);
 		if (!match) return null;
 		return { depth: match[1].length, prefixLength: match[0].length };
+	}
+
+	private getLineEnd(fromIndex: number): number {
+		let i = fromIndex;
+		while (
+			i < this.length &&
+			this.chars[i] !== "\n" &&
+			this.chars[i] !== "\r"
+		) {
+			i++;
+		}
+		return i;
+	}
+
+	private getNewlineLength(index: number): number {
+		if (index >= this.length) return 0;
+		if (this.chars[index] === "\r" && this.chars[index + 1] === "\n") return 2;
+		if (this.chars[index] === "\n" || this.chars[index] === "\r") return 1;
+		return 0;
+	}
+
+	private matchCodeBlockPrefix(): {
+		fenceChar: string;
+		fenceLength: number;
+		language?: string;
+		openLineEnd: number;
+	} | null {
+		if (!this.atLineStart()) return null;
+
+		let indent = 0;
+		while (indent < 3 && this.chars[this.index + indent] === " ") {
+			indent++;
+		}
+		const char = this.chars[this.index + indent];
+		if (char !== "`" && char !== "~") return null;
+
+		const openLineEnd = this.getLineEnd(this.index);
+		const line = this.getSlice(this.index, openLineEnd);
+		const match = line.match(/^[ ]{0,3}(`{3,}|~{3,})[ \t]*(\S*)/);
+		if (!match) return null;
+
+		const fence = match[1];
+		const fenceChar = fence[0];
+		if (fenceChar === "`" && line.slice(indent + fence.length).includes("`")) {
+			return null;
+		}
+
+		return {
+			fenceChar,
+			fenceLength: fence.length,
+			language: match[2] !== "" ? match[2] : undefined,
+			openLineEnd,
+		};
+	}
+
+	private parseCodeBlock(info: {
+		fenceChar: string;
+		fenceLength: number;
+		language?: string;
+		openLineEnd: number;
+	}): MarkdownNode<"codeblock"> {
+		const blockStartIndex = this.index;
+		const openNewlineLen = this.getNewlineLength(info.openLineEnd);
+		let cursor = info.openLineEnd + openNewlineLen;
+		const contentStartIndex = cursor;
+
+		const closingRegex = new RegExp(
+			`^[ ]{0,3}\\${info.fenceChar}{${info.fenceLength},}[ \\t]*$`,
+		);
+		let contentEndIndex = this.length;
+		let blockEndIndex = this.length;
+		let closingFound = false;
+
+		while (cursor < this.length) {
+			const curLineEnd = this.getLineEnd(cursor);
+			const curLine = this.getSlice(cursor, curLineEnd);
+			if (closingRegex.test(curLine)) {
+				closingFound = true;
+				contentEndIndex = cursor;
+				blockEndIndex = curLineEnd;
+				cursor = curLineEnd + this.getNewlineLength(curLineEnd);
+				break;
+			}
+			const nlLen = this.getNewlineLength(curLineEnd);
+			if (nlLen === 0) {
+				cursor = curLineEnd;
+				break;
+			}
+			cursor = curLineEnd + nlLen;
+		}
+
+		if (!closingFound) {
+			contentEndIndex = this.length;
+			blockEndIndex = this.length;
+		}
+
+		this.seek(cursor);
+		while (MarkdownParser.NEWLINE.includes(this.current)) {
+			this.advance();
+		}
+
+		const content = this.getSlice(contentStartIndex, contentEndIndex);
+		const source = this.getSlice(blockStartIndex, blockEndIndex);
+
+		return {
+			type: "codeblock",
+			...(info.language !== undefined ? { language: info.language } : {}),
+			content,
+			source,
+		};
+	}
+
+	private matchBlockquotePrefix(): boolean {
+		if (!this.atLineStart()) return false;
+
+		let indent = 0;
+		while (indent < 3 && this.chars[this.index + indent] === " ") {
+			indent++;
+		}
+		return this.chars[this.index + indent] === ">";
+	}
+
+	private parseBlockquote(): MarkdownNode<"blockquote"> {
+		const blockquoteStartIndex = this.index;
+		const innerLines: string[] = [];
+		let cursor = this.index;
+		let lastLineEnd = cursor;
+
+		while (cursor < this.length) {
+			let lineIndent = 0;
+			while (lineIndent < 3 && this.chars[cursor + lineIndent] === " ") {
+				lineIndent++;
+			}
+			if (this.chars[cursor + lineIndent] !== ">") {
+				break;
+			}
+
+			const curLineEnd = this.getLineEnd(cursor);
+			const rawLine = this.getSlice(cursor, curLineEnd);
+			const strippedLine = rawLine.replace(/^[ ]{0,3}>[ \t]?/, "");
+			innerLines.push(strippedLine);
+			lastLineEnd = curLineEnd;
+
+			const nlLen = this.getNewlineLength(curLineEnd);
+			if (nlLen === 0) {
+				cursor = curLineEnd;
+				break;
+			}
+			cursor = curLineEnd + nlLen;
+		}
+
+		this.seek(cursor);
+		while (MarkdownParser.NEWLINE.includes(this.current)) {
+			this.advance();
+		}
+
+		const innerContent = innerLines.join("\n");
+		let children: MarkdownNode[] = [];
+		if (innerContent.trim() !== "") {
+			const parsed = MarkdownParser.parse(innerContent);
+			children = parsed.type === "fragment" ? parsed.children : [parsed];
+		}
+		const source = this.getSlice(blockquoteStartIndex, lastLineEnd);
+
+		return {
+			type: "blockquote",
+			children,
+			source,
+		};
 	}
 
 	private get done(): boolean {
