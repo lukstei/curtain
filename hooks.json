@@ -1,0 +1,16 @@
+{
+	"curtain": {
+		"PreInvocation": [
+			{
+				"type": "command",
+				"command": "node ./dist/curtain.cjs hook pre"
+			}
+		],
+		"Stop": [
+			{
+				"type": "command",
+				"command": "node ./dist/curtain.cjs hook stop"
+			}
+		]
+	}
+}

@@ -1,0 +1,7 @@
+{
+	"name": "curtain",
+	"version": "0.2.0",
+	"description": "Minimal multi-act instruction runner for AI agents",
+	"skills": "./skills/",
+	"hooks": "./hooks/claude-codex-hooks.json"
+}

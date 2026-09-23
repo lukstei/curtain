@@ -1,0 +1,38 @@
+{
+	"hooks": {
+		"SessionStart": [
+			{
+				"matcher": "startup|resume|clear|compact",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.cjs\" hook pre",
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.cjs\" hook pre",
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.cjs\" hook stop",
+						"timeout": 10
+					}
+				]
+			}
+		]
+	}
+}

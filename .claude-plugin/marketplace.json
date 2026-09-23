@@ -1,0 +1,16 @@
+{
+	"$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+	"name": "curtain-marketplace",
+	"owner": {
+		"name": "Lukas Steinbrecher",
+		"url": "https://github.com/lukstei"
+	},
+	"plugins": [
+		{
+			"name": "curtain",
+			"description": "Minimal multi-act instruction runner for AI agents",
+			"source": "./",
+			"category": "productivity"
+		}
+	]
+}

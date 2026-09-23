@@ -1,0 +1,7 @@
+src/
+tests/
+fixtures/
+biome.json
+tsconfig.json
+esbuild.config.js
+coverage/

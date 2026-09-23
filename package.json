@@ -1,0 +1,63 @@
+{
+	"name": "@lukstei/curtain",
+	"version": "0.2.0",
+	"description": "Minimal multi-act instruction runner for AI agents",
+	"license": "MIT",
+	"author": "Lukas Steinbrecher",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/lukstei/curtain.git"
+	},
+	"bugs": {
+		"url": "https://github.com/lukstei/curtain/issues"
+	},
+	"homepage": "https://github.com/lukstei/curtain#readme",
+	"publishConfig": {
+		"access": "public"
+	},
+	"files": [
+		"dist",
+		"hooks",
+		"skills",
+		"rules",
+		".claude-plugin",
+		".codex-plugin",
+		".agents",
+		"AGENTS.md",
+		"README.md",
+		"plugin.json",
+		"hooks.json"
+	],
+	"bin": {
+		"curtain": "dist/curtain.cjs"
+	},
+	"scripts": {
+		"build": "node esbuild.config.js",
+		"typecheck": "tsc --noEmit",
+		"check": "biome check --write",
+		"test": "vitest run --reporter=minimal",
+		"test:watch": "vitest",
+		"test:update": "vitest run -u",
+		"verify": "npm run typecheck && npm run check && npm run test",
+		"check:clean": "test -z \"$(git status --porcelain)\" || (echo \"Error: Git working directory is not clean\" && exit 1)",
+		"dev:install:agy": "npm run build && node scripts/dev-install.js ~/.gemini/config/plugins/curtain",
+		"dev:install:claude": "npm run build && node scripts/dev-install.js ~/.claude/plugins/cache/curtain-marketplace/curtain/latest",
+		"dev:install:codex": "npm run build && node scripts/dev-install.js ~/.codex/plugins/cache/curtain/curtain",
+		"release:patch": "node scripts/release.js patch",
+		"release:minor": "node scripts/release.js minor",
+		"release:major": "node scripts/release.js major"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.14",
+		"@types/node": "^26.6.2",
+		"@vitest/coverage-v8": "^5.0.1",
+		"esbuild": "^0.28.2",
+		"typescript": "^7.0.2",
+		"vitest": "^5.0.1"
+	},
+	"allowScripts": {
+		"esbuild@0.28.2": true,
+		"fsevents@2.3.3": true
+	}
+}

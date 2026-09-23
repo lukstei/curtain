@@ -1,0 +1,15 @@
+{
+	"name": "curtain",
+	"version": "0.2.0",
+	"description": "Minimal multi-act instruction runner for AI agents",
+	"skills": "./skills/",
+	"hooks": "./hooks/claude-codex-hooks.json",
+	"interface": {
+		"displayName": "Curtain Instruction Runner",
+		"shortDescription": "Minimal multi-act instruction runner",
+		"longDescription": "Execute complex multi-act scripts with theatrical curtains, preventing skip-ahead by withholding future instructions.",
+		"developerName": "Lukas Steinbrecher",
+		"category": "Productivity",
+		"capabilities": ["Instructions", "Lifecycle hooks"]
+	}
+}

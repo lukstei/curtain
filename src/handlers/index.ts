@@ -1,0 +1,21 @@
+import type { RunnerState } from "../state.ts";
+import type { HookInfo } from "../types.ts";
+import { type HandlerResult, handlePre } from "./pre.ts";
+import { handleStop } from "./stop.ts";
+
+export { type HandlerResult, handlePre } from "./pre.ts";
+export { handleStop } from "./stop.ts";
+
+export function handle(
+	info: HookInfo,
+	state: RunnerState | null,
+	env: NodeJS.ProcessEnv = process.env,
+): HandlerResult {
+	if (info.type === "stop") {
+		return handleStop(info, state, env);
+	}
+	if (info.type === "pre") {
+		return handlePre(info, state, env);
+	}
+	throw new Error(`Unknown hook type: ${info.type}`);
+}

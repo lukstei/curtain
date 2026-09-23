@@ -1,0 +1,11 @@
+# Suppress binary/bundled diffs in GitHub Pull Requests
+dist/** linguist-generated=true -diff
+.agents/plugins/curtain/dist/** linguist-generated=true -diff
+package-lock.json linguist-generated=true
+
+# Ensure consistent line endings
+*.ts text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
