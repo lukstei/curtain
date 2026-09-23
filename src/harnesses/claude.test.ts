@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, it } from "vitest";
 import { claudeHarness } from "./claude.ts";
 import type { NormalizedEvent } from "./types.ts";
@@ -10,13 +11,11 @@ function createMockEvent(
 		harness: "claude",
 		conversationId: "test-claude-conv",
 		workspacePath: "/test/project",
-		isStop: false,
-		stopHookActive: false,
-		isInterrupted: false,
+		prompt: "",
 		latestMessage: null,
 		rawPayload: {},
 		...overrides,
-	};
+	} as NormalizedEvent;
 }
 
 describe("claudeHarness", () => {
@@ -49,8 +48,6 @@ describe("claudeHarness", () => {
 				{
 				  "conversationId": "claude-s1",
 				  "harness": "claude",
-				  "isInterrupted": false,
-				  "isStop": false,
 				  "latestMessage": {
 				    "content": "/next",
 				    "type": "USER_INPUT",
@@ -62,9 +59,6 @@ describe("claudeHarness", () => {
 				    "prompt": "/next",
 				    "session_id": "claude-s1",
 				  },
-				  "readTargetFilePath": null,
-				  "stopHookActive": false,
-				  "toolCall": null,
 				  "type": "pre",
 				  "workspacePath": "/claude/workspace",
 				}
@@ -77,7 +71,7 @@ describe("claudeHarness", () => {
 				cwd: "/claude/workspace",
 				hook_event_name: "Stop",
 			});
-			expect(event.type).toBe("stop");
+			assert(event.type === "stop");
 			expect(event.isStop).toBe(true);
 		});
 
@@ -89,7 +83,7 @@ describe("claudeHarness", () => {
 				tool_name: "View",
 				tool_input: { file_path: "/claude/workspace/SKILL.md" },
 			});
-			expect(event.type).toBe("tool");
+			assert(event.type === "tool");
 			expect(event.readTargetFilePath).toBe("/claude/workspace/SKILL.md");
 		});
 	});

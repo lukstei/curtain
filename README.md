@@ -104,11 +104,11 @@ Delimiters support optional instructions:
 
 | Command (Claude / AGY) | Command (Codex CLI) | Description |
 | :--- | :--- | :--- |
-| `/curtain <file.md>` | `$curtain:start <file.md>` | Start execution of a multi-act script. |
+| `/curtain-run <file.md>` | `$curtain:start <file.md>` | Start execution of a multi-act script. |
 | `/next` | `$curtain:next` | Advance to the next Act when paused at an intermission. |
-| `/curtain drop` | `$curtain:drop` | Abort execution, delete state, and stop the runner. |
-| `/curtain status` | `$curtain:status` | Display current Act number, total Acts, and runner status. |
-| `/curtain help` | `$curtain:help` | Display usage instructions and supported runner commands. |
+| `/curtain-stop` | `$curtain:drop` | Abort execution, delete state, and stop the runner. |
+| `/curtain-status` | `$curtain:status` | Display current Act number, total Acts, and runner status. |
+| `/curtain-help` | `$curtain:help` | Display usage instructions and supported runner commands. |
 
 ## Development
 

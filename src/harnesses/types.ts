@@ -1,9 +1,4 @@
-import type {
-	HookResponse,
-	HookType,
-	LatestMessage,
-	ToolCall,
-} from "../types.ts";
+import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
 
 export type HarnessType = "claude" | "codex" | "agy" | "copilot";
 
@@ -13,21 +8,35 @@ export interface EgressOutput {
 	exitCode: number;
 }
 
-export interface NormalizedEvent {
-	type: HookType;
+type BaseNormalizedEvent = {
 	harness: HarnessType;
 	conversationId: string;
 	workspacePath: string;
-	prompt?: string;
-	isStop: boolean;
-	stopHookActive: boolean;
-	terminationReason?: string;
-	isInterrupted: boolean;
-	latestMessage: LatestMessage | null;
-	toolCall?: ToolCall | null;
-	readTargetFilePath?: string | null;
 	rawPayload: Record<string, unknown>;
-}
+};
+
+export type NormalizedEvent = BaseNormalizedEvent &
+	(
+		| {
+				type: "pre";
+				prompt: string;
+				latestMessage: LatestMessage | null;
+				skillInvocationPath?: string;
+		  }
+		| {
+				type: "stop";
+				isStop: true;
+				stopHookActive: boolean;
+				isInterrupted: boolean;
+				terminationReason?: string;
+				latestMessage: LatestMessage | null;
+		  }
+		| {
+				type: "tool";
+				toolCall: ToolCall;
+				readTargetFilePath?: string | null;
+		  }
+	);
 
 export interface HarnessAdapter {
 	readonly id: HarnessType;
@@ -38,7 +47,11 @@ export interface HarnessAdapter {
 		env?: NodeJS.ProcessEnv,
 	): NormalizedEvent;
 	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput;
-	extractLatestMessage(event: NormalizedEvent): LatestMessage | null;
+	extractLatestMessage(event: {
+		type: "pre" | "stop" | "tool";
+		prompt?: string;
+		rawPayload: Record<string, unknown>;
+	}): LatestMessage | null;
 	extractFileReadTarget?(
 		toolCall: ToolCall,
 		workspacePath: string,

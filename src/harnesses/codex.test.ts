@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, it } from "vitest";
 import { codexHarness } from "./codex.ts";
 import type { NormalizedEvent } from "./types.ts";
@@ -10,13 +11,11 @@ function createMockEvent(
 		harness: "codex",
 		conversationId: "test-codex-conv",
 		workspacePath: "/test/project",
-		isStop: false,
-		stopHookActive: false,
-		isInterrupted: false,
+		prompt: "",
 		latestMessage: null,
 		rawPayload: {},
 		...overrides,
-	};
+	} as NormalizedEvent;
 }
 
 describe("codexHarness", () => {
@@ -62,8 +61,6 @@ describe("codexHarness", () => {
 				{
 				  "conversationId": "codex-s1",
 				  "harness": "codex",
-				  "isInterrupted": false,
-				  "isStop": false,
 				  "latestMessage": {
 				    "content": "/next",
 				    "type": "USER_INPUT",
@@ -75,9 +72,6 @@ describe("codexHarness", () => {
 				    "prompt": "/next",
 				    "session_id": "codex-s1",
 				  },
-				  "readTargetFilePath": null,
-				  "stopHookActive": false,
-				  "toolCall": null,
 				  "type": "pre",
 				  "workspacePath": "/codex/workspace",
 				}
@@ -90,7 +84,7 @@ describe("codexHarness", () => {
 				cwd: "/codex/workspace",
 				hook_event_name: "Stop",
 			});
-			expect(event.type).toBe("stop");
+			assert(event.type === "stop");
 			expect(event.isStop).toBe(true);
 		});
 
@@ -102,7 +96,7 @@ describe("codexHarness", () => {
 				tool_name: "read_file",
 				tool_input: { path: "/codex/workspace/SKILL.md" },
 			});
-			expect(event.type).toBe("tool");
+			assert(event.type === "tool");
 			expect(event.readTargetFilePath).toBe("/codex/workspace/SKILL.md");
 		});
 	});

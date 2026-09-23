@@ -27,6 +27,10 @@ describe("parseCommand.ts", () => {
 			isCurtainCommand: true,
 			command: { name: "drop" },
 		});
+		expect(parseCommand("/curtain-stop")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "drop" },
+		});
 		expect(parseCommand("/curtain status")).toEqual({
 			isCurtainCommand: true,
 			command: { name: "status" },
@@ -39,6 +43,10 @@ describe("parseCommand.ts", () => {
 
 	it("parses script file runs with file mentions", () => {
 		expect(parseCommand("/curtain task.md")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "run", path: "task.md" },
+		});
+		expect(parseCommand("/curtain-run task.md")).toEqual({
 			isCurtainCommand: true,
 			command: { name: "run", path: "task.md" },
 		});
@@ -59,8 +67,14 @@ describe("parseCommand.ts", () => {
 		});
 	});
 
-	it("returns isCurtainCommand false for non-curtain messages", () => {
+	it("returns isCurtainCommand false for non-curtain messages and arbitrary hyphenated skills", () => {
 		expect(parseCommand("Hello agent, please fix this bug")).toEqual({
+			isCurtainCommand: false,
+		});
+		expect(parseCommand("/curtain-")).toEqual({
+			isCurtainCommand: false,
+		});
+		expect(parseCommand("/curtain-custom")).toEqual({
 			isCurtainCommand: false,
 		});
 	});

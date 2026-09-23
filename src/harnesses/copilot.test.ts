@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, it } from "vitest";
 import { copilotHarness } from "./copilot.ts";
 import type { NormalizedEvent } from "./types.ts";
@@ -10,13 +11,11 @@ function createMockEvent(
 		harness: "copilot",
 		conversationId: "test-copilot-conv",
 		workspacePath: "/test/project",
-		isStop: false,
-		stopHookActive: false,
-		isInterrupted: false,
+		prompt: "",
 		latestMessage: null,
 		rawPayload: {},
 		...overrides,
-	};
+	} as NormalizedEvent;
 }
 
 describe("copilotHarness", () => {
@@ -61,8 +60,6 @@ describe("copilotHarness", () => {
 				{
 				  "conversationId": "copilot-c1",
 				  "harness": "copilot",
-				  "isInterrupted": false,
-				  "isStop": false,
 				  "latestMessage": {
 				    "content": "/next",
 				    "type": "USER_INPUT",
@@ -73,9 +70,6 @@ describe("copilotHarness", () => {
 				    "cwd": "/copilot/workspace",
 				    "prompt": "/next",
 				  },
-				  "readTargetFilePath": null,
-				  "stopHookActive": false,
-				  "toolCall": null,
 				  "type": "pre",
 				  "workspacePath": "/copilot/workspace",
 				}
@@ -88,7 +82,7 @@ describe("copilotHarness", () => {
 				cwd: "/copilot/workspace",
 				hook_event_name: "Stop",
 			});
-			expect(event.type).toBe("stop");
+			assert(event.type === "stop");
 			expect(event.isStop).toBe(true);
 		});
 
@@ -100,7 +94,7 @@ describe("copilotHarness", () => {
 				tool_name: "read_file",
 				tool_input: { path: "/copilot/workspace/SKILL.md" },
 			});
-			expect(event.type).toBe("tool");
+			assert(event.type === "tool");
 			expect(event.readTargetFilePath).toBe("/copilot/workspace/SKILL.md");
 		});
 	});

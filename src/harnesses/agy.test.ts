@@ -1,5 +1,6 @@
+import assert from "node:assert/strict";
 import { describe, expect, it } from "vitest";
-import { agyHarness } from "./agy.ts";
+import { agyHarness, parseAgyMessage } from "./agy.ts";
 import type { NormalizedEvent } from "./types.ts";
 
 function createMockEvent(
@@ -10,13 +11,11 @@ function createMockEvent(
 		harness: "agy",
 		conversationId: "test-agy-conv",
 		workspacePath: "/test/project",
-		isStop: false,
-		stopHookActive: false,
-		isInterrupted: false,
+		prompt: "",
 		latestMessage: null,
 		rawPayload: {},
 		...overrides,
-	};
+	} as NormalizedEvent;
 }
 
 describe("agyHarness", () => {
@@ -70,8 +69,6 @@ describe("agyHarness", () => {
 				{
 				  "conversationId": "c-agy",
 				  "harness": "agy",
-				  "isInterrupted": false,
-				  "isStop": false,
 				  "latestMessage": {
 				    "content": "/next",
 				    "type": "USER_INPUT",
@@ -84,10 +81,6 @@ describe("agyHarness", () => {
 				      "/agy/project",
 				    ],
 				  },
-				  "readTargetFilePath": null,
-				  "stopHookActive": false,
-				  "terminationReason": undefined,
-				  "toolCall": null,
 				  "type": "pre",
 				  "workspacePath": "/agy/project",
 				}
@@ -100,8 +93,45 @@ describe("agyHarness", () => {
 				workspacePaths: ["/agy/project"],
 				terminationReason: "model_stop",
 			});
-			expect(event.type).toBe("stop");
+			assert(event.type === "stop");
 			expect(event.isStop).toBe(true);
+		});
+
+		it("normalizes pre-invocation event with wrapped USER_REQUEST and SKILL metadata", () => {
+			const event = agyHarness.normalize({
+				conversationId: "ad572610-6787-4054-8cbf-77957f214fcf",
+				workspacePaths: ["/Users/Lukas.Steinbrecher/Downloads/skill-test"],
+				prompt: `<USER_REQUEST>\n/weekend \n</USER_REQUEST>\n<ADDITIONAL_METADATA>\n/weekend is a [Slash Command]:\n<SKILL>The user requested you read and use the "weekend" skill. The path to the skill file is:\n/Users/Lukas.Steinbrecher/Downloads/skill-test/.agents/skills/weekend/SKILL.md</SKILL>\n</ADDITIONAL_METADATA>`,
+			});
+			expect(event).toMatchInlineSnapshot(`
+				{
+				  "conversationId": "ad572610-6787-4054-8cbf-77957f214fcf",
+				  "harness": "agy",
+				  "latestMessage": {
+				    "content": "/weekend",
+				    "skillInvocationPath": "/Users/Lukas.Steinbrecher/Downloads/skill-test/.agents/skills/weekend/SKILL.md",
+				    "type": "USER_INPUT",
+				  },
+				  "prompt": "/weekend",
+				  "rawPayload": {
+				    "conversationId": "ad572610-6787-4054-8cbf-77957f214fcf",
+				    "prompt": "<USER_REQUEST>
+				/weekend 
+				</USER_REQUEST>
+				<ADDITIONAL_METADATA>
+				/weekend is a [Slash Command]:
+				<SKILL>The user requested you read and use the "weekend" skill. The path to the skill file is:
+				/Users/Lukas.Steinbrecher/Downloads/skill-test/.agents/skills/weekend/SKILL.md</SKILL>
+				</ADDITIONAL_METADATA>",
+				    "workspacePaths": [
+				      "/Users/Lukas.Steinbrecher/Downloads/skill-test",
+				    ],
+				  },
+				  "skillInvocationPath": "/Users/Lukas.Steinbrecher/Downloads/skill-test/.agents/skills/weekend/SKILL.md",
+				  "type": "pre",
+				  "workspacePath": "/Users/Lukas.Steinbrecher/Downloads/skill-test",
+				}
+			`);
 		});
 
 		it("normalizes tool event and extracts readTargetFilePath", () => {
@@ -113,8 +143,51 @@ describe("agyHarness", () => {
 					args: { AbsolutePath: "/agy/project/SKILL.md" },
 				},
 			});
-			expect(event.type).toBe("tool");
+			assert(event.type === "tool");
 			expect(event.readTargetFilePath).toBe("/agy/project/SKILL.md");
+		});
+	});
+
+	describe("parseAgyMessage", () => {
+		it("unwraps USER_REQUEST and extracts SKILL path", () => {
+			const res = parseAgyMessage({
+				type: "USER_INPUT",
+				content: `<USER_REQUEST>\n/weekend \n</USER_REQUEST>\n<ADDITIONAL_METADATA>\n<SKILL>The user requested you read and use the "weekend" skill. The path to the skill file is:\n/path/to/weekend/SKILL.md</SKILL>\n</ADDITIONAL_METADATA>`,
+			});
+			expect(res).toMatchInlineSnapshot(`
+				{
+				  "content": "/weekend",
+				  "skillInvocationPath": "/path/to/weekend/SKILL.md",
+				  "type": "USER_INPUT",
+				}
+			`);
+		});
+
+		it("extracts SKILL path with spaces", () => {
+			const res = parseAgyMessage({
+				type: "USER_INPUT",
+				content: `<USER_REQUEST>\n/weekend \n</USER_REQUEST>\n<ADDITIONAL_METADATA>\n<SKILL>The user requested you read and use the "weekend" skill. The path to the skill file is:\n/Users/Jane Doe/my skills/weekend/SKILL.md</SKILL>\n</ADDITIONAL_METADATA>`,
+			});
+			expect(res).toMatchInlineSnapshot(`
+				{
+				  "content": "/weekend",
+				  "skillInvocationPath": "/Users/Jane Doe/my skills/weekend/SKILL.md",
+				  "type": "USER_INPUT",
+				}
+			`);
+		});
+
+		it("parses model response as PLANNER_RESPONSE", () => {
+			const res = parseAgyMessage({
+				type: "PLANNER_RESPONSE",
+				content: "All done!",
+			});
+			expect(res).toMatchInlineSnapshot(`
+				{
+				  "content": "All done!",
+				  "type": "PLANNER_RESPONSE",
+				}
+			`);
 		});
 	});
 

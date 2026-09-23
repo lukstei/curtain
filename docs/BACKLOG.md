@@ -29,4 +29,7 @@
 - **Objective:** Distill authoritative, up-to-date reference documentation for each harness from official ecosystem sources, reference plugins (`ponytail`, `ralph-loop`, `superpowers`), and runtime specs into structured harness reference docs.
 - **Agent Triage:** Verify official hook schemas and payload specs against upstream docs. Replace assumed behavior with tested cross-harness contracts.
 
-
+### [ ] 5. Automatic Plan Invocation via `> [!PLAN]` Callout
+- **Current State:** The parser only recognizes `> [!CURTAIN]` (auto-advance) and `> [!INTERMISSION]` (pause for review) delimiters to segment script steps. Scripts lack a dedicated callout to trigger planning mode or require an implementation plan before execution.
+- **Objective:** Support a `> [!PLAN]` callout delimiter that designates a planning phase and prompts the runner or agent harness to produce an implementation plan before advancing.
+- **Agent Triage:** Decide whether `> [!PLAN]` forms a dedicated step type (`"plan"`) or acts as a pause variant injecting planning rules. Account for differing planning artifacts and approval conventions across harnesses.

@@ -18,7 +18,7 @@ function isSameFile(p1: string, p2: string): boolean {
  * Hard-blocks file reading tools attempting to inspect the active Curtain script.
  */
 export function handlePreTool(
-	info: HookInfo,
+	info: Extract<HookInfo, { type: "tool" }>,
 	state: RunnerState | null,
 ): HandlerResult {
 	if (!state || !info.readTargetFilePath) {

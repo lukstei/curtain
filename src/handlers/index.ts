@@ -22,5 +22,5 @@ export function handle(
 	if (info.type === "tool") {
 		return handlePreTool(info, state);
 	}
-	throw new Error(`Unknown hook type: ${info.type}`);
+	throw new Error(`Unknown hook type: ${(info as { type?: unknown }).type}`);
 }

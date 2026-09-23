@@ -1,6 +1,7 @@
 export interface LatestMessage {
 	type: string;
 	content: string;
+	skillInvocationPath?: string;
 }
 
 export type HookType = "pre" | "stop" | "tool";
@@ -10,17 +11,31 @@ export interface ToolCall {
 	args: Record<string, unknown>;
 }
 
-export interface HookInfo {
-	type: HookType;
+type BaseHookInfo = {
 	conversationId: string;
 	workspacePath: string;
-	prompt?: string;
-	terminationReason?: string;
-	latestMessage?: LatestMessage | null;
 	harness?: string;
-	toolCall?: ToolCall;
-	readTargetFilePath?: string;
-}
+};
+
+export type HookInfo = BaseHookInfo &
+	(
+		| {
+				type: "pre";
+				prompt: string;
+				latestMessage?: LatestMessage | null;
+				skillInvocationPath?: string;
+		  }
+		| {
+				type: "stop";
+				terminationReason?: string;
+				latestMessage?: LatestMessage | null;
+		  }
+		| {
+				type: "tool";
+				toolCall: ToolCall;
+				readTargetFilePath?: string | null;
+		  }
+	);
 
 export interface HookResponse {
 	decision?: "allow" | "continue" | "block" | "deny";

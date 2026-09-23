@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { HookResponse, ToolCall } from "../types.ts";
 import {
+	createNormalizedEvent,
 	defaultExtractLatestMessage,
 	extractToolCall,
 	getGenericSkillDirs,
@@ -47,28 +48,28 @@ export const claudeHarness: HarnessAdapter = {
 		const prompt =
 			typeof payload.prompt === "string" ? payload.prompt : undefined;
 		const stopHookActive = Boolean(payload.stop_hook_active);
-		const toolCall = extractToolCall(payload);
+		const toolCall = type === "tool" ? extractToolCall(payload) : null;
 		const readTargetFilePath = toolCall
 			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
 			: null;
-
-		const partialEvent: NormalizedEvent = {
+		const latestMessage = this.extractLatestMessage({
 			type,
+			prompt,
+			rawPayload: payload,
+		});
+
+		return createNormalizedEvent({
 			harness: "claude",
 			conversationId,
 			workspacePath,
-			prompt,
-			isStop,
+			type,
+			rawPayload: payload,
 			stopHookActive,
-			isInterrupted: false,
-			latestMessage: null,
 			toolCall,
 			readTargetFilePath,
-			rawPayload: payload,
-		};
-
-		partialEvent.latestMessage = this.extractLatestMessage(partialEvent);
-		return partialEvent;
+			latestMessage,
+			prompt,
+		});
 	},
 
 	extractFileReadTarget(

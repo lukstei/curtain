@@ -4,7 +4,7 @@ import type { HookInfo } from "../types.ts";
 import type { HandlerResult } from "./pre.ts";
 
 export function handleStop(
-	info: HookInfo,
+	info: Extract<HookInfo, { type: "stop" }>,
 	state: RunnerState | null,
 	env: NodeJS.ProcessEnv = process.env,
 ): HandlerResult {

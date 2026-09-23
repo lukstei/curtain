@@ -24,17 +24,36 @@ export async function runShim(
 
 	logDebug.conversationId = event.conversationId;
 
-	const hookInfo: HookInfo = {
-		type: event.type,
+	const base = {
 		conversationId: event.conversationId,
 		workspacePath: event.workspacePath,
-		prompt: event.prompt,
-		terminationReason: event.terminationReason,
-		latestMessage: event.latestMessage,
 		harness: event.harness,
-		toolCall: event.toolCall ?? undefined,
-		readTargetFilePath: event.readTargetFilePath ?? undefined,
 	};
+
+	const hookInfo: HookInfo =
+		event.type === "pre"
+			? {
+					...base,
+					type: "pre",
+					prompt: event.prompt,
+					latestMessage: event.latestMessage,
+					...(event.skillInvocationPath
+						? { skillInvocationPath: event.skillInvocationPath }
+						: {}),
+				}
+			: event.type === "stop"
+				? {
+						...base,
+						type: "stop",
+						terminationReason: event.terminationReason,
+						latestMessage: event.latestMessage,
+					}
+				: {
+						...base,
+						type: "tool",
+						toolCall: event.toolCall,
+						readTargetFilePath: event.readTargetFilePath,
+					};
 
 	const state = loadState(event.conversationId, env);
 	const { response } = handle(hookInfo, state, env);

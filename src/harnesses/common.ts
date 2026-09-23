@@ -1,7 +1,8 @@
+import assert from "node:assert/strict";
 import * as path from "node:path";
 import { getLatestMessage } from "../lib/getLatestMessage.ts";
-import type { LatestMessage, ToolCall } from "../types.ts";
-import type { NormalizedEvent } from "./types.ts";
+import type { HookType, LatestMessage, ToolCall } from "../types.ts";
+import type { HarnessType, NormalizedEvent } from "./types.ts";
 
 export function parseClaudeMessage(
 	item: Record<string, unknown>,
@@ -38,9 +39,11 @@ export function parseClaudeMessage(
  * Shared stop/pre message extraction for claude, codex and copilot,
  * which share the same transcript and payload field conventions.
  */
-export function defaultExtractLatestMessage(
-	event: NormalizedEvent,
-): LatestMessage | null {
+export function defaultExtractLatestMessage(event: {
+	type: "pre" | "stop" | "tool";
+	prompt?: string;
+	rawPayload: Record<string, unknown>;
+}): LatestMessage | null {
 	if (event.type === "stop") {
 		const raw =
 			event.rawPayload.last_assistant_message ??
@@ -121,4 +124,61 @@ export function resolveToolReadPath(
 	if (typeof rawPath !== "string" || !rawPath.trim()) return null;
 	const target = rawPath.trim();
 	return path.isAbsolute(target) ? target : path.resolve(workspacePath, target);
+}
+
+export function createNormalizedEvent(params: {
+	harness: HarnessType;
+	conversationId: string;
+	workspacePath: string;
+	type: HookType;
+	rawPayload: Record<string, unknown>;
+	stopHookActive: boolean;
+	toolCall?: ToolCall | null;
+	readTargetFilePath?: string | null;
+	latestMessage: LatestMessage | null;
+	prompt?: string;
+	skillInvocationPath?: string;
+	isInterrupted?: boolean;
+	terminationReason?: string;
+}): NormalizedEvent {
+	if (params.type === "tool") {
+		assert(params.toolCall, "toolCall must be present for tool event");
+		return {
+			type: "tool",
+			harness: params.harness,
+			conversationId: params.conversationId,
+			workspacePath: params.workspacePath,
+			rawPayload: params.rawPayload,
+			toolCall: params.toolCall,
+			readTargetFilePath: params.readTargetFilePath ?? null,
+		};
+	}
+
+	if (params.type === "stop") {
+		return {
+			type: "stop",
+			harness: params.harness,
+			conversationId: params.conversationId,
+			workspacePath: params.workspacePath,
+			rawPayload: params.rawPayload,
+			isStop: true,
+			stopHookActive: params.stopHookActive,
+			isInterrupted: params.isInterrupted ?? false,
+			terminationReason: params.terminationReason,
+			latestMessage: params.latestMessage,
+		};
+	}
+
+	return {
+		type: "pre",
+		harness: params.harness,
+		conversationId: params.conversationId,
+		workspacePath: params.workspacePath,
+		rawPayload: params.rawPayload,
+		prompt: params.prompt ?? params.latestMessage?.content ?? "",
+		latestMessage: params.latestMessage,
+		...(params.skillInvocationPath
+			? { skillInvocationPath: params.skillInvocationPath }
+			: {}),
+	};
 }

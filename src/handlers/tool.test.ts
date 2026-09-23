@@ -47,6 +47,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: scriptFile,
 		};
 
@@ -65,6 +66,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: otherFile,
 		};
 
@@ -92,6 +94,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: scriptFile,
 		};
 

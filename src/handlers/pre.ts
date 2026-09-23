@@ -4,6 +4,7 @@ import {
 	hasCurtainAnnotations,
 	resolveSkillPath,
 } from "../lib/resolveSkill.ts";
+import type { Script } from "../parser.ts";
 import { loadScript } from "../resolver.ts";
 import { deleteState, type RunnerState, saveState } from "../state.ts";
 import {
@@ -19,8 +20,23 @@ export interface HandlerResult {
 	response: HookResponse;
 }
 
+function startScript(
+	script: Script,
+	conversationId: string,
+	env: NodeJS.ProcessEnv,
+): HandlerResult {
+	const nextState = startExecution(script);
+	saveState(conversationId, nextState, env);
+	const firstStep = nextState.steps[0];
+	const msg = formatStepPrompt(firstStep, nextState.totalSteps);
+	return {
+		state: nextState,
+		response: { injectSteps: [{ ephemeralMessage: msg }] },
+	};
+}
+
 export function handlePre(
-	info: HookInfo,
+	info: Extract<HookInfo, { type: "pre" }>,
 	state: RunnerState | null,
 	env: NodeJS.ProcessEnv = process.env,
 ): HandlerResult {
@@ -117,46 +133,30 @@ export function handlePre(
 						response: { injectSteps: [{ ephemeralMessage: err }] },
 					};
 				}
-
-				const nextState = startExecution(loaded.script);
-				saveState(info.conversationId, nextState, env);
-				const firstStep = nextState.steps[0];
-				const msg = formatStepPrompt(firstStep, nextState.totalSteps);
-				return {
-					state: nextState,
-					response: { injectSteps: [{ ephemeralMessage: msg }] },
-				};
+				return startScript(loaded.script, info.conversationId, env);
 			}
-		} else if (!state) {
+		}
+	}
+
+	if (!state) {
+		let targetSkillPath: string | null = info.skillInvocationPath ?? null;
+		if (!targetSkillPath && userInput) {
 			const skillMatch = userInput.trim().match(/^[/$]([a-zA-Z0-9_.:-]+)$/);
 			if (skillMatch) {
 				const commandName = skillMatch[1];
 				const harness = info.harness as HarnessType | undefined;
-				const resolvedSkill = resolveSkillPath(
+				targetSkillPath = resolveSkillPath(
 					commandName,
 					harness,
 					info.workspacePath,
 					env,
 				);
-				if (resolvedSkill && hasCurtainAnnotations(resolvedSkill)) {
-					const loaded = loadScript(resolvedSkill, [info.workspacePath]);
-					if (
-						loaded &&
-						!("error" in loaded) &&
-						loaded.script.steps.length > 1
-					) {
-						const nextState = startExecution(loaded.script);
-						saveState(info.conversationId, nextState, env);
-						const firstStep = nextState.steps[0];
-						const msg = formatStepPrompt(firstStep, nextState.totalSteps);
-						return {
-							state: nextState,
-							response: {
-								injectSteps: [{ ephemeralMessage: msg }],
-							},
-						};
-					}
-				}
+			}
+		}
+		if (targetSkillPath && hasCurtainAnnotations(targetSkillPath)) {
+			const loaded = loadScript(targetSkillPath, [info.workspacePath]);
+			if (loaded && !("error" in loaded) && loaded.script.steps.length > 1) {
+				return startScript(loaded.script, info.conversationId, env);
 			}
 		}
 	}

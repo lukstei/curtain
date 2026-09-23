@@ -31,6 +31,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1",
 			workspacePath: "/test",
+			prompt: "/next",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "/next",
@@ -74,6 +75,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1-final",
 			workspacePath: "/test",
+			prompt: "/next",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "/next",
@@ -98,6 +100,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c2",
 			workspacePath: "/test",
+			prompt: "/curtain drop",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "/curtain drop",
@@ -116,6 +119,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c3",
 			workspacePath: "/test",
+			prompt: "/curtain status",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "/curtain status",
@@ -134,6 +138,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c4-review",
 			workspacePath: "/test",
+			prompt: "I have added the missing migration column",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "I have added the missing migration column",
@@ -168,6 +173,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c4-no-inst",
 			workspacePath: "/test",
+			prompt: "Please check this specific edge case first",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "Please check this specific edge case first",
@@ -200,6 +206,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c5",
 			workspacePath: tmpDir,
+			prompt: `/curtain run ${scriptPath}`,
 			latestMessage: {
 				type: "USER_INPUT",
 				content: `/curtain run ${scriptPath}`,
@@ -236,6 +243,7 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-skill-implicit",
 			workspacePath: tmpDir,
 			harness: "agy",
+			prompt: "/deploy-skill",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "/deploy-skill",
@@ -258,6 +266,74 @@ describe("handlers/pre.ts", () => {
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
 			"Perform ONLY this step. Conclude when complete.",
 		);
+	});
+
+	it("starts execution when skillInvocationPath is provided", () => {
+		const skillDir = path.join(tmpDir, ".agents/skills/invoked-skill");
+		fs.mkdirSync(skillDir, { recursive: true });
+		const skillFile = path.join(skillDir, "SKILL.md");
+		fs.writeFileSync(
+			skillFile,
+			[
+				"---",
+				"name: invoked-skill",
+				"description: Invoked skill with curtains",
+				"---",
+				"# Invoked Skill",
+				"Step 1: Inspect environment",
+				"> [!INTERMISSION]",
+				"Step 2: Complete workflow",
+			].join("\n"),
+		);
+
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-skill-invoked",
+			workspacePath: tmpDir,
+			harness: "agy",
+			prompt: "/invoked-skill",
+			skillInvocationPath: skillFile,
+		};
+
+		const { state, response } = handlePre(info, null, env);
+		expect(state?.status).toBe("running");
+		expect(state?.script).toBe(skillFile);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+			"When concluding your turn, inform the user that only /next will proceed.",
+		);
+	});
+
+	it("starts execution when skillInvocationPath is provided even if prompt and userInput are empty", () => {
+		const skillDir = path.join(tmpDir, ".agents/skills/invoked-empty-prompt");
+		fs.mkdirSync(skillDir, { recursive: true });
+		const skillFile = path.join(skillDir, "SKILL.md");
+		fs.writeFileSync(
+			skillFile,
+			[
+				"---",
+				"name: invoked-empty-prompt",
+				"description: Invoked skill with empty prompt",
+				"---",
+				"# Invoked Skill",
+				"Step 1: Inspect environment",
+				"> [!INTERMISSION]",
+				"Step 2: Complete workflow",
+			].join("\n"),
+		);
+
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-skill-invoked-empty",
+			workspacePath: tmpDir,
+			harness: "agy",
+			prompt: "",
+			skillInvocationPath: skillFile,
+		};
+
+		const { state, response } = handlePre(info, null, env);
+		expect(state?.status).toBe("running");
+		expect(state?.script).toBe(skillFile);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toBeDefined();
 	});
 
 	it("does not start execution if invoked skill has only 1 step despite mentioning delimiter in code block", () => {
@@ -283,6 +359,7 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-skill-doc",
 			workspacePath: tmpDir,
 			harness: "agy",
+			prompt: "/doc-skill",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "/doc-skill",
@@ -315,6 +392,7 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-skill-plain",
 			workspacePath: tmpDir,
 			harness: "agy",
+			prompt: "/plain-skill",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "/plain-skill",
@@ -332,6 +410,7 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-chat",
 			workspacePath: tmpDir,
 			harness: "agy",
+			prompt: "Can you help me write a new function?",
 			latestMessage: {
 				type: "USER_INPUT",
 				content: "Can you help me write a new function?",

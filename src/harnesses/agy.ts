@@ -1,19 +1,56 @@
 // see reference docs: docs/harnesses/agy.md
 import * as os from "node:os";
 import * as path from "node:path";
-import {
-	getLatestMessage,
-	defaultTranscriptParser as parseAgyMessage,
-} from "../lib/getLatestMessage.ts";
+import { getLatestMessage } from "../lib/getLatestMessage.ts";
 import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
 import {
+	createNormalizedEvent,
 	extractToolCall,
 	getGenericSkillDirs,
 	resolveToolReadPath,
 } from "./common.ts";
 import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
 
-export { parseAgyMessage };
+export function stripUserRequest(text: string): string {
+	const userRequestMatch = text.match(
+		/<USER_REQUEST>([\s\S]*?)<\/USER_REQUEST>/i,
+	);
+	return userRequestMatch ? userRequestMatch[1].trim() : text;
+}
+
+export function extractSkillPath(text: string): string | undefined {
+	const skillMatch = text.match(
+		/<SKILL>[\s\S]*?The path to the skill file is:\s*([^<]+?)<\/SKILL>/i,
+	);
+	return skillMatch ? skillMatch[1].trim() : undefined;
+}
+
+export function parseAgyMessage(
+	item: Record<string, unknown>,
+): LatestMessage | null {
+	const isUser = item.type === "USER_INPUT" || item.source === "USER_EXPLICIT";
+	const isModel =
+		(item.type === "PLANNER_RESPONSE" || item.source === "MODEL") &&
+		item.type !== "GENERIC";
+
+	if (isModel && typeof item.content === "string") {
+		return {
+			type: "PLANNER_RESPONSE",
+			content: item.content,
+		};
+	}
+
+	if (isUser && typeof item.content === "string") {
+		const skillInvocationPath = extractSkillPath(item.content);
+		return {
+			type: "USER_INPUT",
+			content: stripUserRequest(item.content),
+			...(skillInvocationPath ? { skillInvocationPath } : {}),
+		};
+	}
+
+	return null;
+}
 
 export const agyHarness: HarnessAdapter = {
 	id: "agy",
@@ -69,7 +106,10 @@ export const agyHarness: HarnessAdapter = {
 				: "pre";
 
 		const prompt =
-			typeof payload.prompt === "string" ? payload.prompt : undefined;
+			typeof payload.prompt === "string"
+				? stripUserRequest(payload.prompt)
+				: undefined;
+
 		const isInterrupted = Boolean(
 			terminationReason && /cancel|abort|interrupt/i.test(terminationReason),
 		);
@@ -77,29 +117,38 @@ export const agyHarness: HarnessAdapter = {
 			typeof payload.executionNum === "number" && payload.executionNum > 1,
 		);
 
-		const toolCall = extractToolCall(payload);
+		const toolCall = type === "tool" ? extractToolCall(payload) : null;
 		const readTargetFilePath = toolCall
 			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
 			: null;
 
-		const partialEvent: NormalizedEvent = {
+		const latestMessage = this.extractLatestMessage({
 			type,
+			prompt,
+			rawPayload: payload,
+		});
+
+		const skillInvocationPath =
+			latestMessage?.skillInvocationPath ??
+			(typeof payload.prompt === "string"
+				? extractSkillPath(payload.prompt)
+				: undefined);
+
+		return createNormalizedEvent({
 			harness: "agy",
 			conversationId,
 			workspacePath,
-			prompt,
-			isStop,
+			type,
+			rawPayload: payload,
 			stopHookActive,
-			terminationReason,
-			isInterrupted,
-			latestMessage: null,
 			toolCall,
 			readTargetFilePath,
-			rawPayload: payload,
-		};
-
-		partialEvent.latestMessage = this.extractLatestMessage(partialEvent);
-		return partialEvent;
+			latestMessage,
+			prompt,
+			skillInvocationPath,
+			isInterrupted,
+			terminationReason,
+		});
 	},
 
 	extractFileReadTarget(
@@ -113,7 +162,11 @@ export const agyHarness: HarnessAdapter = {
 		);
 	},
 
-	extractLatestMessage(event: NormalizedEvent): LatestMessage | null {
+	extractLatestMessage(event: {
+		type: "pre" | "stop" | "tool";
+		prompt?: string;
+		rawPayload: Record<string, unknown>;
+	}): LatestMessage | null {
 		const invocationNum =
 			typeof event.rawPayload.invocationNum === "number"
 				? event.rawPayload.invocationNum
@@ -146,9 +199,14 @@ export const agyHarness: HarnessAdapter = {
 		}
 
 		if (event.prompt) {
+			const skillInvocationPath =
+				typeof event.rawPayload.prompt === "string"
+					? extractSkillPath(event.rawPayload.prompt)
+					: undefined;
 			return {
 				type: "USER_INPUT",
-				content: event.prompt,
+				content: stripUserRequest(event.prompt),
+				...(skillInvocationPath ? { skillInvocationPath } : {}),
 			};
 		}
 		return null;

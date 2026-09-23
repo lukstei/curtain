@@ -8,6 +8,7 @@ describe("handlers index dispatch", () => {
 			type: "pre",
 			conversationId: "curtain-test-pre",
 			workspacePath: "/test",
+			prompt: "",
 		};
 		const res = handle(info, null);
 		expect(res).toEqual({ state: null, response: {} });
