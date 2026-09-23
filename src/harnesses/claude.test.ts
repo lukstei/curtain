@@ -95,6 +95,14 @@ describe("claudeHarness", () => {
 	});
 
 	describe("extractFileReadTarget", () => {
+		it("extracts file_path for Read", () => {
+			const target = claudeHarness.extractFileReadTarget?.(
+				{ name: "Read", args: { file_path: "/path/to/SKILL.md" } },
+				"/workspace",
+			);
+			expect(target).toBe("/path/to/SKILL.md");
+		});
+
 		it("extracts file_path for View", () => {
 			const target = claudeHarness.extractFileReadTarget?.(
 				{ name: "View", args: { file_path: "/path/to/SKILL.md" } },
@@ -109,6 +117,17 @@ describe("claudeHarness", () => {
 				"/workspace",
 			);
 			expect(target).toBe("/workspace/SKILL.md");
+		});
+
+		it("extracts path for mcp__filesystem__read_file", () => {
+			const target = claudeHarness.extractFileReadTarget?.(
+				{
+					name: "mcp__filesystem__read_file",
+					args: { path: "/path/to/SKILL.md" },
+				},
+				"/workspace",
+			);
+			expect(target).toBe("/path/to/SKILL.md");
 		});
 
 		it("returns null for non-reading tools", () => {

@@ -14,7 +14,12 @@ export const codexHarness: HarnessAdapter = {
 	id: "codex",
 
 	detect(payload: Record<string, unknown>, env: NodeJS.ProcessEnv): boolean {
-		return payload.hookEventName !== undefined || Boolean(env.CODEX_SESSION_ID);
+		return Boolean(
+			env.CODEX_SESSION_ID ||
+				env.PLUGIN_DATA ||
+				payload.turn_id !== undefined ||
+				payload.hookEventName !== undefined,
+		);
 	},
 
 	normalize(
@@ -75,7 +80,11 @@ export const codexHarness: HarnessAdapter = {
 		toolCall: ToolCall,
 		workspacePath: string,
 	): string | null {
-		if (toolCall.name !== "read_file" && toolCall.name !== "view_file") {
+		const isReadTool =
+			toolCall.name === "read_file" ||
+			toolCall.name === "view_file" ||
+			toolCall.name === "mcp__filesystem__read_file";
+		if (!isReadTool) {
 			return null;
 		}
 		return resolveToolReadPath(

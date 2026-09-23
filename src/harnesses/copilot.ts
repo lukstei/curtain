@@ -1,4 +1,5 @@
 // see reference docs: docs/harnesses/copilot.md
+import * as os from "node:os";
 import * as path from "node:path";
 import type { HookResponse, ToolCall } from "../types.ts";
 import {
@@ -12,8 +13,14 @@ import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
 export const copilotHarness: HarnessAdapter = {
 	id: "copilot",
 
-	detect(_payload: Record<string, unknown>, env: NodeJS.ProcessEnv): boolean {
-		return Boolean(env.COPILOT_PLUGIN_DATA || env.COPILOT_SESSION_ID);
+	detect(payload: Record<string, unknown>, env: NodeJS.ProcessEnv): boolean {
+		return Boolean(
+			env.COPILOT_PLUGIN_DATA ||
+				env.COPILOT_SESSION_ID ||
+				(payload.timestamp !== undefined &&
+					(payload.hook_event_name !== undefined ||
+						payload.hookEventName !== undefined)),
+		);
 	},
 
 	normalize(
@@ -103,6 +110,11 @@ export const copilotHarness: HarnessAdapter = {
 					stdout: JSON.stringify({
 						decision: "block",
 						reason: response.reason,
+						hookSpecificOutput: {
+							hookEventName: "Stop",
+							decision: "block",
+							reason: response.reason,
+						},
 					}),
 				};
 			}
@@ -116,12 +128,23 @@ export const copilotHarness: HarnessAdapter = {
 					stdout: JSON.stringify({
 						permissionDecision: "deny",
 						permissionDecisionReason: response.reason,
+						hookSpecificOutput: {
+							hookEventName: "PreToolUse",
+							permissionDecision: "deny",
+							permissionDecisionReason: response.reason,
+						},
 					}),
 				};
 			}
 			return {
 				exitCode: 0,
-				stdout: JSON.stringify({ permissionDecision: "allow" }),
+				stdout: JSON.stringify({
+					permissionDecision: "allow",
+					hookSpecificOutput: {
+						hookEventName: "PreToolUse",
+						permissionDecision: "allow",
+					},
+				}),
 			};
 		}
 
@@ -149,10 +172,18 @@ export const copilotHarness: HarnessAdapter = {
 		return env.COPILOT_PLUGIN_DATA || null;
 	},
 
-	getSkillDirs(workspacePath: string): string[] {
+	getSkillDirs(
+		workspacePath: string,
+		env: NodeJS.ProcessEnv = process.env,
+	): string[] {
+		const home = env.HOME || os.homedir();
 		return [
 			...getGenericSkillDirs(workspacePath),
 			path.join(workspacePath, ".github/skills"),
+			path.join(workspacePath, ".claude/skills"),
+			path.join(home, ".copilot/skills"),
+			path.join(home, ".claude/skills"),
+			path.join(home, ".agents/skills"),
 		];
 	},
 };

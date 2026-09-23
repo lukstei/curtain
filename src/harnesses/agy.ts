@@ -19,7 +19,15 @@ export const agyHarness: HarnessAdapter = {
 	id: "agy",
 
 	detect(payload: Record<string, unknown>, env: NodeJS.ProcessEnv): boolean {
-		if (env.AGY_HOOK_ACTIVE || env.ANTIGRAVITY_CONVERSATION_ID) {
+		if (
+			env.AGY_HOOK_ACTIVE ||
+			env.ANTIGRAVITY_CONVERSATION_ID ||
+			env.GEMINI_CLI === "1" ||
+			env.ANTIGRAVITY === "1"
+		) {
+			return true;
+		}
+		if (payload.artifactDirectoryPath !== undefined) {
 			return true;
 		}
 		return (
@@ -113,7 +121,7 @@ export const agyHarness: HarnessAdapter = {
 		if (
 			event.type === "pre" &&
 			invocationNum !== undefined &&
-			invocationNum > 1
+			invocationNum > 0
 		) {
 			return null;
 		}

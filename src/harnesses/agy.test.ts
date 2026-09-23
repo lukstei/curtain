@@ -31,6 +31,17 @@ describe("agyHarness", () => {
 			).toBe(true);
 		});
 
+		it("detects GEMINI_CLI or ANTIGRAVITY environment variables", () => {
+			expect(agyHarness.detect({}, { GEMINI_CLI: "1" })).toBe(true);
+			expect(agyHarness.detect({}, { ANTIGRAVITY: "1" })).toBe(true);
+		});
+
+		it("detects artifactDirectoryPath in payload", () => {
+			expect(
+				agyHarness.detect({ artifactDirectoryPath: "/path/to/artifacts" }, {}),
+			).toBe(true);
+		});
+
 		it("detects transcriptPath ending with .system_generated/logs/transcript.jsonl", () => {
 			expect(
 				agyHarness.detect(
@@ -138,7 +149,7 @@ describe("agyHarness", () => {
 			const event = createMockEvent({
 				type: "pre",
 				prompt: "/next",
-				rawPayload: { invocationNum: 1 },
+				rawPayload: { invocationNum: 0 },
 			});
 			const res = agyHarness.extractLatestMessage(event);
 			expect(res).toEqual({
@@ -147,11 +158,11 @@ describe("agyHarness", () => {
 			});
 		});
 
-		it("returns null on pre when invocationNum > 1 (prevent stale input re-injection)", () => {
+		it("returns null on pre when invocationNum > 0 (prevent stale input re-injection)", () => {
 			const event = createMockEvent({
 				type: "pre",
 				prompt: "/next",
-				rawPayload: { invocationNum: 2 },
+				rawPayload: { invocationNum: 1 },
 			});
 			expect(agyHarness.extractLatestMessage(event)).toBeNull();
 		});

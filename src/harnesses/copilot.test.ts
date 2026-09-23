@@ -33,7 +33,19 @@ describe("copilotHarness", () => {
 			).toBe(true);
 		});
 
-		it("returns false without COPILOT_PLUGIN_DATA or COPILOT_SESSION_ID", () => {
+		it("detects timestamp in payload", () => {
+			expect(
+				copilotHarness.detect(
+					{
+						timestamp: "2026-09-23T22:00:00Z",
+						hook_event_name: "PreToolUse",
+					},
+					{},
+				),
+			).toBe(true);
+		});
+
+		it("returns false without COPILOT_PLUGIN_DATA, COPILOT_SESSION_ID, or timestamp", () => {
 			expect(copilotHarness.detect({}, {})).toBe(false);
 		});
 	});
@@ -158,10 +170,17 @@ describe("copilotHarness", () => {
 				reason: "Step 2",
 			});
 			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toEqual({
-				decision: "block",
-				reason: "Step 2",
-			});
+			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
+				{
+				  "decision": "block",
+				  "hookSpecificOutput": {
+				    "decision": "block",
+				    "hookEventName": "Stop",
+				    "reason": "Step 2",
+				  },
+				  "reason": "Step 2",
+				}
+			`);
 		});
 
 		it("formats Stop allow decision as empty JSON", () => {
@@ -180,6 +199,11 @@ describe("copilotHarness", () => {
 			expect(egress.exitCode).toBe(0);
 			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
 				{
+				  "hookSpecificOutput": {
+				    "hookEventName": "PreToolUse",
+				    "permissionDecision": "deny",
+				    "permissionDecisionReason": "Blocked by Curtain",
+				  },
 				  "permissionDecision": "deny",
 				  "permissionDecisionReason": "Blocked by Curtain",
 				}
@@ -192,6 +216,10 @@ describe("copilotHarness", () => {
 			expect(egress.exitCode).toBe(0);
 			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
 				{
+				  "hookSpecificOutput": {
+				    "hookEventName": "PreToolUse",
+				    "permissionDecision": "allow",
+				  },
 				  "permissionDecision": "allow",
 				}
 			`);
@@ -213,11 +241,17 @@ describe("copilotHarness", () => {
 
 	describe("getSkillDirs", () => {
 		it("returns generic and Copilot skill directories", () => {
-			const dirs = copilotHarness.getSkillDirs?.("/workspace");
+			const dirs = copilotHarness.getSkillDirs?.("/workspace", {
+				HOME: "/home/user",
+			});
 			expect(dirs).toEqual([
 				"/workspace/.agents/skills",
 				"/workspace/skills",
 				"/workspace/.github/skills",
+				"/workspace/.claude/skills",
+				"/home/user/.copilot/skills",
+				"/home/user/.claude/skills",
+				"/home/user/.agents/skills",
 			]);
 		});
 	});

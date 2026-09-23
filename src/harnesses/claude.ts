@@ -14,9 +14,11 @@ export const claudeHarness: HarnessAdapter = {
 	id: "claude",
 
 	detect(payload: Record<string, unknown>, env: NodeJS.ProcessEnv): boolean {
+		if (env.CLAUDE_CODE_SESSION_ID || env.CLAUDE_PLUGIN_DATA) return true;
 		return (
-			payload.hook_event_name !== undefined ||
-			Boolean(env.CLAUDE_CODE_SESSION_ID)
+			payload.hook_event_name !== undefined &&
+			payload.turn_id === undefined &&
+			payload.timestamp === undefined
 		);
 	},
 
@@ -73,7 +75,12 @@ export const claudeHarness: HarnessAdapter = {
 		toolCall: ToolCall,
 		workspacePath: string,
 	): string | null {
-		if (toolCall.name !== "View" && toolCall.name !== "read_file") {
+		const isReadTool =
+			toolCall.name === "Read" ||
+			toolCall.name === "View" ||
+			toolCall.name === "read_file" ||
+			toolCall.name === "mcp__filesystem__read_file";
+		if (!isReadTool) {
 			return null;
 		}
 		return resolveToolReadPath(

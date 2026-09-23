@@ -20,13 +20,40 @@ describe("detectHarness", () => {
 			expect(harness).toBe("copilot");
 		});
 
+		it("detects Copilot from timestamp in payload", () => {
+			const harness = detectHarness(
+				{
+					timestamp: "2026-09-23T22:00:00Z",
+					hook_event_name: "PreToolUse",
+				},
+				{},
+			);
+			expect(harness).toBe("copilot");
+		});
+
 		it("detects Codex from hookEventName in payload", () => {
 			const harness = detectHarness({ hookEventName: "UserPromptSubmit" }, {});
 			expect(harness).toBe("codex");
 		});
 
+		it("detects Codex from turn_id in payload", () => {
+			const harness = detectHarness(
+				{
+					hook_event_name: "UserPromptSubmit",
+					turn_id: "turn-123",
+				},
+				{},
+			);
+			expect(harness).toBe("codex");
+		});
+
 		it("detects Codex when CODEX_SESSION_ID is set", () => {
 			const harness = detectHarness({}, { CODEX_SESSION_ID: "session-123" });
+			expect(harness).toBe("codex");
+		});
+
+		it("detects Codex when PLUGIN_DATA is set", () => {
+			const harness = detectHarness({}, { PLUGIN_DATA: "/tmp/codex" });
 			expect(harness).toBe("codex");
 		});
 
@@ -39,6 +66,19 @@ describe("detectHarness", () => {
 			const harness = detectHarness(
 				{},
 				{ ANTIGRAVITY_CONVERSATION_ID: "conv-123" },
+			);
+			expect(harness).toBe("agy");
+		});
+
+		it("detects AGY when GEMINI_CLI or ANTIGRAVITY is set", () => {
+			expect(detectHarness({}, { GEMINI_CLI: "1" })).toBe("agy");
+			expect(detectHarness({}, { ANTIGRAVITY: "1" })).toBe("agy");
+		});
+
+		it("detects AGY from artifactDirectoryPath in payload", () => {
+			const harness = detectHarness(
+				{ artifactDirectoryPath: "/tmp/brain/uuid" },
+				{},
 			);
 			expect(harness).toBe("agy");
 		});
@@ -72,6 +112,30 @@ describe("detectHarness", () => {
 				{ CLAUDE_CODE_SESSION_ID: "session-claude-1" },
 			);
 			expect(harness).toBe("claude");
+		});
+
+		it("does not misdetect Codex with turn_id as Claude Code", () => {
+			const harness = detectHarness(
+				{
+					hook_event_name: "PreToolUse",
+					session_id: "codex-s1",
+					turn_id: "turn-456",
+				},
+				{},
+			);
+			expect(harness).toBe("codex");
+		});
+
+		it("does not misdetect Copilot with timestamp as Claude Code", () => {
+			const harness = detectHarness(
+				{
+					hook_event_name: "PreToolUse",
+					session_id: "copilot-s1",
+					timestamp: "2026-09-23T22:00:00Z",
+				},
+				{},
+			);
+			expect(harness).toBe("copilot");
 		});
 
 		it("returns null when no indicators exist", () => {

@@ -28,13 +28,23 @@ describe("codexHarness", () => {
 			).toBe(true);
 		});
 
+		it("detects turn_id in payload", () => {
+			expect(
+				codexHarness.detect({ hook_event_name: "Stop", turn_id: "t-1" }, {}),
+			).toBe(true);
+		});
+
 		it("detects CODEX_SESSION_ID in environment", () => {
 			expect(codexHarness.detect({}, { CODEX_SESSION_ID: "session-123" })).toBe(
 				true,
 			);
 		});
 
-		it("returns false without hookEventName or CODEX_SESSION_ID", () => {
+		it("detects PLUGIN_DATA in environment", () => {
+			expect(codexHarness.detect({}, { PLUGIN_DATA: "/tmp/data" })).toBe(true);
+		});
+
+		it("returns false without hookEventName, turn_id, CODEX_SESSION_ID, or PLUGIN_DATA", () => {
 			expect(codexHarness.detect({}, {})).toBe(false);
 			expect(codexHarness.detect({}, { UNRELATED: "true" })).toBe(false);
 		});
@@ -112,6 +122,17 @@ describe("codexHarness", () => {
 				"/workspace",
 			);
 			expect(target).toBe("/workspace/SKILL.md");
+		});
+
+		it("extracts path for mcp__filesystem__read_file", () => {
+			const target = codexHarness.extractFileReadTarget?.(
+				{
+					name: "mcp__filesystem__read_file",
+					args: { path: "/path/to/SKILL.md" },
+				},
+				"/workspace",
+			);
+			expect(target).toBe("/path/to/SKILL.md");
 		});
 
 		it("returns null for non-reading tools", () => {
