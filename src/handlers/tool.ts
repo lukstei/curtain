@@ -26,14 +26,17 @@ export function handlePreTool(
 	}
 
 	const scriptPath = path.resolve(info.workspacePath, state.script);
+	const isPlaybook =
+		path.basename(info.readTargetFilePath).toUpperCase() === "PLAYBOOK.MD" ||
+		isSameFile(info.readTargetFilePath, scriptPath);
 
-	if (isSameFile(info.readTargetFilePath, scriptPath)) {
+	if (isPlaybook) {
 		return {
 			state,
 			response: {
 				decision: "deny",
 				reason:
-					"BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect the raw skill file.",
+					"BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect PLAYBOOK.md.",
 			},
 		};
 	}

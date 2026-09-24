@@ -3,14 +3,7 @@ name: curtain-test
 description: Follow instructions
 ---
 
-This is a test skill to see if the the plugin works, follow instructions exactly.
+Run this workflow using Curtain:
+/curtain curtain-test
 
-Say "Step 1"
-
-> [!INTERMISSION]
-
-Say "Step 2"
-
-> [!CURTAIN]
-
-Say "Step 3"
+CRITICAL: NEVER inspect or read PLAYBOOK.md directly with file inspection tools. Future instructions are withheld behind curtains to enforce strict step-by-step execution. Reading the raw playbook bypasses the curtain and ruins the execution order.

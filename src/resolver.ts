@@ -1,11 +1,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { resolvePlaybookPath } from "./lib/resolveSkill.ts";
 import { parseScript, type Script } from "./parser.ts";
 import { RESOLVER_BRACKET_REGEX, RESOLVER_QUOTE_REGEX } from "./regex.ts";
 
 export function resolveScriptPath(
 	userPath: string,
 	workspacePaths?: string[],
+	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
 	let cleanPath = userPath.trim();
 	const bracketMatch = cleanPath.match(RESOLVER_BRACKET_REGEX);
@@ -21,39 +23,44 @@ export function resolveScriptPath(
 		}
 	}
 
-	function checkCandidate(candidatePath: string): string | null {
-		try {
-			if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
-				return candidatePath;
-			}
-			if (!path.extname(candidatePath)) {
-				for (const ext of [".md", ".markdown"]) {
-					const candidate = candidatePath + ext;
-					if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
-						return candidate;
-					}
-				}
-			}
-		} catch {
-			// Ignore fs errors
-		}
+	// Reject any explicit file path that does not end in PLAYBOOK.md
+	if (
+		path.extname(cleanPath) &&
+		path.basename(cleanPath).toUpperCase() !== "PLAYBOOK.MD"
+	) {
 		return null;
 	}
 
-	if (path.isAbsolute(cleanPath)) {
-		const found = checkCandidate(cleanPath);
-		if (found) return found;
-	}
+	const searchRoots = [...(workspacePaths ?? []), process.cwd()];
 
-	if (workspacePaths && workspacePaths.length > 0) {
-		for (const ws of workspacePaths) {
-			const resolved = checkCandidate(path.resolve(ws, cleanPath));
-			if (resolved) return resolved;
+	// 1. Check if cleanPath is or contains PLAYBOOK.md directly
+	for (const root of searchRoots) {
+		const candidate = path.isAbsolute(cleanPath)
+			? cleanPath
+			: path.resolve(root, cleanPath);
+
+		if (fs.existsSync(candidate)) {
+			const stat = fs.statSync(candidate);
+			if (
+				stat.isFile() &&
+				path.basename(candidate).toUpperCase() === "PLAYBOOK.MD"
+			) {
+				return candidate;
+			}
+			if (stat.isDirectory()) {
+				const pb = path.join(candidate, "PLAYBOOK.md");
+				if (fs.existsSync(pb) && fs.statSync(pb).isFile()) {
+					return pb;
+				}
+			}
 		}
 	}
 
-	const cwdResolved = checkCandidate(path.resolve(process.cwd(), cleanPath));
-	if (cwdResolved) return cwdResolved;
+	// 2. Try resolving as a skill name across workspace roots
+	for (const root of searchRoots) {
+		const found = resolvePlaybookPath(cleanPath, undefined, root, env);
+		if (found) return found;
+	}
 
 	return null;
 }
@@ -63,7 +70,18 @@ export function loadScript(
 	workspacePaths?: string[],
 ): { filePath: string; script: Script } | { error: string } | null {
 	const resolved = resolveScriptPath(targetPath, workspacePaths);
-	if (!resolved) return null;
+	if (!resolved) {
+		if (
+			path.extname(targetPath) &&
+			path.basename(targetPath).toUpperCase() !== "PLAYBOOK.MD"
+		) {
+			return {
+				error:
+					"Curtain scripts must be named PLAYBOOK.md. Custom script files are not supported.",
+			};
+		}
+		return null;
+	}
 
 	try {
 		const content = fs.readFileSync(resolved, "utf-8");

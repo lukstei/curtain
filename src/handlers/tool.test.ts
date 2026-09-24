@@ -16,10 +16,10 @@ describe("handlers/tool.ts", () => {
 		testDir = path.join(os.tmpdir(), `curtain-tool-test-${Date.now()}`);
 		fs.mkdirSync(testDir, { recursive: true });
 
-		scriptFile = path.join(testDir, "SKILL.md");
+		scriptFile = path.join(testDir, "PLAYBOOK.md");
 		fs.writeFileSync(
 			scriptFile,
-			"# Skill\nAct 1\n> [!CURTAIN]\nAct 2\n",
+			"# Playbook\nAct 1\n> [!CURTAIN]\nAct 2\n",
 			"utf-8",
 		);
 
@@ -55,9 +55,24 @@ describe("handlers/tool.ts", () => {
 		expect(result.response).toMatchInlineSnapshot(`
 			{
 			  "decision": "deny",
-			  "reason": "BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect the raw skill file.",
+			  "reason": "BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect PLAYBOOK.md.",
 			}
 		`);
+	});
+
+	it("allows when readTargetFilePath points to SKILL.md", () => {
+		const skillFile = path.join(testDir, "SKILL.md");
+		fs.writeFileSync(skillFile, "# Skill Launcher\n");
+		const info: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "view_file", args: {} },
+			readTargetFilePath: skillFile,
+		};
+
+		const result = handlePreTool(info, activeState);
+		expect(result.response.decision).toBe("allow");
 	});
 
 	it("allows when readTargetFilePath points to unrelated file", () => {

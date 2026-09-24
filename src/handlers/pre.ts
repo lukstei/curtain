@@ -3,6 +3,7 @@ import type { HarnessType } from "../harnesses/types.ts";
 import { parseCommand } from "../lib/parseCommand.ts";
 import {
 	hasCurtainAnnotations,
+	resolvePlaybookPath,
 	resolveSkillPath,
 } from "../lib/resolveSkill.ts";
 import type { Script } from "../parser.ts";
@@ -14,6 +15,7 @@ import {
 import { loadScript } from "../resolver.ts";
 import { deleteState, type RunnerState, saveState } from "../state.ts";
 import {
+	formatIntermissionPrompt,
 	formatStepPrompt,
 	resumeExecution,
 	startExecution,
@@ -140,20 +142,25 @@ export function handlePre(
 				}
 			}
 		}
-		if (targetSkillPath && hasCurtainAnnotations(targetSkillPath)) {
-			const loaded = loadScript(targetSkillPath, [info.workspacePath]);
-			if (loaded && !("error" in loaded) && loaded.script.steps.length > 1) {
-				return startScript(loaded.script, info.conversationId, env);
+		if (targetSkillPath) {
+			const playbookPath = resolvePlaybookPath(
+				targetSkillPath,
+				info.harness as HarnessType | undefined,
+				info.workspacePath,
+				env,
+			);
+			if (playbookPath && hasCurtainAnnotations(playbookPath)) {
+				const loaded = loadScript(playbookPath, [info.workspacePath]);
+				if (loaded && !("error" in loaded) && loaded.script.steps.length > 1) {
+					return startScript(loaded.script, info.conversationId, env);
+				}
 			}
 		}
 	}
 
 	if (state?.status === "paused") {
 		const currentStep = state.steps[state.currentStep];
-		const criteriaPart = currentStep?.instruction
-			? `${currentStep.instruction}\n\n`
-			: "";
-		const msg = `[INTERMISSION REVIEW]\n${criteriaPart}Conclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed.`;
+		const msg = formatIntermissionPrompt(currentStep?.instruction);
 		return {
 			state,
 			response: {

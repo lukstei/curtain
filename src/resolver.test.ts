@@ -11,7 +11,7 @@ describe("resolver.ts", () => {
 
 	beforeAll(() => {
 		tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "curtain-resolver-test-"));
-		scriptPath = path.join(tmpDir, "sample.md");
+		scriptPath = path.join(tmpDir, "PLAYBOOK.md");
 		fs.writeFileSync(scriptPath, "# Sample Script\n\nStep 1");
 	});
 
@@ -19,23 +19,25 @@ describe("resolver.ts", () => {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 	});
 
-	it("resolveScriptPath handles mentions, quotes, and extensionless paths", () => {
+	it("resolveScriptPath handles mentions, quotes, directories, and rejects non-PLAYBOOK.md", () => {
 		const results = [
 			resolveScriptPath(`@[${scriptPath}]`),
 			resolveScriptPath(`@${scriptPath}`),
 			resolveScriptPath(`"${scriptPath}"`),
 			resolveScriptPath(`'${scriptPath}'`),
-			resolveScriptPath(path.join(tmpDir, "sample")),
+			resolveScriptPath(tmpDir),
+			resolveScriptPath("sample.md"),
 			resolveScriptPath("nonexistent/file.md"),
 		].map((p) => (p ? stripAbsolutePath(p, tmpDir) : null));
 
 		expect(results).toMatchInlineSnapshot(`
 			[
-			  "sample.md",
-			  "sample.md",
-			  "sample.md",
-			  "sample.md",
-			  "sample.md",
+			  "PLAYBOOK.md",
+			  "PLAYBOOK.md",
+			  "PLAYBOOK.md",
+			  "PLAYBOOK.md",
+			  "PLAYBOOK.md",
+			  null,
 			  null,
 			]
 		`);
@@ -43,15 +45,18 @@ describe("resolver.ts", () => {
 
 	it("resolveScriptPath resolves across workspace paths and absolute paths", () => {
 		const fromAbs = resolveScriptPath(scriptPath);
-		const fromWs = resolveScriptPath("sample.md", [tmpDir]);
+		const fromWs = resolveScriptPath("PLAYBOOK.md", [tmpDir]);
+		const fromWsDir = resolveScriptPath(".", [tmpDir]);
 
 		expect([
 			fromAbs ? stripAbsolutePath(fromAbs, tmpDir) : null,
 			fromWs ? stripAbsolutePath(fromWs, tmpDir) : null,
+			fromWsDir ? stripAbsolutePath(fromWsDir, tmpDir) : null,
 		]).toMatchInlineSnapshot(`
 			[
-			  "sample.md",
-			  "sample.md",
+			  "PLAYBOOK.md",
+			  "PLAYBOOK.md",
+			  "PLAYBOOK.md",
 			]
 		`);
 	});

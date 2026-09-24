@@ -56,7 +56,7 @@ describe("cli.ts", () => {
 	});
 
 	it("runs playbook with start", async () => {
-		const fixturePath = path.join(tmpDir, "test.md");
+		const fixturePath = path.join(tmpDir, "PLAYBOOK.md");
 		fs.mkdirSync(tmpDir, { recursive: true });
 		fs.writeFileSync(
 			fixturePath,
@@ -76,7 +76,9 @@ describe("cli.ts", () => {
 	});
 
 	it("completes execution when curtain next is run on final step intermission", async () => {
-		const scriptPath = path.join(tmpDir, "single-pause.md");
+		const finalDir = path.join(tmpDir, "final-pause");
+		fs.mkdirSync(finalDir, { recursive: true });
+		const scriptPath = path.join(finalDir, "PLAYBOOK.md");
 		fs.writeFileSync(
 			scriptPath,
 			["Step 1 content", "> [!INTERMISSION] Review carefully"].join("\n"),

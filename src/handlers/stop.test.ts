@@ -85,7 +85,7 @@ describe("handlers/stop.ts", () => {
 
 			Step 2 instruction
 
-			Perform ONLY this step. Conclude when complete.",
+			Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
 			}
 		`);
 	});

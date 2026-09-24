@@ -91,7 +91,7 @@ describe("runShim End-to-End Simulation", () => {
 
 			Step 2 content
 
-			Perform ONLY this step. Conclude when complete.",
+			Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
 			  "suppressOutput": true,
 			}
 		`);

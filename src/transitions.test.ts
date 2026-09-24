@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseScript } from "./parser.ts";
 import {
 	advanceExecution,
+	formatIntermissionPrompt,
 	formatStepPrompt,
 	resumeExecution,
 	startExecution,
@@ -226,7 +227,7 @@ describe("transitions.ts", () => {
 			content: "Scaffold project",
 		};
 		expect(formatStepPrompt(stepWithoutInstruction, 3)).toBe(
-			"[STEP 1 OF 3]\n\nScaffold project\n\nPerform ONLY this step. Conclude when complete.",
+			"[STEP 1 OF 3]\n\nScaffold project\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
 		);
 
 		const stepWithPauseInstruction = {
@@ -236,7 +237,7 @@ describe("transitions.ts", () => {
 			instruction: "Ensure 100% pass rate",
 		};
 		expect(formatStepPrompt(stepWithPauseInstruction, 3)).toBe(
-			"[STEP 1 OF 3]\n\nRun test suite\n\n[INTERMISSION CRITERIA]\nEnsure 100% pass rate\n\nPerform ONLY this step. Conclude when complete. When concluding your turn, inform the user that only /next will proceed.",
+			"[STEP 1 OF 3]\n\nRun test suite\n\n[INTERMISSION CRITERIA]\nEnsure 100% pass rate\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, inform the user that only /next will proceed.",
 		);
 
 		const stepWithAutoInstruction = {
@@ -246,7 +247,23 @@ describe("transitions.ts", () => {
 			instruction: "Check bundle size",
 		};
 		expect(formatStepPrompt(stepWithAutoInstruction, 3)).toBe(
-			"[STEP 2 OF 3]\n\nBuild artifacts\n\n[TRANSITION CRITERIA]\nCheck bundle size\n\nPerform ONLY this step. Conclude when complete.",
+			"[STEP 2 OF 3]\n\nBuild artifacts\n\n[TRANSITION CRITERIA]\nCheck bundle size\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
 		);
+	});
+
+	it("formats intermission review prompt", () => {
+		expect(formatIntermissionPrompt()).toMatchInlineSnapshot(`
+			"[INTERMISSION REVIEW]
+			Execution is PAUSED at an intermission. Do NOT execute, advance to, or anticipate any downstream steps from previous messages or memory. Respond ONLY to confirm that execution is paused and that only /next will proceed."
+		`);
+
+		expect(
+			formatIntermissionPrompt("Verify lint checks pass"),
+		).toMatchInlineSnapshot(`
+			"[INTERMISSION REVIEW]
+			Verify lint checks pass
+
+			Execution is PAUSED at an intermission. Do NOT execute, advance to, or anticipate any downstream steps from previous messages or memory. Respond ONLY to confirm that execution is paused and that only /next will proceed."
+		`);
 	});
 });

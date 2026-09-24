@@ -48,7 +48,7 @@ describe("handlers/pre.ts", () => {
 
 			Step 2 content
 
-			Perform ONLY this step. Conclude when complete.",
+			Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
 			    },
 			  ],
 			}
@@ -114,7 +114,7 @@ describe("handlers/pre.ts", () => {
 			      "ephemeralMessage": "[INTERMISSION REVIEW]
 			Check table schema
 
-			Conclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed.",
+			Execution is PAUSED at an intermission. Do NOT execute, advance to, or anticipate any downstream steps from previous messages or memory. Respond ONLY to confirm that execution is paused and that only /next will proceed.",
 			    },
 			  ],
 			}
@@ -147,7 +147,7 @@ describe("handlers/pre.ts", () => {
 			  "injectSteps": [
 			    {
 			      "ephemeralMessage": "[INTERMISSION REVIEW]
-			Conclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed.",
+			Execution is PAUSED at an intermission. Do NOT execute, advance to, or anticipate any downstream steps from previous messages or memory. Respond ONLY to confirm that execution is paused and that only /next will proceed.",
 			    },
 			  ],
 			}
@@ -155,7 +155,7 @@ describe("handlers/pre.ts", () => {
 	});
 
 	it("starts script on /curtain run <file>", () => {
-		const scriptPath = path.join(tmpDir, "run-test.md");
+		const scriptPath = path.join(tmpDir, "PLAYBOOK.md");
 		fs.mkdirSync(tmpDir, { recursive: true });
 		fs.writeFileSync(
 			scriptPath,
@@ -191,6 +191,13 @@ describe("handlers/pre.ts", () => {
 				"name: deploy-skill",
 				"description: Deploy procedure",
 				"---",
+				"/curtain deploy-skill",
+			].join("\n"),
+		);
+		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
+		fs.writeFileSync(
+			playbookFile,
+			[
 				"# Deploy",
 				"Step 1: Check environment",
 				"> [!CURTAIN]",
@@ -214,14 +221,12 @@ describe("handlers/pre.ts", () => {
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(0);
 		expect(state?.steps.length).toBe(2);
+		expect(state?.script).toBe(playbookFile);
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
 			"[STEP 1 OF 2]",
 		);
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
 			"Step 1: Check environment",
-		);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
-			"name: deploy-skill",
 		);
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
 			"Perform ONLY this step. Conclude when complete.",
@@ -239,6 +244,13 @@ describe("handlers/pre.ts", () => {
 				"name: invoked-skill",
 				"description: Invoked skill with curtains",
 				"---",
+				"/curtain invoked-skill",
+			].join("\n"),
+		);
+		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
+		fs.writeFileSync(
+			playbookFile,
+			[
 				"# Invoked Skill",
 				"Step 1: Inspect environment",
 				"> [!INTERMISSION]",
@@ -257,7 +269,7 @@ describe("handlers/pre.ts", () => {
 
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
-		expect(state?.script).toBe(skillFile);
+		expect(state?.script).toBe(playbookFile);
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
 			"When concluding your turn, inform the user that only /next will proceed.",
 		);
@@ -274,6 +286,13 @@ describe("handlers/pre.ts", () => {
 				"name: invoked-empty-prompt",
 				"description: Invoked skill with empty prompt",
 				"---",
+				"/curtain invoked-empty-prompt",
+			].join("\n"),
+		);
+		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
+		fs.writeFileSync(
+			playbookFile,
+			[
 				"# Invoked Skill",
 				"Step 1: Inspect environment",
 				"> [!INTERMISSION]",
@@ -292,7 +311,7 @@ describe("handlers/pre.ts", () => {
 
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
-		expect(state?.script).toBe(skillFile);
+		expect(state?.script).toBe(playbookFile);
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toBeDefined();
 	});
 
@@ -393,10 +412,13 @@ describe("handlers/pre.ts", () => {
 				"name: curtain-test",
 				"description: Follow instructions",
 				"---",
-				'Say "Step 1"',
-				"> [!INTERMISSION]",
-				'Say "Step 2"',
+				"/curtain curtain-test",
 			].join("\n"),
+		);
+		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
+		fs.writeFileSync(
+			playbookFile,
+			['Say "Step 1"', "> [!INTERMISSION]", 'Say "Step 2"'].join("\n"),
 		);
 
 		const info: HookInfo = {
@@ -413,7 +435,7 @@ describe("handlers/pre.ts", () => {
 
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
-		expect(state?.script).toBe(skillFile);
+		expect(state?.script).toBe(playbookFile);
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
 			'Say "Step 1"',
 		);
@@ -430,10 +452,13 @@ describe("handlers/pre.ts", () => {
 				"name: link-skill",
 				"description: Skill invoked by link name",
 				"---",
-				'Say "Act 1"',
-				"> [!INTERMISSION]",
-				'Say "Act 2"',
+				"/curtain link-skill",
 			].join("\n"),
+		);
+		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
+		fs.writeFileSync(
+			playbookFile,
+			['Say "Act 1"', "> [!INTERMISSION]", 'Say "Act 2"'].join("\n"),
 		);
 
 		const info: HookInfo = {
@@ -450,7 +475,7 @@ describe("handlers/pre.ts", () => {
 
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
-		expect(state?.script).toBe(skillFile);
+		expect(state?.script).toBe(playbookFile);
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
 			'Say "Act 1"',
 		);

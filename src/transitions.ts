@@ -92,6 +92,14 @@ export function advanceExecution(state: RunnerState): AdvanceResult {
 }
 
 /**
+ * Formats prompt injection when an interaction occurs while paused at an intermission review.
+ */
+export function formatIntermissionPrompt(instruction?: string): string {
+	const criteriaPart = instruction ? `${instruction}\n\n` : "";
+	return `[INTERMISSION REVIEW]\n${criteriaPart}Execution is PAUSED at an intermission. Do NOT execute, advance to, or anticipate any downstream steps from previous messages or memory. Respond ONLY to confirm that execution is paused and that only /next will proceed.`;
+}
+
+/**
  * Formats step prompt injection with optional delimiter criteria.
  */
 export function formatStepPrompt(step: Step, totalSteps: number): string {
@@ -102,5 +110,5 @@ export function formatStepPrompt(step: Step, totalSteps: number): string {
 		step.type === "pause"
 			? " When concluding your turn, inform the user that only /next will proceed."
 			: "";
-	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete.${pauseNotice}`;
+	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.${pauseNotice}`;
 }

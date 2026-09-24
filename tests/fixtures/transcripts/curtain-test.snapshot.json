@@ -4,11 +4,11 @@
 		"hook": "pre",
 		"injectSteps": [
 			{
-				"ephemeralMessage": "[STEP 1 OF 3]\n\n---\nname: curtain-test\ndescription: Follow instructions\n---\n\nThis is a test skill to see if the the plugin works, follow instructions exactly.\n\nSay \"Step 1\"\n\nPerform ONLY this step. Conclude when complete. When concluding your turn, inform the user that only /next will proceed."
+				"ephemeralMessage": "[STEP 1 OF 3]\n\nThis is a test skill to see if the the plugin works, follow instructions exactly.\n\nSay \"Step 1\"\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, inform the user that only /next will proceed."
 			}
 		],
 		"state": {
-			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
 			"status": "running",
 			"currentStep": 0
 		}
@@ -18,7 +18,7 @@
 		"hook": "stop",
 		"decision": "allow",
 		"state": {
-			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
 			"status": "paused",
 			"currentStep": 0
 		}
@@ -28,11 +28,11 @@
 		"hook": "pre",
 		"injectSteps": [
 			{
-				"ephemeralMessage": "[INTERMISSION REVIEW]\nConclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed."
+				"ephemeralMessage": "[INTERMISSION REVIEW]\nExecution is PAUSED at an intermission. Do NOT execute, advance to, or anticipate any downstream steps from previous messages or memory. Respond ONLY to confirm that execution is paused and that only /next will proceed."
 			}
 		],
 		"state": {
-			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
 			"status": "paused",
 			"currentStep": 0
 		}
@@ -42,7 +42,7 @@
 		"hook": "stop",
 		"decision": "allow",
 		"state": {
-			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
 			"status": "paused",
 			"currentStep": 0
 		}
@@ -52,11 +52,11 @@
 		"hook": "pre",
 		"injectSteps": [
 			{
-				"ephemeralMessage": "[STEP 2 OF 3]\n\nSay \"Step 2\"\n\nPerform ONLY this step. Conclude when complete."
+				"ephemeralMessage": "[STEP 2 OF 3]\n\nSay \"Step 2\"\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps."
 			}
 		],
 		"state": {
-			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
 			"status": "running",
 			"currentStep": 1
 		}
@@ -65,9 +65,9 @@
 		"stepIndex": 8,
 		"hook": "stop",
 		"decision": "continue",
-		"reason": "[STEP 3 OF 3]\n\nSay \"Step 3\"\n\nPerform ONLY this step. Conclude when complete.",
+		"reason": "[STEP 3 OF 3]\n\nSay \"Step 3\"\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
 		"state": {
-			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
 			"status": "running",
 			"currentStep": 2
 		}

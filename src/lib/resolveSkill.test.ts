@@ -2,7 +2,11 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { hasCurtainAnnotations, resolveSkillPath } from "./resolveSkill.ts";
+import {
+	hasCurtainAnnotations,
+	resolvePlaybookPath,
+	resolveSkillPath,
+} from "./resolveSkill.ts";
 
 describe("lib/resolveSkill.ts", () => {
 	let testDir: string;
@@ -126,6 +130,40 @@ describe("lib/resolveSkill.ts", () => {
 			expect(resolveSkillPath("my-plugin:test-skill", "agy", testDir)).toBe(
 				skillFile,
 			);
+		});
+	});
+
+	describe("resolvePlaybookPath", () => {
+		it("resolves direct PLAYBOOK.md path", () => {
+			const pb = path.join(testDir, "PLAYBOOK.md");
+			fs.writeFileSync(pb, "# Playbook\n");
+			expect(resolvePlaybookPath(pb, undefined, testDir)).toBe(pb);
+			expect(resolvePlaybookPath("PLAYBOOK.md", undefined, testDir)).toBe(pb);
+		});
+
+		it("resolves directory containing PLAYBOOK.md", () => {
+			const dir = path.join(testDir, "my-dir");
+			fs.mkdirSync(dir);
+			const pb = path.join(dir, "PLAYBOOK.md");
+			fs.writeFileSync(pb, "# Playbook\n");
+			expect(resolvePlaybookPath(dir, undefined, testDir)).toBe(pb);
+			expect(resolvePlaybookPath("my-dir", undefined, testDir)).toBe(pb);
+		});
+
+		it("resolves skill name to adjacent PLAYBOOK.md", () => {
+			const skillDir = path.join(testDir, ".agents/skills/deploy");
+			fs.mkdirSync(skillDir, { recursive: true });
+			fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# Deploy\n");
+			const pb = path.join(skillDir, "PLAYBOOK.md");
+			fs.writeFileSync(pb, "# Playbook\n");
+
+			expect(resolvePlaybookPath("deploy", "agy", testDir)).toBe(pb);
+		});
+
+		it("returns null for non-PLAYBOOK.md files", () => {
+			const other = path.join(testDir, "other.md");
+			fs.writeFileSync(other, "# Other\n");
+			expect(resolvePlaybookPath(other, undefined, testDir)).toBeNull();
 		});
 	});
 });
