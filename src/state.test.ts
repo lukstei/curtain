@@ -26,7 +26,6 @@ describe("state.ts", () => {
 			script: "playbook.md",
 			status: "running",
 			currentStep: 0,
-			totalSteps: 2,
 			steps: [
 				{ index: 0, type: "auto", content: "Step 1" },
 				{ index: 1, type: "pause", content: "Step 2" },

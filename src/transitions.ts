@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import type { Script, Step } from "./parser.ts";
-import { LINE_SPLIT_REGEX } from "./regex.ts";
 import type { RunnerState } from "./state.ts";
 
 export type AdvanceResult =
@@ -23,7 +22,6 @@ export function startExecution(script: Script): RunnerState {
 		script: script.filePath,
 		status: "running",
 		currentStep: 0,
-		totalSteps: script.steps.length,
 		steps: script.steps,
 	};
 }
@@ -42,7 +40,7 @@ export function resumeExecution(state: RunnerState): ResumeResult {
 	}
 
 	const nextStepIndex = state.currentStep + 1;
-	if (nextStepIndex >= state.totalSteps) {
+	if (nextStepIndex >= state.steps.length) {
 		return { action: "finish" };
 	}
 
@@ -77,7 +75,7 @@ export function advanceExecution(state: RunnerState): AdvanceResult {
 	}
 
 	const nextStepIndex = state.currentStep + 1;
-	if (nextStepIndex >= state.totalSteps) {
+	if (nextStepIndex >= state.steps.length) {
 		return { action: "finish" };
 	}
 
@@ -105,24 +103,4 @@ export function formatStepPrompt(step: Step, totalSteps: number): string {
 			? " When concluding your turn, inform the user that only /next will proceed."
 			: "";
 	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete.${pauseNotice}`;
-}
-
-/**
- * Formats runner status output, including intermission instruction if paused.
- */
-export function formatStatus(state: RunnerState | null): string {
-	if (!state) {
-		return "[CURTAIN STATUS] No active script running.";
-	}
-
-	const currentStep = state.steps[state.currentStep];
-	const firstLineInstruction = currentStep?.instruction
-		?.split(LINE_SPLIT_REGEX)[0]
-		?.trim();
-	const intermissionPart =
-		state.status === "paused" && firstLineInstruction
-			? ` | Intermission: ${firstLineInstruction}`
-			: "";
-
-	return `[CURTAIN STATUS] Step ${state.currentStep + 1}/${state.totalSteps} | State: ${state.status} | Script: ${state.script}${intermissionPart}`;
 }

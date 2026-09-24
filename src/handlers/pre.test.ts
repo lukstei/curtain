@@ -14,7 +14,6 @@ describe("handlers/pre.ts", () => {
 		script: "sample.md",
 		status: "paused",
 		currentStep: 0,
-		totalSteps: 2,
 		steps: [
 			{
 				index: 0,
@@ -61,7 +60,6 @@ describe("handlers/pre.ts", () => {
 			script: "sample.md",
 			status: "paused",
 			currentStep: 0,
-			totalSteps: 1,
 			steps: [
 				{
 					index: 0,
@@ -93,44 +91,6 @@ describe("handlers/pre.ts", () => {
 			  ],
 			}
 		`);
-	});
-
-	it("drops execution when user sends /curtain drop", () => {
-		const info: HookInfo = {
-			type: "pre",
-			conversationId: "test-c2",
-			workspacePath: "/test",
-			prompt: "/curtain drop",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "/curtain drop",
-			},
-		};
-
-		const { state, response } = handlePre(info, sampleState, env);
-		expect(state).toBeNull();
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toBe(
-			"Curtain dropped. Execution stopped.",
-		);
-	});
-
-	it("reports status with intermission info when user sends /curtain status while paused", () => {
-		const info: HookInfo = {
-			type: "pre",
-			conversationId: "test-c3",
-			workspacePath: "/test",
-			prompt: "/curtain status",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "/curtain status",
-			},
-		};
-
-		const { state, response } = handlePre(info, sampleState, env);
-		expect(state).toEqual(sampleState);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toBe(
-			"[CURTAIN STATUS] Step 1/2 | State: paused | Script: sample.md | Intermission: Check table schema",
-		);
 	});
 
 	it("replays intermission review instruction on normal user message while paused", () => {
@@ -253,7 +213,7 @@ describe("handlers/pre.ts", () => {
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(0);
-		expect(state?.totalSteps).toBe(2);
+		expect(state?.steps.length).toBe(2);
 		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
 			"[STEP 1 OF 2]",
 		);

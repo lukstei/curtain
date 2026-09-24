@@ -1,18 +1,12 @@
 import {
-	CURTAIN_COMMAND_PREFIX_REGEX,
+	COMMAND_REGEX,
 	FILE_AT_REGEX,
 	FILE_BRACKET_REGEX,
 	FILE_QUOTE_REGEX,
-	NEXT_COMMAND_REGEX,
 	WHITESPACE_SPLIT_REGEX,
 } from "../regex.ts";
 
-export type CurtainCommand =
-	| { name: "next" }
-	| { name: "drop" }
-	| { name: "status" }
-	| { name: "run"; path: string }
-	| { name: "help" };
+export type CurtainCommand = { name: "next" } | { name: "run"; path: string };
 
 export interface ParseResult {
 	isCurtainCommand: boolean;
@@ -38,87 +32,60 @@ function parseFilePath(raw: string): string | null {
 
 export function parseCommand(input?: string): ParseResult {
 	if (!input) return { isCurtainCommand: false };
-	const trimmed = input.trim();
 
-	if (NEXT_COMMAND_REGEX.test(trimmed)) {
+	const match = input.trim().match(COMMAND_REGEX);
+	if (!match) return { isCurtainCommand: false };
+
+	const [, prefix, name, rest] = match;
+	const isCurtainPrefix = prefix.toLowerCase().includes("curtain");
+	const command = name.toLowerCase();
+
+	if (command === "next") {
 		return { isCurtainCommand: true, command: { name: "next" } };
 	}
 
-	// Match /curtain or $curtain followed by delimiters or end
-	const match = trimmed.match(CURTAIN_COMMAND_PREFIX_REGEX);
-	if (!match) {
-		return { isCurtainCommand: false };
+	if (!isCurtainPrefix && command === "curtain") {
+		const filePath = rest ? parseFilePath(rest) : null;
+		if (filePath) {
+			return {
+				isCurtainCommand: true,
+				command: { name: "run", path: filePath },
+			};
+		}
+		return {
+			isCurtainCommand: true,
+			error: "Missing required script path argument.",
+		};
 	}
 
-	const delim = match[1] ?? "";
-	const rest = (match[2] ?? "").trim();
-
-	// Bare /curtain or $curtain defaults to status
-	if (!delim && !rest) {
-		return { isCurtainCommand: true, command: { name: "status" } };
-	}
-
-	// Trailing hyphen with no command (e.g. /curtain-) is not a curtain command
-	if (delim.startsWith("-") && !rest) {
-		return { isCurtainCommand: false };
-	}
-
-	if (!rest) {
-		return { isCurtainCommand: true, command: { name: "status" } };
-	}
-
-	const tokens = rest.split(WHITESPACE_SPLIT_REGEX);
-	const sub = tokens[0].toLowerCase();
-
-	if (sub === "status") {
-		return { isCurtainCommand: true, command: { name: "status" } };
-	}
-
-	if (sub === "stop" || sub === "drop" || sub === "abort") {
-		return { isCurtainCommand: true, command: { name: "drop" } };
-	}
-
-	if (sub === "next") {
-		return { isCurtainCommand: true, command: { name: "next" } };
-	}
-
-	if (sub === "help") {
-		return { isCurtainCommand: true, command: { name: "help" } };
-	}
-
-	if (sub === "run" || sub === "start") {
-		const filePath = parseFilePath(rest.slice(sub.length));
-		if (!filePath) {
+	if (isCurtainPrefix) {
+		if (command === "run" || command === "start") {
+			const filePath = rest ? parseFilePath(rest) : null;
+			if (filePath) {
+				return {
+					isCurtainCommand: true,
+					command: { name: "run", path: filePath },
+				};
+			}
 			return {
 				isCurtainCommand: true,
 				error: "Missing required script path argument.",
 			};
 		}
-		return { isCurtainCommand: true, command: { name: "run", path: filePath } };
+
+		const fullArgs = [name, rest].filter(Boolean).join(" ");
+		const filePath = parseFilePath(fullArgs);
+		if (filePath) {
+			return {
+				isCurtainCommand: true,
+				command: { name: "run", path: filePath },
+			};
+		}
+		return {
+			isCurtainCommand: true,
+			error: "Missing required script path argument.",
+		};
 	}
 
-	// Hyphenated prefix /curtain-<something> only applies to known subcommands above.
-	// Arbitrary skill names like /curtain-test or /curtain-custom are not runner commands.
-	if (delim.startsWith("-")) {
-		return { isCurtainCommand: false };
-	}
-
-	// If argument looks like a path (e.g. /curtain playbook.md or /curtain @path)
-	const filePath = parseFilePath(rest);
-	if (filePath) {
-		return { isCurtainCommand: true, command: { name: "run", path: filePath } };
-	}
-
-	return { isCurtainCommand: true, command: { name: "help" } };
-}
-
-export function getHelpText(): string {
-	return [
-		"Curtain Commands:",
-		"  /curtain-run <file.md>   Start execution of a multi-act script",
-		"  /curtain-status          Display current step and runner status",
-		"  /curtain-stop            Stop execution and reset state",
-		"  /next                    Advance to next step when paused at an intermission",
-		"  /curtain-help            Display this help message",
-	].join("\n");
+	return { isCurtainCommand: false };
 }

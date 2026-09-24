@@ -122,8 +122,5 @@ Update schema docs in `docs/db.md`.
 
 | Command (Claude / AGY) | Command (Codex CLI) | CLI Terminal | Description |
 | :--- | :--- | :--- | :--- |
-| `/curtain-run <file.md>` | `$curtain:start <file.md>` | `curtain <file.md>` | Start execution of a multi-act script. |
+| `/curtain <file.md>` | `$curtain:start <file.md>` | `curtain <file.md>` | Start execution of a multi-act script. |
 | `/next` | `$curtain:next` | `curtain next` | Advance to the next Act when paused at an intermission. |
-| `/curtain-stop` | `$curtain:drop` | `curtain drop` | Abort execution and delete state. |
-| `/curtain-status` | `$curtain:status` | `curtain status` | Display current step number, total steps, and runner status (including intermission criteria if paused). |
-| `/curtain-help` | `$curtain:help` | `curtain help` | Display usage instructions and supported runner commands. |

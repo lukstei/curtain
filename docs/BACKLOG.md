@@ -33,3 +33,9 @@
 - **Current State:** The parser only recognizes `> [!CURTAIN]` (auto-advance) and `> [!INTERMISSION]` (pause for review) delimiters to segment script steps. Scripts lack a dedicated callout to trigger planning mode or require an implementation plan before execution.
 - **Objective:** Support a `> [!PLAN]` callout delimiter that designates a planning phase and prompts the runner or agent harness to produce an implementation plan before advancing.
 - **Agent Triage:** Decide whether `> [!PLAN]` forms a dedicated step type (`"plan"`) or acts as a pause variant injecting planning rules. Account for differing planning artifacts and approval conventions across harnesses.
+
+### [ ] 6. Parameter Passing and Parsing for `/curtain <file> <params>`
+- **Current State:** `parseCommand` only extracts the target file path via `parseFilePath`, dropping all trailing arguments. Script runs cannot accept runtime arguments from slash commands or skill invocations.
+- **Objective:** Support passing parameters in `/curtain <file> <params>` (and harness skill invocations), parse positional and flag parameters reliably, and expose them to the runner context.
+- **Agent Triage:** Decide how parameters interpolate into step instructions or script context (e.g. variable replacement vs environment payload). Ensure quote-handling handles paths with spaces alongside flags.
+

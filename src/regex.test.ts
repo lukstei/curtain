@@ -6,12 +6,11 @@ import {
 	BLOCKQUOTE_PREFIX_REGEX,
 	CALLOUT_ANNOTATION_REGEX,
 	CALLOUT_LINE_REGEX,
-	CURTAIN_COMMAND_PREFIX_REGEX,
+	COMMAND_REGEX,
 	FILE_AT_REGEX,
 	FILE_BRACKET_REGEX,
 	FILE_QUOTE_REGEX,
 	LINE_SPLIT_REGEX,
-	NEXT_COMMAND_REGEX,
 	RESOLVER_BRACKET_REGEX,
 	RESOLVER_QUOTE_REGEX,
 	SKILL_LINK_PATH_CAPTURE_REGEX,
@@ -169,15 +168,15 @@ describe("regex.ts", () => {
 
 		it("captures skill link and path within text", () => {
 			const text =
-				"Please review [$curtain-run](plugins/curtain/skills/curtain-run/SKILL.md) before starting.";
+				"Please review [$curtain](plugins/curtain/skills/curtain/SKILL.md) before starting.";
 			const match = text.match(SKILL_LINK_PATH_CAPTURE_REGEX);
 
 			expect(
 				match ? { name: match[1], path: match[2] } : null,
 			).toMatchInlineSnapshot(`
 				{
-				  "name": "curtain-run",
-				  "path": "plugins/curtain/skills/curtain-run/SKILL.md",
+				  "name": "curtain",
+				  "path": "plugins/curtain/skills/curtain/SKILL.md",
 				}
 			`);
 		});
@@ -249,84 +248,89 @@ describe("regex.ts", () => {
 	});
 
 	describe("Command Parsing & Argument Extraction", () => {
-		it("matches next commands", () => {
-			const inputs = ["/next", "$next", "/NEXT", "$Next", "/next-step", "next"];
-
-			expect(
-				inputs.map((cmd) => ({
-					cmd,
-					matches: NEXT_COMMAND_REGEX.test(cmd),
-				})),
-			).toMatchInlineSnapshot(`
-				[
-				  {
-				    "cmd": "/next",
-				    "matches": true,
-				  },
-				  {
-				    "cmd": "$next",
-				    "matches": true,
-				  },
-				  {
-				    "cmd": "/NEXT",
-				    "matches": true,
-				  },
-				  {
-				    "cmd": "$Next",
-				    "matches": true,
-				  },
-				  {
-				    "cmd": "/next-step",
-				    "matches": false,
-				  },
-				  {
-				    "cmd": "next",
-				    "matches": false,
-				  },
-				]
-			`);
-		});
-
-		it("matches curtain command prefixes and splits delimiter from args", () => {
+		it("matches runner commands and captures groups", () => {
 			const inputs = [
+				"/next",
+				"$next",
+				"/curtain next",
+				"$curtain:next",
 				"/curtain",
 				"$curtain",
-				"/curtain-run playbook.md",
+				"/curtain task.md",
+				"/curtain run task.md",
 				"$curtain:start task.md",
-				"/curtain status",
+				"/curtain-run task.md",
 				"/other-command",
 			];
 
 			expect(
 				inputs.map((input) => {
-					const match = input.match(CURTAIN_COMMAND_PREFIX_REGEX);
+					const match = input.match(COMMAND_REGEX);
 					return match
-						? { delim: match[1] ?? null, rest: match[2] ?? null }
+						? {
+								prefix: match[1] ?? null,
+								name: match[2] ?? null,
+								rest: match[3] ?? null,
+							}
 						: null;
 				}),
 			).toMatchInlineSnapshot(`
 				[
 				  {
-				    "delim": null,
+				    "name": "next",
+				    "prefix": "/",
 				    "rest": null,
 				  },
 				  {
-				    "delim": null,
+				    "name": "next",
+				    "prefix": "$",
 				    "rest": null,
 				  },
 				  {
-				    "delim": "-",
-				    "rest": "run playbook.md",
+				    "name": "next",
+				    "prefix": "/curtain ",
+				    "rest": null,
 				  },
 				  {
-				    "delim": ":",
-				    "rest": "start task.md",
+				    "name": "next",
+				    "prefix": "$curtain:",
+				    "rest": null,
 				  },
 				  {
-				    "delim": " ",
-				    "rest": "status",
+				    "name": "curtain",
+				    "prefix": "/",
+				    "rest": null,
 				  },
-				  null,
+				  {
+				    "name": "curtain",
+				    "prefix": "$",
+				    "rest": null,
+				  },
+				  {
+				    "name": "task.md",
+				    "prefix": "/curtain ",
+				    "rest": null,
+				  },
+				  {
+				    "name": "run",
+				    "prefix": "/curtain ",
+				    "rest": "task.md",
+				  },
+				  {
+				    "name": "start",
+				    "prefix": "$curtain:",
+				    "rest": "task.md",
+				  },
+				  {
+				    "name": "curtain-run",
+				    "prefix": "/",
+				    "rest": "task.md",
+				  },
+				  {
+				    "name": "other-command",
+				    "prefix": "/",
+				    "rest": null,
+				  },
 				]
 			`);
 		});

@@ -4,7 +4,6 @@ import { loadScript } from "./resolver.ts";
 import { runShim } from "./shim/runtime-shim.ts";
 import { deleteState, loadState, saveState } from "./state.ts";
 import {
-	formatStatus,
 	formatStepPrompt,
 	resumeExecution,
 	startExecution,
@@ -29,8 +28,6 @@ export function getCliHelp(): string {
 		"  curtain <file.md>        Start execution of a multi-act script",
 		"  curtain start <file.md>  Start execution of a multi-act script",
 		"  curtain next             Advance to next step when paused at an intermission",
-		"  curtain drop             Stop execution and reset state",
-		"  curtain status           Display current step and runner status",
 		"  curtain hook <event>     Execute harness lifecycle hook (pre, stop)",
 		"  curtain help             Show this help reference",
 		"",
@@ -102,24 +99,6 @@ export async function runCli(
 	const conversationId = resolveConversationIdFromHarnesses(env) ?? "default";
 	const cwd = env.PWD || process.cwd();
 
-	if (
-		parsed.command === "drop" ||
-		parsed.command === "stop" ||
-		parsed.command === "abort"
-	) {
-		deleteState(conversationId, env);
-		const msg = "[CURTAIN DROPPED] Execution stopped.";
-		writeOut(msg);
-		return { exitCode: 0, output: msg };
-	}
-
-	if (parsed.command === "status") {
-		const state = loadState(conversationId, env);
-		const msg = formatStatus(state);
-		writeOut(msg);
-		return { exitCode: 0, output: msg };
-	}
-
 	if (parsed.command === "next") {
 		const state = loadState(conversationId, env);
 		if (!state) {
@@ -137,13 +116,13 @@ export async function runCli(
 
 		if (res.action === "finish") {
 			deleteState(conversationId, env);
-			const msg = "[CURTAIN STATUS] Execution complete.";
+			const msg = "Execution complete.";
 			writeOut(msg);
 			return { exitCode: 0, output: msg };
 		}
 
 		saveState(conversationId, res.state, env);
-		const msg = formatStepPrompt(res.step, res.state.totalSteps);
+		const msg = formatStepPrompt(res.step, res.state.steps.length);
 		writeOut(msg);
 		return { exitCode: 0, output: msg };
 	}
@@ -165,7 +144,7 @@ export async function runCli(
 		const nextState = startExecution(loaded.script);
 		saveState(conversationId, nextState, env);
 		const firstStep = nextState.steps[0];
-		const msg = formatStepPrompt(firstStep, nextState.totalSteps);
+		const msg = formatStepPrompt(firstStep, nextState.steps.length);
 		writeOut(msg);
 		return { exitCode: 0, output: msg };
 	}

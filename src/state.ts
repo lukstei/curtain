@@ -9,7 +9,6 @@ export interface RunnerState {
 	script: string;
 	status: "running" | "paused";
 	currentStep: number;
-	totalSteps: number;
 	steps: Step[];
 }
 
@@ -58,7 +57,6 @@ export function loadState(
 			typeof data.script !== "string" ||
 			(data.status !== "running" && data.status !== "paused") ||
 			typeof data.currentStep !== "number" ||
-			typeof data.totalSteps !== "number" ||
 			!Array.isArray(data.steps)
 		) {
 			return null;

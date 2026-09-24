@@ -1,6 +1,6 @@
 import { resolveToolReadPath } from "../harnesses/common.ts";
 import type { HarnessType } from "../harnesses/types.ts";
-import { getHelpText, parseCommand } from "../lib/parseCommand.ts";
+import { parseCommand } from "../lib/parseCommand.ts";
 import {
 	hasCurtainAnnotations,
 	resolveSkillPath,
@@ -14,7 +14,6 @@ import {
 import { loadScript } from "../resolver.ts";
 import { deleteState, type RunnerState, saveState } from "../state.ts";
 import {
-	formatStatus,
 	formatStepPrompt,
 	resumeExecution,
 	startExecution,
@@ -34,7 +33,7 @@ function startScript(
 	const nextState = startExecution(script);
 	saveState(conversationId, nextState, env);
 	const firstStep = nextState.steps[0];
-	const msg = formatStepPrompt(firstStep, nextState.totalSteps);
+	const msg = formatStepPrompt(firstStep, nextState.steps.length);
 	return {
 		state: nextState,
 		response: { injectSteps: [{ ephemeralMessage: msg }] },
@@ -61,34 +60,7 @@ export function handlePre(
 				};
 			}
 
-			if (!parsed.command || parsed.command.name === "help") {
-				return {
-					state,
-					response: { injectSteps: [{ ephemeralMessage: getHelpText() }] },
-				};
-			}
-
-			if (parsed.command.name === "status") {
-				const msg = formatStatus(state);
-				return {
-					state,
-					response: { injectSteps: [{ ephemeralMessage: msg }] },
-				};
-			}
-
-			if (parsed.command.name === "drop") {
-				deleteState(info.conversationId, env);
-				return {
-					state: null,
-					response: {
-						injectSteps: [
-							{ ephemeralMessage: "Curtain dropped. Execution stopped." },
-						],
-					},
-				};
-			}
-
-			if (parsed.command.name === "next") {
+			if (parsed.command?.name === "next") {
 				if (!state) {
 					return {
 						state: null,
@@ -121,14 +93,14 @@ export function handlePre(
 				}
 
 				saveState(info.conversationId, res.state, env);
-				const msg = formatStepPrompt(res.step, res.state.totalSteps);
+				const msg = formatStepPrompt(res.step, res.state.steps.length);
 				return {
 					state: res.state,
 					response: { injectSteps: [{ ephemeralMessage: msg }] },
 				};
 			}
 
-			if (parsed.command.name === "run") {
+			if (parsed.command?.name === "run") {
 				const loaded = loadScript(parsed.command.path, [info.workspacePath]);
 				if (!loaded || "error" in loaded) {
 					const err = !loaded

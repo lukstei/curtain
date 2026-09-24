@@ -15,29 +15,24 @@ describe("parseCommand.ts", () => {
 			isCurtainCommand: true,
 			command: { name: "next" },
 		});
-		expect(parseCommand("/curtain-next")).toEqual({
+		expect(parseCommand("$curtain:next")).toEqual({
 			isCurtainCommand: true,
 			command: { name: "next" },
 		});
-		expect(parseCommand("/curtain drop")).toEqual({
+	});
+
+	it("returns error for bare /curtain or missing path", () => {
+		expect(parseCommand("/curtain")).toEqual({
 			isCurtainCommand: true,
-			command: { name: "drop" },
+			error: "Missing required script path argument.",
 		});
-		expect(parseCommand("/curtain-drop")).toEqual({
+		expect(parseCommand("$curtain")).toEqual({
 			isCurtainCommand: true,
-			command: { name: "drop" },
+			error: "Missing required script path argument.",
 		});
-		expect(parseCommand("/curtain-stop")).toEqual({
+		expect(parseCommand("/curtain run")).toEqual({
 			isCurtainCommand: true,
-			command: { name: "drop" },
-		});
-		expect(parseCommand("/curtain status")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "status" },
-		});
-		expect(parseCommand("/curtain-status")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "status" },
+			error: "Missing required script path argument.",
 		});
 	});
 
@@ -46,24 +41,13 @@ describe("parseCommand.ts", () => {
 			isCurtainCommand: true,
 			command: { name: "run", path: "task.md" },
 		});
-		expect(parseCommand("/curtain-run task.md")).toEqual({
+		expect(parseCommand("$curtain:start task.md")).toEqual({
 			isCurtainCommand: true,
 			command: { name: "run", path: "task.md" },
 		});
 		expect(parseCommand("/curtain run @[path/to/script.md]")).toEqual({
 			isCurtainCommand: true,
 			command: { name: "run", path: "path/to/script.md" },
-		});
-	});
-
-	it("parses codex mentions", () => {
-		expect(parseCommand("$curtain:next")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
-		});
-		expect(parseCommand("$curtain:status")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "status" },
 		});
 	});
 
@@ -75,6 +59,21 @@ describe("parseCommand.ts", () => {
 			isCurtainCommand: false,
 		});
 		expect(parseCommand("/curtain-custom")).toEqual({
+			isCurtainCommand: false,
+		});
+		expect(parseCommand("/curtain-run task.md")).toEqual({
+			isCurtainCommand: false,
+		});
+		expect(parseCommand("/curtain-status")).toEqual({
+			isCurtainCommand: false,
+		});
+		expect(parseCommand("/curtain-stop")).toEqual({
+			isCurtainCommand: false,
+		});
+		expect(parseCommand("/curtain-drop")).toEqual({
+			isCurtainCommand: false,
+		});
+		expect(parseCommand("/curtain-help")).toEqual({
 			isCurtainCommand: false,
 		});
 	});

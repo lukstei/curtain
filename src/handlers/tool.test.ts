@@ -30,7 +30,6 @@ describe("handlers/tool.ts", () => {
 			script: scriptFile,
 			status: "running",
 			currentStep: 0,
-			totalSteps: 2,
 			steps: [
 				{ index: 0, type: "auto", content: "Act 1" },
 				{ index: 1, type: "auto", content: "Act 2" },

@@ -104,9 +104,7 @@ curtain/
 │
 ├── skills/                           # Universal skill definitions
 │   ├── curtain/SKILL.md              # Start execution
-│   ├── next/SKILL.md                 # Advance to next step
-│   ├── curtain-drop/SKILL.md         # Abort execution
-│   └── curtain-status/SKILL.md       # Runner status
+│   └── next/SKILL.md                 # Advance to next step
 │
 ├── rules/
 │   └── AGENTS.md                     # Behavioral guidelines

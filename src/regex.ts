@@ -47,12 +47,9 @@ export const ANGLE_BRACKET_ENCLOSURE_REGEX = /^<|>$/g;
 // Command Parsing & Argument Extraction
 // -----------------------------------------------------------------------------
 
-/** Matches the `/next` or `$next` command to advance execution. */
-export const NEXT_COMMAND_REGEX = /^[/$]next$/i;
-
-/** Matches `/curtain` or `$curtain` prefixes and splits delimiter from arguments. */
-export const CURTAIN_COMMAND_PREFIX_REGEX =
-	/^(?:\/curtain|\$curtain(?::curtain)?)(?:([:\s-]+)(.*)|$)/i;
+/** Matches runner command prefix (/ or $ or /curtain: or $curtain:) and extracts the command name and rest. */
+export const COMMAND_REGEX = /^([/$]curtain[:\s]+|[/$])([^\s]+)(?:\s+(.*))?$/i;
+export const CURTAIN_COMMAND_REGEX = COMMAND_REGEX;
 
 /** Extracts a bracketed file path argument prefixed with `@` (e.g. `@[path/to/file]`). */
 export const FILE_BRACKET_REGEX = /^@\[([^\]]+)\]/;

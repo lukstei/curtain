@@ -36,12 +36,12 @@ describe("runShim End-to-End Simulation", () => {
 		expect(JSON.parse(egress.stdout ?? "{}")).toEqual({ decision: "allow" });
 	});
 
-	it("processes Claude Code user prompt submission for /curtain help", async () => {
+	it("processes Claude Code user prompt submission for bare /curtain", async () => {
 		const rawInput = JSON.stringify({
 			hook_event_name: "UserPromptSubmit",
 			session_id: "claude-session-1",
 			cwd: "/test",
-			prompt: "/curtain help",
+			prompt: "/curtain",
 		});
 
 		const egress = await runShim("pre", rawInput, {
@@ -52,8 +52,8 @@ describe("runShim End-to-End Simulation", () => {
 		expect(egress.exitCode).toBe(0);
 		const parsed = JSON.parse(egress.stdout ?? "{}");
 		expect(parsed.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
-		expect(parsed.hookSpecificOutput.additionalContext).toContain(
-			"Curtain Commands:",
+		expect(parsed.hookSpecificOutput.additionalContext).toBe(
+			"Missing required script path argument.",
 		);
 	});
 
@@ -67,7 +67,6 @@ describe("runShim End-to-End Simulation", () => {
 				script: "sample.md",
 				status: "running",
 				currentStep: 0,
-				totalSteps: 2,
 				steps: [
 					{ index: 0, type: "auto", content: "Step 1 content" },
 					{ index: 1, type: "auto", content: "Step 2 content" },
@@ -108,7 +107,6 @@ describe("runShim End-to-End Simulation", () => {
 				script: "sample.md",
 				status: "running",
 				currentStep: 0,
-				totalSteps: 2,
 				steps: [
 					{ index: 0, type: "pause", content: "Step 1 content" },
 					{ index: 1, type: "auto", content: "Step 2 content" },

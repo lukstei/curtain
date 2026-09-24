@@ -37,7 +37,7 @@ export function handleStop(
 	}
 
 	saveState(info.conversationId, result.state, env);
-	const msg = formatStepPrompt(result.step, result.state.totalSteps);
+	const msg = formatStepPrompt(result.step, result.state.steps.length);
 	return {
 		state: result.state,
 		response: {

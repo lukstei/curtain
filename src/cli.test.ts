@@ -55,14 +55,7 @@ describe("cli.ts", () => {
 		);
 	});
 
-	it("reports status when idle", async () => {
-		const { io, getOut } = createIo();
-		const res = await runCli(["status"], io, env);
-		expect(res.exitCode).toBe(0);
-		expect(getOut()).toBe("[CURTAIN STATUS] No active script running.");
-	});
-
-	it("runs playbook, checks status, raises curtain, and drops", async () => {
+	it("runs playbook with start", async () => {
 		const fixturePath = path.join(tmpDir, "test.md");
 		fs.mkdirSync(tmpDir, { recursive: true });
 		fs.writeFileSync(
@@ -76,23 +69,10 @@ describe("cli.ts", () => {
 		expect(resStart.exitCode).toBe(0);
 		expect(ioStart.getOut()).toContain("[STEP 1 OF 2]");
 
-		// 2. Check status
-		const ioStatus = createIo();
-		await runCli(["status"], ioStatus.io, env);
-		expect(ioStatus.getOut()).toContain("Step 1/2 | State: running");
-
-		// 3. Drop execution
-		const ioDrop = createIo();
-		const resDrop = await runCli(["drop"], ioDrop.io, env);
-		expect(resDrop.exitCode).toBe(0);
-		expect(ioDrop.getOut()).toBe("[CURTAIN DROPPED] Execution stopped.");
-
-		// 4. Verify status is idle again
-		const ioStatusAfter = createIo();
-		await runCli(["status"], ioStatusAfter.io, env);
-		expect(ioStatusAfter.getOut()).toBe(
-			"[CURTAIN STATUS] No active script running.",
-		);
+		const state = loadState(env.ANTIGRAVITY_CONVERSATION_ID, env);
+		expect(state).not.toBeNull();
+		expect(state?.currentStep).toBe(0);
+		expect(state?.steps.length).toBe(2);
 	});
 
 	it("completes execution when curtain next is run on final step intermission", async () => {
@@ -123,7 +103,7 @@ describe("cli.ts", () => {
 		const ioNext = createIo();
 		const resNext = await runCli(["next"], ioNext.io, testEnv);
 		expect(resNext.exitCode).toBe(0);
-		expect(resNext.output).toBe("[CURTAIN STATUS] Execution complete.");
+		expect(resNext.output).toBe("Execution complete.");
 
 		// 3. Verify state is deleted
 		expect(loadState(conversationId, testEnv)).toBeNull();

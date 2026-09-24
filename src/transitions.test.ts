@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { parseScript } from "./parser.ts";
 import {
 	advanceExecution,
-	formatStatus,
 	formatStepPrompt,
 	resumeExecution,
 	startExecution,
@@ -47,7 +46,6 @@ describe("transitions.ts", () => {
 			      "type": "auto",
 			    },
 			  ],
-			  "totalSteps": 3,
 			}
 		`);
 	});
@@ -81,7 +79,6 @@ describe("transitions.ts", () => {
 			        "type": "auto",
 			      },
 			    ],
-			    "totalSteps": 3,
 			  },
 			}
 		`);
@@ -119,7 +116,6 @@ describe("transitions.ts", () => {
 			        "type": "auto",
 			      },
 			    ],
-			    "totalSteps": 3,
 			  },
 			  "step": {
 			    "content": "Step 2: Verification",
@@ -185,7 +181,6 @@ describe("transitions.ts", () => {
 			        "type": "auto",
 			      },
 			    ],
-			    "totalSteps": 3,
 			  },
 			  "step": {
 			    "content": "Step 3: Cleanup",
@@ -252,63 +247,6 @@ describe("transitions.ts", () => {
 		};
 		expect(formatStepPrompt(stepWithAutoInstruction, 3)).toBe(
 			"[STEP 2 OF 3]\n\nBuild artifacts\n\n[TRANSITION CRITERIA]\nCheck bundle size\n\nPerform ONLY this step. Conclude when complete.",
-		);
-	});
-
-	it("formats status message with intermission info when paused", () => {
-		expect(formatStatus(null)).toBe(
-			"[CURTAIN STATUS] No active script running.",
-		);
-
-		const runningState = {
-			script: "test.md",
-			status: "running" as const,
-			currentStep: 0,
-			totalSteps: 2,
-			steps: [
-				{ index: 0, type: "auto" as const, content: "Step 1" },
-				{ index: 1, type: "auto" as const, content: "Step 2" },
-			],
-		};
-		expect(formatStatus(runningState)).toBe(
-			"[CURTAIN STATUS] Step 1/2 | State: running | Script: test.md",
-		);
-
-		const pausedStateWithInstruction = {
-			script: "test.md",
-			status: "paused" as const,
-			currentStep: 0,
-			totalSteps: 2,
-			steps: [
-				{
-					index: 0,
-					type: "pause" as const,
-					content: "Step 1",
-					instruction: "Check audit logs",
-				},
-				{ index: 1, type: "auto" as const, content: "Step 2" },
-			],
-		};
-		expect(formatStatus(pausedStateWithInstruction)).toBe(
-			"[CURTAIN STATUS] Step 1/2 | State: paused | Script: test.md | Intermission: Check audit logs",
-		);
-
-		const pausedStateWithMultiLineInstruction = {
-			script: "test.md",
-			status: "paused" as const,
-			currentStep: 0,
-			totalSteps: 1,
-			steps: [
-				{
-					index: 0,
-					type: "pause" as const,
-					content: "Step 1",
-					instruction: "Check audit logs\n- Ensure no errors\n- Verify latency",
-				},
-			],
-		};
-		expect(formatStatus(pausedStateWithMultiLineInstruction)).toBe(
-			"[CURTAIN STATUS] Step 1/1 | State: paused | Script: test.md | Intermission: Check audit logs",
 		);
 	});
 });
