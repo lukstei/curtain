@@ -52,69 +52,67 @@ export function handlePre(
 			? info.latestMessage.content
 			: info.prompt;
 
-	if (userInput) {
-		const parsed = parseCommand(userInput);
-		if (parsed.isCurtainCommand) {
-			if (parsed.error) {
+	const parsed = parseCommand(userInput, info.skillInvocationPath);
+	if (parsed.isCurtainCommand) {
+		if (parsed.error) {
+			return {
+				state,
+				response: { injectSteps: [{ ephemeralMessage: parsed.error }] },
+			};
+		}
+
+		if (parsed.command?.name === "next") {
+			if (!state) {
+				return {
+					state: null,
+					response: {
+						injectSteps: [
+							{ ephemeralMessage: "No script is currently loaded." },
+						],
+					},
+				};
+			}
+
+			const res = resumeExecution(state);
+			if (res.action === "error") {
 				return {
 					state,
-					response: { injectSteps: [{ ephemeralMessage: parsed.error }] },
+					response: {
+						injectSteps: [{ ephemeralMessage: res.error }],
+					},
 				};
 			}
 
-			if (parsed.command?.name === "next") {
-				if (!state) {
-					return {
-						state: null,
-						response: {
-							injectSteps: [
-								{ ephemeralMessage: "No script is currently loaded." },
-							],
-						},
-					};
-				}
-
-				const res = resumeExecution(state);
-				if (res.action === "error") {
-					return {
-						state,
-						response: {
-							injectSteps: [{ ephemeralMessage: res.error }],
-						},
-					};
-				}
-
-				if (res.action === "finish") {
-					deleteState(info.conversationId, env);
-					return {
-						state: null,
-						response: {
-							injectSteps: [{ ephemeralMessage: "Execution complete." }],
-						},
-					};
-				}
-
-				saveState(info.conversationId, res.state, env);
-				const msg = formatStepPrompt(res.step, res.state.steps.length);
+			if (res.action === "finish") {
+				deleteState(info.conversationId, env);
 				return {
-					state: res.state,
-					response: { injectSteps: [{ ephemeralMessage: msg }] },
+					state: null,
+					response: {
+						injectSteps: [{ ephemeralMessage: "Execution complete." }],
+					},
 				};
 			}
 
-			if (parsed.command?.name === "run") {
-				const loaded = loadScript(parsed.command.path, [info.workspacePath]);
-				if (!loaded || "error" in loaded) {
-					const err = !loaded
-						? `Script file not found: "${parsed.command.path}"`
-						: loaded.error;
-					return {
-						state,
-						response: { injectSteps: [{ ephemeralMessage: err }] },
-					};
-				}
-				return startScript(loaded.script, info.conversationId, env);
+			saveState(info.conversationId, res.state, env);
+			const msg = formatStepPrompt(res.step, res.state.steps.length);
+			return {
+				state: res.state,
+				response: { injectSteps: [{ ephemeralMessage: msg }] },
+			};
+		}
+
+		if (parsed.command?.name === "run") {
+			const loaded = loadScript(parsed.command.path, [info.workspacePath]);
+			if (!loaded || "error" in loaded) {
+				const err = !loaded
+					? `Script file not found: "${parsed.command.path}"`
+					: loaded.error;
+				return {
+					state,
+					response: { injectSteps: [{ ephemeralMessage: err }] },
+				};
 			}
+			return startScript(loaded.script, info.conversationId, env);
 		}
 	}
 

@@ -10,5 +10,6 @@ Start execution of a multi-act Markdown instruction script.
 ## Usage
 
 ```bash
-/curtain <file.md>
+/curtain <target>
 ```
+

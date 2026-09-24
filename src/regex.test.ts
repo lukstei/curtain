@@ -166,6 +166,57 @@ describe("regex.ts", () => {
 			`);
 		});
 
+		it("matches skill links with optional trailing arguments", () => {
+			const inputs = [
+				"[$curtain](skills/curtain/SKILL.md) curtain-test",
+				"[$curtain] curtain-test",
+				"[$curtain:start] curtain-test",
+				"[$next](skills/next/SKILL.md)",
+				"[$next]",
+			];
+
+			expect(
+				inputs.map((input) => {
+					const match = input.match(SKILL_LINK_WITH_OPTIONAL_PATH_REGEX);
+					return match
+						? {
+								name: match[1],
+								path: match[2] ?? null,
+								rest: match[3] ?? null,
+							}
+						: null;
+				}),
+			).toMatchInlineSnapshot(`
+				[
+				  {
+				    "name": "curtain",
+				    "path": "skills/curtain/SKILL.md",
+				    "rest": "curtain-test",
+				  },
+				  {
+				    "name": "curtain",
+				    "path": null,
+				    "rest": "curtain-test",
+				  },
+				  {
+				    "name": "curtain:start",
+				    "path": null,
+				    "rest": "curtain-test",
+				  },
+				  {
+				    "name": "next",
+				    "path": "skills/next/SKILL.md",
+				    "rest": null,
+				  },
+				  {
+				    "name": "next",
+				    "path": null,
+				    "rest": null,
+				  },
+				]
+			`);
+		});
+
 		it("captures skill link and path within text", () => {
 			const text =
 				"Please review [$curtain](plugins/curtain/skills/curtain/SKILL.md) before starting.";

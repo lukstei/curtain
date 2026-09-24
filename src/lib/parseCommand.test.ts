@@ -77,4 +77,65 @@ describe("parseCommand.ts", () => {
 			isCurtainCommand: false,
 		});
 	});
+
+	it("parses skill link commands (Codex syntax)", () => {
+		expect(parseCommand("[$next](skills/next/SKILL.md)")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "next" },
+		});
+		expect(parseCommand("[next](/path/to/SKILL.md)")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "next" },
+		});
+		expect(parseCommand("[$next]")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "next" },
+		});
+		expect(parseCommand("[next]")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "next" },
+		});
+		expect(parseCommand("[$curtain:next]")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "next" },
+		});
+		expect(
+			parseCommand("[$curtain](skills/curtain/SKILL.md) curtain-test"),
+		).toEqual({
+			isCurtainCommand: true,
+			command: { name: "run", path: "curtain-test" },
+		});
+		expect(parseCommand("[$curtain] curtain-test")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "run", path: "curtain-test" },
+		});
+		expect(parseCommand("[$curtain:start] curtain-test")).toEqual({
+			isCurtainCommand: true,
+			command: { name: "run", path: "curtain-test" },
+		});
+		expect(parseCommand("[$curtain]")).toEqual({
+			isCurtainCommand: true,
+			error: "Missing required script path argument.",
+		});
+		expect(
+			parseCommand("[$curtain-test](skills/curtain-test/SKILL.md)"),
+		).toEqual({
+			isCurtainCommand: false,
+		});
+	});
+
+	it("resolves command from skillInvocationPath fallback", () => {
+		expect(
+			parseCommand(undefined, "/plugins/curtain/skills/next/SKILL.md"),
+		).toEqual({
+			isCurtainCommand: true,
+			command: { name: "next" },
+		});
+		expect(
+			parseCommand("curtain-test", "/plugins/curtain/skills/curtain/SKILL.md"),
+		).toEqual({
+			isCurtainCommand: true,
+			command: { name: "run", path: "curtain-test" },
+		});
+	});
 });

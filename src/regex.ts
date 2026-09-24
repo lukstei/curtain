@@ -21,9 +21,9 @@ export const BLOCKQUOTE_PREFIX_REGEX = /^[ ]{0,3}>[ \t]?/;
 // Skill Invocation & Mention Matching
 // -----------------------------------------------------------------------------
 
-/** Matches a Markdown skill link with optional path (e.g. `[$skill](path)` or `[$skill]`). */
+/** Matches a Markdown skill link with optional path and optional trailing arguments. */
 export const SKILL_LINK_WITH_OPTIONAL_PATH_REGEX =
-	/^\[\$?([a-zA-Z0-9_.:-]+)\](?:\(([^)]+)\))?$/;
+	/^\[\$?([a-zA-Z0-9_.:-]+)\](?:\(([^)]+)\))?(?:\s+([\s\S]*))?$/;
 
 /** Extracts skill name and target file path from an embedded Markdown link mention. */
 export const SKILL_LINK_PATH_CAPTURE_REGEX =

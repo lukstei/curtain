@@ -55,6 +55,74 @@ describe("handlers/pre.ts", () => {
 		`);
 	});
 
+	it("resumes execution when user invokes /next via skill link in Codex", () => {
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-c1-codex",
+			workspacePath: "/test",
+			prompt: "[$next](/path/to/skills/next/SKILL.md) \n",
+			skillInvocationPath: "/path/to/skills/next/SKILL.md",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "[$next](/path/to/skills/next/SKILL.md) \n",
+			},
+		};
+
+		const { state, response } = handlePre(info, sampleState, env);
+		expect(state?.status).toBe("running");
+		expect(state?.currentStep).toBe(1);
+		expect(response).toMatchInlineSnapshot(`
+			{
+			  "injectSteps": [
+			    {
+			      "ephemeralMessage": "[STEP 2 OF 2]
+
+			Step 2 content
+
+			Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+			    },
+			  ],
+			}
+		`);
+	});
+
+	it("resumes execution when user sends [$next] without path", () => {
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-c1-bare-link",
+			workspacePath: "/test",
+			prompt: "[$next]",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "[$next]",
+			},
+		};
+
+		const { state } = handlePre(info, sampleState, env);
+		expect(state?.status).toBe("running");
+		expect(state?.currentStep).toBe(1);
+	});
+
+	it("remains paused when user enters plain next without slash or brackets", () => {
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-c1-plain-next",
+			workspacePath: "/test",
+			prompt: "next",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "next",
+			},
+		};
+
+		const { state, response } = handlePre(info, sampleState, env);
+		expect(state?.status).toBe("paused");
+		expect(state?.currentStep).toBe(0);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+			"Execution is PAUSED at an intermission",
+		);
+	});
+
 	it("completes execution when user sends /next on final step intermission", () => {
 		const singleStepPausedState: RunnerState = {
 			script: "sample.md",
