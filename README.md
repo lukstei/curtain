@@ -52,8 +52,7 @@ Or inside an active session:
 
 ```bash
 codex plugin marketplace add lukstei/curtain
-codex plugin install curtain
-codex plugin trust curtain
+codex plugin add curtain@curtain
 ```
 
 </details>

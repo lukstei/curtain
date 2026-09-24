@@ -1,0 +1,87 @@
+[
+	{
+		"stepIndex": 0,
+		"hook": "pre",
+		"injectSteps": [
+			{
+				"ephemeralMessage": "[STEP 1 OF 3]\n\n---\nname: curtain-test\ndescription: Follow instructions\n---\n\nThis is a test skill to see if the the plugin works, follow instructions exactly.\n\nSay \"Step 1\"\n\nPerform ONLY this step. Conclude when complete. When concluding your turn, inform the user that only /next will proceed."
+			}
+		],
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"status": "running",
+			"currentStep": 0,
+			"totalSteps": 3
+		}
+	},
+	{
+		"stepIndex": 2,
+		"hook": "stop",
+		"decision": "allow",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"status": "paused",
+			"currentStep": 0,
+			"totalSteps": 3
+		}
+	},
+	{
+		"stepIndex": 3,
+		"hook": "pre",
+		"injectSteps": [
+			{
+				"ephemeralMessage": "[INTERMISSION REVIEW]\nConclude your turn when complete. The curtain remains paused until the user enters /next. Inform the user that only /next will proceed."
+			}
+		],
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"status": "paused",
+			"currentStep": 0,
+			"totalSteps": 3
+		}
+	},
+	{
+		"stepIndex": 5,
+		"hook": "stop",
+		"decision": "allow",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"status": "paused",
+			"currentStep": 0,
+			"totalSteps": 3
+		}
+	},
+	{
+		"stepIndex": 6,
+		"hook": "pre",
+		"injectSteps": [
+			{
+				"ephemeralMessage": "[STEP 2 OF 3]\n\nSay \"Step 2\"\n\nPerform ONLY this step. Conclude when complete."
+			}
+		],
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"status": "running",
+			"currentStep": 1,
+			"totalSteps": 3
+		}
+	},
+	{
+		"stepIndex": 8,
+		"hook": "stop",
+		"decision": "continue",
+		"reason": "[STEP 3 OF 3]\n\nSay \"Step 3\"\n\nPerform ONLY this step. Conclude when complete.",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/SKILL.md",
+			"status": "running",
+			"currentStep": 2,
+			"totalSteps": 3
+		}
+	},
+	{
+		"stepIndex": 10,
+		"hook": "stop",
+		"decision": "allow",
+		"state": null
+	}
+]
