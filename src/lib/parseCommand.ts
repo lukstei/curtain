@@ -1,3 +1,12 @@
+import {
+	CURTAIN_COMMAND_PREFIX_REGEX,
+	FILE_AT_REGEX,
+	FILE_BRACKET_REGEX,
+	FILE_QUOTE_REGEX,
+	NEXT_COMMAND_REGEX,
+	WHITESPACE_SPLIT_REGEX,
+} from "../regex.ts";
+
 export type CurtainCommand =
 	| { name: "next" }
 	| { name: "drop" }
@@ -15,30 +24,28 @@ function parseFilePath(raw: string): string | null {
 	const trimmed = raw.trim();
 	if (!trimmed) return null;
 
-	const bracketMatch = trimmed.match(/^@\[([^\]]+)\]/);
+	const bracketMatch = trimmed.match(FILE_BRACKET_REGEX);
 	if (bracketMatch) return bracketMatch[1].trim();
 
-	const quoteMatch = trimmed.match(/^["']([^"']+)["']/);
+	const quoteMatch = trimmed.match(FILE_QUOTE_REGEX);
 	if (quoteMatch) return quoteMatch[1].trim();
 
-	const atMatch = trimmed.match(/^@(\S+)/);
+	const atMatch = trimmed.match(FILE_AT_REGEX);
 	if (atMatch) return atMatch[1].trim();
 
-	return trimmed.split(/\s+/)[0];
+	return trimmed.split(WHITESPACE_SPLIT_REGEX)[0];
 }
 
 export function parseCommand(input?: string): ParseResult {
 	if (!input) return { isCurtainCommand: false };
 	const trimmed = input.trim();
 
-	if (/^[/$]next$/i.test(trimmed)) {
+	if (NEXT_COMMAND_REGEX.test(trimmed)) {
 		return { isCurtainCommand: true, command: { name: "next" } };
 	}
 
 	// Match /curtain or $curtain followed by delimiters or end
-	const match = trimmed.match(
-		/^(?:\/curtain|\$curtain(?::curtain)?)(?:([:\s-]+)(.*)|$)/i,
-	);
+	const match = trimmed.match(CURTAIN_COMMAND_PREFIX_REGEX);
 	if (!match) {
 		return { isCurtainCommand: false };
 	}
@@ -60,7 +67,7 @@ export function parseCommand(input?: string): ParseResult {
 		return { isCurtainCommand: true, command: { name: "status" } };
 	}
 
-	const tokens = rest.split(/\s+/);
+	const tokens = rest.split(WHITESPACE_SPLIT_REGEX);
 	const sub = tokens[0].toLowerCase();
 
 	if (sub === "status") {

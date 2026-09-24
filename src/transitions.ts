@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import type { Script, Step } from "./parser.ts";
+import { LINE_SPLIT_REGEX } from "./regex.ts";
 import type { RunnerState } from "./state.ts";
 
 export type AdvanceResult =
@@ -116,7 +117,7 @@ export function formatStatus(state: RunnerState | null): string {
 
 	const currentStep = state.steps[state.currentStep];
 	const firstLineInstruction = currentStep?.instruction
-		?.split(/\r?\n/)[0]
+		?.split(LINE_SPLIT_REGEX)[0]
 		?.trim();
 	const intermissionPart =
 		state.status === "paused" && firstLineInstruction

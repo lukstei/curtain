@@ -1,3 +1,4 @@
+import { resolveToolReadPath } from "../harnesses/common.ts";
 import type { HarnessType } from "../harnesses/types.ts";
 import { getHelpText, parseCommand } from "../lib/parseCommand.ts";
 import {
@@ -5,6 +6,11 @@ import {
 	resolveSkillPath,
 } from "../lib/resolveSkill.ts";
 import type { Script } from "../parser.ts";
+import {
+	ANGLE_BRACKET_ENCLOSURE_REGEX,
+	BARE_SKILL_COMMAND_REGEX,
+	SKILL_LINK_WITH_OPTIONAL_PATH_REGEX,
+} from "../regex.ts";
 import { loadScript } from "../resolver.ts";
 import { deleteState, type RunnerState, saveState } from "../state.ts";
 import {
@@ -141,16 +147,25 @@ export function handlePre(
 	if (!state) {
 		let targetSkillPath: string | null = info.skillInvocationPath ?? null;
 		if (!targetSkillPath && userInput) {
-			const skillMatch = userInput.trim().match(/^[/$]([a-zA-Z0-9_.:-]+)$/);
-			if (skillMatch) {
-				const commandName = skillMatch[1];
-				const harness = info.harness as HarnessType | undefined;
-				targetSkillPath = resolveSkillPath(
-					commandName,
-					harness,
-					info.workspacePath,
-					env,
-				);
+			const trimmed = userInput.trim();
+			const linkMatch = trimmed.match(SKILL_LINK_WITH_OPTIONAL_PATH_REGEX);
+			if (linkMatch?.[2]) {
+				const raw = linkMatch[2]
+					.replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "")
+					.trim();
+				targetSkillPath = resolveToolReadPath(raw, info.workspacePath);
+			} else {
+				const bareCommand = trimmed.match(BARE_SKILL_COMMAND_REGEX);
+				const skillName = linkMatch?.[1] ?? bareCommand?.[1];
+				if (skillName) {
+					const harness = info.harness as HarnessType | undefined;
+					targetSkillPath = resolveSkillPath(
+						skillName,
+						harness,
+						info.workspacePath,
+						env,
+					);
+				}
 			}
 		}
 		if (targetSkillPath && hasCurtainAnnotations(targetSkillPath)) {

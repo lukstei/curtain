@@ -2,6 +2,11 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { getLatestMessage } from "../lib/getLatestMessage.ts";
+import {
+	AGY_SKILL_PATH_REGEX,
+	TERMINATION_CANCEL_REGEX,
+	USER_REQUEST_TAG_REGEX,
+} from "../regex.ts";
 import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,
@@ -12,16 +17,12 @@ import {
 import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
 
 export function stripUserRequest(text: string): string {
-	const userRequestMatch = text.match(
-		/<USER_REQUEST>([\s\S]*?)<\/USER_REQUEST>/i,
-	);
+	const userRequestMatch = text.match(USER_REQUEST_TAG_REGEX);
 	return userRequestMatch ? userRequestMatch[1].trim() : text;
 }
 
 export function extractSkillPath(text: string): string | undefined {
-	const skillMatch = text.match(
-		/<SKILL>[\s\S]*?The path to the skill file is:\s*([^<]+?)<\/SKILL>/i,
-	);
+	const skillMatch = text.match(AGY_SKILL_PATH_REGEX);
 	return skillMatch ? skillMatch[1].trim() : undefined;
 }
 
@@ -111,7 +112,7 @@ export const agyHarness: HarnessAdapter = {
 				: undefined;
 
 		const isInterrupted = Boolean(
-			terminationReason && /cancel|abort|interrupt/i.test(terminationReason),
+			terminationReason && TERMINATION_CANCEL_REGEX.test(terminationReason),
 		);
 		const stopHookActive = Boolean(
 			typeof payload.executionNum === "number" && payload.executionNum > 1,

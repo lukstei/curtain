@@ -1,3 +1,4 @@
+import { TERMINATION_CANCEL_REGEX } from "../regex.ts";
 import { deleteState, type RunnerState, saveState } from "../state.ts";
 import { advanceExecution, formatStepPrompt } from "../transitions.ts";
 import type { HookInfo } from "../types.ts";
@@ -18,7 +19,7 @@ export function handleStop(
 
 	if (
 		info.terminationReason &&
-		/cancel|abort|interrupt/i.test(info.terminationReason)
+		TERMINATION_CANCEL_REGEX.test(info.terminationReason)
 	) {
 		return { state, response: { decision: "allow" } };
 	}

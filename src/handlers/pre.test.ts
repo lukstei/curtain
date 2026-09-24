@@ -421,4 +421,78 @@ describe("handlers/pre.ts", () => {
 		expect(state).toBeNull();
 		expect(response).toEqual({});
 	});
+
+	it("starts execution when user invokes skill via Markdown link with explicit path", () => {
+		const skillDir = path.join(tmpDir, ".agents/skills/curtain-test");
+		fs.mkdirSync(skillDir, { recursive: true });
+		const skillFile = path.join(skillDir, "SKILL.md");
+		fs.writeFileSync(
+			skillFile,
+			[
+				"---",
+				"name: curtain-test",
+				"description: Follow instructions",
+				"---",
+				'Say "Step 1"',
+				"> [!INTERMISSION]",
+				'Say "Step 2"',
+			].join("\n"),
+		);
+
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-md-link-path",
+			workspacePath: tmpDir,
+			harness: "codex",
+			prompt: `[$curtain-test](${skillFile}) \n`,
+			latestMessage: {
+				type: "USER_INPUT",
+				content: `[$curtain-test](${skillFile}) \n`,
+			},
+		};
+
+		const { state, response } = handlePre(info, null, env);
+		expect(state?.status).toBe("running");
+		expect(state?.script).toBe(skillFile);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+			'Say "Step 1"',
+		);
+	});
+
+	it("starts execution when user invokes skill via Markdown link without path", () => {
+		const skillDir = path.join(tmpDir, ".agents/skills/link-skill");
+		fs.mkdirSync(skillDir, { recursive: true });
+		const skillFile = path.join(skillDir, "SKILL.md");
+		fs.writeFileSync(
+			skillFile,
+			[
+				"---",
+				"name: link-skill",
+				"description: Skill invoked by link name",
+				"---",
+				'Say "Act 1"',
+				"> [!INTERMISSION]",
+				'Say "Act 2"',
+			].join("\n"),
+		);
+
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-md-link-name",
+			workspacePath: tmpDir,
+			harness: "codex",
+			prompt: "[$link-skill]",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "[$link-skill]",
+			},
+		};
+
+		const { state, response } = handlePre(info, null, env);
+		expect(state?.status).toBe("running");
+		expect(state?.script).toBe(skillFile);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+			'Say "Act 1"',
+		);
+	});
 });

@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import type { MarkdownNode } from "./lib/markdown/ast.ts";
 import { parse } from "./lib/markdown/parsing.ts";
+import {
+	BLOCKQUOTE_PREFIX_REGEX,
+	CALLOUT_LINE_REGEX,
+	LINE_SPLIT_REGEX,
+} from "./regex.ts";
 
 export interface Step {
 	index: number;
@@ -14,8 +19,6 @@ export interface Script {
 	steps: Step[];
 }
 
-const CALLOUT_REGEX = /^[ \t]*\[!(CURTAIN|INTERMISSION)\][ \t]*(.*)$/i;
-
 function getDelimiterInfo(
 	node: MarkdownNode,
 ): { type: "auto" | "pause"; instruction?: string } | null {
@@ -24,9 +27,9 @@ function getDelimiterInfo(
 	}
 
 	const rawLines = node.source
-		.split(/\r?\n/)
-		.map((line) => line.replace(/^[ ]{0,3}>[ \t]?/, ""));
-	const match = CALLOUT_REGEX.exec(rawLines[0]);
+		.split(LINE_SPLIT_REGEX)
+		.map((line) => line.replace(BLOCKQUOTE_PREFIX_REGEX, ""));
+	const match = CALLOUT_LINE_REGEX.exec(rawLines[0]);
 	if (!match) {
 		return null;
 	}

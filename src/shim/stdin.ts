@@ -1,5 +1,7 @@
+import { UTF8_BOM_REGEX } from "../regex.ts";
+
 export function stripBom(text: string): string {
-	return text.replace(/^\uFEFF/, "");
+	return text.replace(UTF8_BOM_REGEX, "");
 }
 
 export function parseJsonSafe(raw: string): Record<string, unknown> {

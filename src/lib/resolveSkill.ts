@@ -2,8 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { getHarness, HARNESSES } from "../harnesses/index.ts";
 import type { HarnessType } from "../harnesses/types.ts";
-
-const CALLOUT_REGEX = /(?:^|\s)>\s*\[!(CURTAIN|INTERMISSION)\]/im;
+import { CALLOUT_ANNOTATION_REGEX } from "../regex.ts";
 
 /**
  * Checks whether a markdown file contains at least one Curtain delimiter annotation.
@@ -11,7 +10,7 @@ const CALLOUT_REGEX = /(?:^|\s)>\s*\[!(CURTAIN|INTERMISSION)\]/im;
 export function hasCurtainAnnotations(filePath: string): boolean {
 	try {
 		const content = fs.readFileSync(filePath, "utf-8");
-		return CALLOUT_REGEX.test(content);
+		return CALLOUT_ANNOTATION_REGEX.test(content);
 	} catch {
 		return false;
 	}

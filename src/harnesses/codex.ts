@@ -1,6 +1,11 @@
 // see reference docs: docs/harnesses/codex.md
 import * as os from "node:os";
 import * as path from "node:path";
+import {
+	ANGLE_BRACKET_ENCLOSURE_REGEX,
+	SKILL_LINK_PATH_CAPTURE_REGEX,
+	XML_SKILL_PATH_REGEX,
+} from "../regex.ts";
 import type { HookResponse, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,
@@ -10,6 +15,23 @@ import {
 	resolveToolReadPath,
 } from "./common.ts";
 import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
+
+export function extractCodexSkillPath(
+	text: string,
+	workspacePath: string,
+): string | undefined {
+	const linkMatch = text.match(SKILL_LINK_PATH_CAPTURE_REGEX);
+	if (linkMatch?.[2]) {
+		const raw = linkMatch[2].replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "").trim();
+		return resolveToolReadPath(raw, workspacePath) ?? undefined;
+	}
+	const xmlMatch = text.match(XML_SKILL_PATH_REGEX);
+	if (xmlMatch?.[1]) {
+		const raw = xmlMatch[1].replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "").trim();
+		return resolveToolReadPath(raw, workspacePath) ?? undefined;
+	}
+	return undefined;
+}
 
 export const codexHarness: HarnessAdapter = {
 	id: "codex",
@@ -62,6 +84,9 @@ export const codexHarness: HarnessAdapter = {
 			prompt,
 			rawPayload: payload,
 		});
+		const skillInvocationPath = prompt
+			? extractCodexSkillPath(prompt, workspacePath)
+			: undefined;
 
 		return createNormalizedEvent({
 			harness: "codex",
@@ -74,6 +99,7 @@ export const codexHarness: HarnessAdapter = {
 			readTargetFilePath,
 			latestMessage,
 			prompt,
+			skillInvocationPath,
 		});
 	},
 
@@ -84,12 +110,19 @@ export const codexHarness: HarnessAdapter = {
 		const isReadTool =
 			toolCall.name === "read_file" ||
 			toolCall.name === "view_file" ||
-			toolCall.name === "mcp__filesystem__read_file";
+			toolCall.name === "Read" ||
+			toolCall.name === "View" ||
+			toolCall.name === "mcp__filesystem__read_file" ||
+			toolCall.name.endsWith("__read_file") ||
+			toolCall.name.endsWith("__view_file");
 		if (!isReadTool) {
 			return null;
 		}
 		return resolveToolReadPath(
-			toolCall.args.path ?? toolCall.args.file_path,
+			toolCall.args.path ??
+				toolCall.args.file_path ??
+				toolCall.args.filePath ??
+				toolCall.args.AbsolutePath,
 			workspacePath,
 		);
 	},

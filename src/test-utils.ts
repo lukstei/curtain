@@ -1,10 +1,11 @@
 import * as path from "node:path";
+import { TRAILING_SLASHES_REGEX } from "./regex.ts";
 
 const defaultRepoRoot = path.resolve(import.meta.dirname, "..");
 
 export function stripAbsolutePath<T>(input: T, root?: string): T {
 	const resolvedRoot = typeof root === "string" ? root : defaultRepoRoot;
-	const cleanRoot = resolvedRoot.replace(/[/\\]+$/, "");
+	const cleanRoot = resolvedRoot.replace(TRAILING_SLASHES_REGEX, "");
 	const slashPrefix = `${cleanRoot.replaceAll("\\", "/")}/`;
 	const backslashPrefix = `${cleanRoot.replaceAll("/", "\\")}\\`;
 
