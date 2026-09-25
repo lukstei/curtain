@@ -42,6 +42,6 @@ describe("handlers index dispatch", () => {
 			workspacePath: "/test",
 		} as unknown as HookInfo;
 
-		expect(() => handle(info, null)).toThrow("Unknown hook type: unknown");
+		expect(() => handle(info, null)).toThrow("Never assertion failed");
 	});
 });
