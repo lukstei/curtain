@@ -10,6 +10,7 @@ export interface RunnerState {
 	status: "running" | "paused";
 	currentStep: number;
 	steps: Step[];
+	skillName?: string;
 }
 
 export function getStorageBaseDir(

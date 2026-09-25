@@ -39,4 +39,21 @@ describe("state.ts", () => {
 		deleteState(sessionId, env);
 		expect(loadState(sessionId, env)).toBeNull();
 	});
+
+	it("saves and loads runner state with optional skillName", () => {
+		const sessionId = "test-session-skill";
+		const sampleState: RunnerState = {
+			script: "playbook.md",
+			status: "running",
+			currentStep: 0,
+			steps: [{ index: 0, type: "auto", content: "Step 1" }],
+			skillName: "curtain-skill",
+		};
+
+		saveState(sessionId, sampleState, env);
+		const loaded = loadState(sessionId, env);
+		expect(loaded).toEqual(sampleState);
+
+		deleteState(sessionId, env);
+	});
 });

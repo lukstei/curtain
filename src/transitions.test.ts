@@ -51,6 +51,37 @@ describe("transitions.ts", () => {
 		`);
 	});
 
+	it("starts execution with optional skillName", () => {
+		const state = startExecution(sampleScript, "my-skill");
+		expect(state).toMatchInlineSnapshot(`
+			{
+			  "currentStep": 0,
+			  "script": "sample.md",
+			  "skillName": "my-skill",
+			  "status": "running",
+			  "steps": [
+			    {
+			      "content": "# Script Title
+
+			Step 1: Scaffolding",
+			      "index": 0,
+			      "type": "pause",
+			    },
+			    {
+			      "content": "Step 2: Verification",
+			      "index": 1,
+			      "type": "auto",
+			    },
+			    {
+			      "content": "Step 3: Cleanup",
+			      "index": 2,
+			      "type": "auto",
+			    },
+			  ],
+			}
+		`);
+	});
+
 	it("pauses execution when current step type is pause", () => {
 		const state = startExecution(sampleScript);
 		const result = advanceExecution(state);

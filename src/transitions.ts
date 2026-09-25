@@ -15,7 +15,10 @@ export type ResumeResult =
 /**
  * Initializes and starts execution of a script at step 0.
  */
-export function startExecution(script: Script): RunnerState {
+export function startExecution(
+	script: Script,
+	skillName?: string,
+): RunnerState {
 	assert(script.steps.length > 0, "Cannot start script with no steps");
 
 	return {
@@ -23,6 +26,7 @@ export function startExecution(script: Script): RunnerState {
 		status: "running",
 		currentStep: 0,
 		steps: script.steps,
+		...(skillName !== undefined ? { skillName } : {}),
 	};
 }
 
