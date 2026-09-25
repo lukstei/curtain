@@ -36,8 +36,19 @@ export type HookInfo = BaseHookInfo &
 		  }
 	);
 
-export interface HookResponse {
-	decision?: "allow" | "continue" | "block" | "deny";
-	reason?: string;
-	injectSteps?: Array<{ ephemeralMessage?: string }>;
-}
+export type PreHookResponse =
+	| { action: "inject"; message: string }
+	| { action: "pass" };
+
+export type StopHookResponse =
+	| { action: "allow" }
+	| { action: "continue"; reason: string };
+
+export type ToolHookResponse =
+	| { action: "allow" }
+	| { action: "deny"; reason: string };
+
+export type HookResponse =
+	| PreHookResponse
+	| StopHookResponse
+	| ToolHookResponse;

@@ -17,7 +17,7 @@ describe("handlers/stop.ts", () => {
 		};
 		const { state, response } = handleStop(info, null, env);
 		expect(state).toBeNull();
-		expect(response).toEqual({ decision: "allow" });
+		expect(response).toEqual({ action: "allow" });
 	});
 
 	it("allows stop when status is paused", () => {
@@ -37,7 +37,7 @@ describe("handlers/stop.ts", () => {
 		};
 		const { state, response } = handleStop(info, pausedState, env);
 		expect(state?.status).toBe("paused");
-		expect(response).toEqual({ decision: "allow" });
+		expect(response).toEqual({ action: "allow" });
 	});
 
 	it("transitions to paused and allows stop when current step type is pause", () => {
@@ -57,7 +57,7 @@ describe("handlers/stop.ts", () => {
 		};
 		const { state, response } = handleStop(info, runningState, env);
 		expect(state?.status).toBe("paused");
-		expect(response).toEqual({ decision: "allow" });
+		expect(response).toEqual({ action: "allow" });
 	});
 
 	it("auto-advances and blocks stop when current step type is auto", () => {
@@ -80,7 +80,7 @@ describe("handlers/stop.ts", () => {
 		expect(state?.currentStep).toBe(1);
 		expect(response).toMatchInlineSnapshot(`
 			{
-			  "decision": "continue",
+			  "action": "continue",
 			  "reason": "[STEP 2 OF 2]
 
 			Step 2 instruction
@@ -107,6 +107,6 @@ describe("handlers/stop.ts", () => {
 		};
 		const { state, response } = handleStop(info, runningState, env);
 		expect(state).toBeNull();
-		expect(response).toEqual({ decision: "allow" });
+		expect(response).toEqual({ action: "allow" });
 	});
 });

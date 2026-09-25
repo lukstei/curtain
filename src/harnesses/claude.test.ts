@@ -164,7 +164,7 @@ describe("claudeHarness", () => {
 		it("formats Stop continue decision as block", () => {
 			const event = createMockEvent({ type: "stop", isStop: true });
 			const egress = claudeHarness.formatEgress(event, {
-				decision: "continue",
+				action: "continue",
 				reason: "Execute step 2",
 			});
 			expect(egress.exitCode).toBe(0);
@@ -178,7 +178,7 @@ describe("claudeHarness", () => {
 
 		it("formats Stop allow decision as empty JSON", () => {
 			const event = createMockEvent({ type: "stop", isStop: true });
-			const egress = claudeHarness.formatEgress(event, { decision: "allow" });
+			const egress = claudeHarness.formatEgress(event, { action: "allow" });
 			expect(egress.exitCode).toBe(0);
 			expect(egress.stdout).toBe("{}");
 		});
@@ -186,7 +186,8 @@ describe("claudeHarness", () => {
 		it("formats UserPromptSubmit injection with hookSpecificOutput", () => {
 			const event = createMockEvent({ type: "pre" });
 			const egress = claudeHarness.formatEgress(event, {
-				injectSteps: [{ ephemeralMessage: "Instruction for step 1" }],
+				action: "inject",
+				message: "Instruction for step 1",
 			});
 			expect(egress.exitCode).toBe(0);
 			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
@@ -202,7 +203,7 @@ describe("claudeHarness", () => {
 		it("formats PreToolUse deny as exitCode 2 with stderr", () => {
 			const event = createMockEvent({ type: "tool" });
 			const egress = claudeHarness.formatEgress(event, {
-				decision: "deny",
+				action: "deny",
 				reason: "Blocked by Curtain",
 			});
 			expect(egress.exitCode).toBe(2);
@@ -211,7 +212,7 @@ describe("claudeHarness", () => {
 
 		it("formats PreToolUse allow as exitCode 0 with empty stdout", () => {
 			const event = createMockEvent({ type: "tool" });
-			const egress = claudeHarness.formatEgress(event, { decision: "allow" });
+			const egress = claudeHarness.formatEgress(event, { action: "allow" });
 			expect(egress.exitCode).toBe(0);
 			expect(egress.stdout).toBe("{}");
 		});

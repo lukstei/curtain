@@ -107,7 +107,7 @@ export const claudeHarness: HarnessAdapter = {
 
 	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput {
 		if (event.type === "stop") {
-			if (response.decision === "continue" && response.reason) {
+			if (response.action === "continue") {
 				return {
 					exitCode: 0,
 					stdout: JSON.stringify({
@@ -120,36 +120,35 @@ export const claudeHarness: HarnessAdapter = {
 		}
 
 		if (event.type === "tool") {
-			if (response.decision === "deny") {
+			if (response.action === "deny") {
 				return {
 					exitCode: 2,
-					stderr: response.reason ?? "Blocked by Curtain",
+					stderr: response.reason,
 				};
 			}
 			return { exitCode: 0, stdout: "{}" };
 		}
 
 		if (event.type === "pre") {
-			const text = response.injectSteps?.[0]?.ephemeralMessage || "";
-			if (!text) {
-				return { exitCode: 0, stdout: "{}" };
+			if (response.action === "inject") {
+				const hookEventName =
+					typeof event.rawPayload.hook_event_name === "string"
+						? event.rawPayload.hook_event_name
+						: "UserPromptSubmit";
+				return {
+					exitCode: 0,
+					stdout: JSON.stringify({
+						hookSpecificOutput: {
+							hookEventName,
+							additionalContext: response.message,
+						},
+					}),
+				};
 			}
-			const hookEventName =
-				typeof event.rawPayload.hook_event_name === "string"
-					? event.rawPayload.hook_event_name
-					: "UserPromptSubmit";
-			return {
-				exitCode: 0,
-				stdout: JSON.stringify({
-					hookSpecificOutput: {
-						hookEventName,
-						additionalContext: text,
-					},
-				}),
-			};
+			return { exitCode: 0, stdout: "{}" };
 		}
 
-		return { exitCode: 0, stdout: JSON.stringify(response) };
+		return { exitCode: 0, stdout: "{}" };
 	},
 
 	resolveConversationId(env: NodeJS.ProcessEnv): string | null {

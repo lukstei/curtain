@@ -11,7 +11,7 @@ describe("handlers index dispatch", () => {
 			prompt: "",
 		};
 		const res = handle(info, null);
-		expect(res).toEqual({ state: null, response: {} });
+		expect(res).toEqual({ state: null, response: { action: "pass" } });
 	});
 
 	it("dispatches stop hooks to handleStop", () => {
@@ -21,7 +21,7 @@ describe("handlers index dispatch", () => {
 			workspacePath: "/test",
 		};
 		const res = handle(info, null);
-		expect(res).toEqual({ state: null, response: { decision: "allow" } });
+		expect(res).toEqual({ state: null, response: { action: "allow" } });
 	});
 
 	it("dispatches tool hooks to handlePreTool", () => {
@@ -32,7 +32,7 @@ describe("handlers index dispatch", () => {
 			toolCall: { name: "view_file", args: { AbsolutePath: "/test/file.md" } },
 		};
 		const res = handle(info, null);
-		expect(res).toEqual({ state: null, response: { decision: "allow" } });
+		expect(res).toEqual({ state: null, response: { action: "allow" } });
 	});
 
 	it("throws on unknown hook type", () => {

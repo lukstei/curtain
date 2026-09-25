@@ -38,15 +38,12 @@ describe("handlers/pre.ts", () => {
 		expect(state?.currentStep).toBe(1);
 		expect(response).toMatchInlineSnapshot(`
 			{
-			  "injectSteps": [
-			    {
-			      "ephemeralMessage": "[STEP 2 OF 2]
+			  "action": "inject",
+			  "message": "[STEP 2 OF 2]
 
 			Step 2 content
 
 			Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
-			    },
-			  ],
 			}
 		`);
 	});
@@ -65,15 +62,12 @@ describe("handlers/pre.ts", () => {
 		expect(state?.currentStep).toBe(1);
 		expect(response).toMatchInlineSnapshot(`
 			{
-			  "injectSteps": [
-			    {
-			      "ephemeralMessage": "[STEP 2 OF 2]
+			  "action": "inject",
+			  "message": "[STEP 2 OF 2]
 
 			Step 2 content
 
 			Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
-			    },
-			  ],
 			}
 		`);
 	});
@@ -102,7 +96,7 @@ describe("handlers/pre.ts", () => {
 		const { state, response } = handlePre(info, sampleState, env);
 		expect(state?.status).toBe("paused");
 		expect(state?.currentStep).toBe(0);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+		expect(response.action === "inject" && response.message).toContain(
 			"Execution is PAUSED at an intermission",
 		);
 	});
@@ -132,11 +126,8 @@ describe("handlers/pre.ts", () => {
 		expect(state).toBeNull();
 		expect(response).toMatchInlineSnapshot(`
 			{
-			  "injectSteps": [
-			    {
-			      "ephemeralMessage": "Execution complete.",
-			    },
-			  ],
+			  "action": "inject",
+			  "message": "Execution complete.",
 			}
 		`);
 	});
@@ -153,9 +144,8 @@ describe("handlers/pre.ts", () => {
 		expect(state).toEqual(sampleState);
 		expect(response).toMatchInlineSnapshot(`
 			{
-			  "injectSteps": [
-			    {
-			      "ephemeralMessage": "[INTERMISSION REVIEW]
+			  "action": "inject",
+			  "message": "[INTERMISSION REVIEW]
 
 			Check table schema
 
@@ -168,8 +158,6 @@ describe("handlers/pre.ts", () => {
 			- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.
 
 			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step.",
-			    },
-			  ],
 			}
 		`);
 	});
@@ -193,9 +181,8 @@ describe("handlers/pre.ts", () => {
 		expect(state).toEqual(stateWithoutInstruction);
 		expect(response).toMatchInlineSnapshot(`
 			{
-			  "injectSteps": [
-			    {
-			      "ephemeralMessage": "[INTERMISSION REVIEW]
+			  "action": "inject",
+			  "message": "[INTERMISSION REVIEW]
 
 			Execution is PAUSED at an intermission for human review.
 
@@ -206,8 +193,6 @@ describe("handlers/pre.ts", () => {
 			- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.
 
 			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step.",
-			    },
-			  ],
 			}
 		`);
 	});
@@ -230,7 +215,7 @@ describe("handlers/pre.ts", () => {
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(0);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+		expect(response.action === "inject" && response.message).toContain(
 			"[STEP 1 OF 2]",
 		);
 	});
@@ -253,10 +238,12 @@ describe("handlers/pre.ts", () => {
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(0);
 		expect(state?.script).toBe(smellsPath);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+		expect(response.action === "inject" && response.message).toContain(
 			"[STEP 1 OF 2]",
 		);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain("Phase 1");
+		expect(response.action === "inject" && response.message).toContain(
+			"Phase 1",
+		);
 	});
 
 	it("implicitly starts execution when user invokes an annotated skill via slash command", () => {
@@ -296,13 +283,13 @@ describe("handlers/pre.ts", () => {
 		expect(state?.currentStep).toBe(0);
 		expect(state?.steps.length).toBe(2);
 		expect(state?.script).toBe(playbookFile);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+		expect(response.action === "inject" && response.message).toContain(
 			"[STEP 1 OF 2]",
 		);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+		expect(response.action === "inject" && response.message).toContain(
 			"Step 1: Check environment",
 		);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+		expect(response.action === "inject" && response.message).toContain(
 			"Perform ONLY this step. Conclude when complete.",
 		);
 	});
@@ -344,7 +331,7 @@ describe("handlers/pre.ts", () => {
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
 		expect(state?.script).toBe(playbookFile);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+		expect(response.action === "inject" && response.message).toContain(
 			"Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
 		);
 	});
@@ -386,7 +373,7 @@ describe("handlers/pre.ts", () => {
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
 		expect(state?.script).toBe(playbookFile);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toBeDefined();
+		expect(response.action === "inject" && response.message).toBeDefined();
 	});
 
 	it("does not start execution if invoked skill has only 1 step despite mentioning delimiter in code block", () => {
@@ -417,7 +404,7 @@ describe("handlers/pre.ts", () => {
 
 		const { state, response } = handlePre(info, null, env);
 		expect(state).toBeNull();
-		expect(response).toEqual({});
+		expect(response).toEqual({ action: "pass" });
 	});
 
 	it("does not start execution if invoked skill has no curtain annotations", () => {
@@ -446,7 +433,7 @@ describe("handlers/pre.ts", () => {
 
 		const { state, response } = handlePre(info, null, env);
 		expect(state).toBeNull();
-		expect(response).toEqual({});
+		expect(response).toEqual({ action: "pass" });
 	});
 
 	it("does not trigger implicit mode for regular conversational chat", () => {
@@ -460,7 +447,7 @@ describe("handlers/pre.ts", () => {
 
 		const { state, response } = handlePre(info, null, env);
 		expect(state).toBeNull();
-		expect(response).toEqual({});
+		expect(response).toEqual({ action: "pass" });
 	});
 
 	it("starts execution when user invokes skill via Markdown link with explicit path", () => {
@@ -494,7 +481,7 @@ describe("handlers/pre.ts", () => {
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
 		expect(state?.script).toBe(playbookFile);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+		expect(response.action === "inject" && response.message).toContain(
 			'Say "Step 1"',
 		);
 	});
@@ -530,7 +517,7 @@ describe("handlers/pre.ts", () => {
 		const { state, response } = handlePre(info, null, env);
 		expect(state?.status).toBe("running");
 		expect(state?.script).toBe(playbookFile);
-		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+		expect(response.action === "inject" && response.message).toContain(
 			'Say "Act 1"',
 		);
 	});

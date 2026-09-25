@@ -51,10 +51,10 @@ describe("handlers/tool.ts", () => {
 		};
 
 		const result = handlePreTool(info, activeState);
-		expect(result.response.decision).toBe("deny");
+		expect(result.response.action).toBe("deny");
 		expect(result.response).toMatchInlineSnapshot(`
 			{
-			  "decision": "deny",
+			  "action": "deny",
 			  "reason": "BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect PLAYBOOK.md.",
 			}
 		`);
@@ -79,10 +79,12 @@ describe("handlers/tool.ts", () => {
 		};
 
 		const result = handlePreTool(info, customState);
-		expect(result.response.decision).toBe("deny");
-		expect(result.response.reason).toBe(
-			"BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect SMELLS.md.",
-		);
+		expect(result.response).toMatchInlineSnapshot(`
+			{
+			  "action": "deny",
+			  "reason": "BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect SMELLS.md.",
+			}
+		`);
 	});
 
 	it("allows when readTargetFilePath points to SKILL.md", () => {
@@ -97,7 +99,7 @@ describe("handlers/tool.ts", () => {
 		};
 
 		const result = handlePreTool(info, activeState);
-		expect(result.response.decision).toBe("allow");
+		expect(result.response.action).toBe("allow");
 	});
 
 	it("allows when readTargetFilePath points to unrelated file", () => {
@@ -110,7 +112,7 @@ describe("handlers/tool.ts", () => {
 		};
 
 		const result = handlePreTool(info, activeState);
-		expect(result.response.decision).toBe("allow");
+		expect(result.response.action).toBe("allow");
 	});
 
 	it("allows when readTargetFilePath is undefined (non-reading tool)", () => {
@@ -125,7 +127,7 @@ describe("handlers/tool.ts", () => {
 		};
 
 		const result = handlePreTool(info, activeState);
-		expect(result.response.decision).toBe("allow");
+		expect(result.response.action).toBe("allow");
 	});
 
 	it("allows when runner state is null", () => {
@@ -138,7 +140,7 @@ describe("handlers/tool.ts", () => {
 		};
 
 		const result = handlePreTool(info, null);
-		expect(result.response.decision).toBe("allow");
+		expect(result.response.action).toBe("allow");
 	});
 
 	it("strictly denies skillTarget next or curtain:next", () => {
@@ -154,7 +156,7 @@ describe("handlers/tool.ts", () => {
 		const result = handlePreTool(infoNext, activeState);
 		expect(result.response).toMatchInlineSnapshot(`
 			{
-			  "decision": "deny",
+			  "action": "deny",
 			  "reason": "BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
 			}
 		`);
@@ -169,7 +171,7 @@ describe("handlers/tool.ts", () => {
 		};
 		expect(handlePreTool(infoBareNext, null).response).toMatchInlineSnapshot(`
 			{
-			  "decision": "deny",
+			  "action": "deny",
 			  "reason": "BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
 			}
 		`);
@@ -189,7 +191,7 @@ describe("handlers/tool.ts", () => {
 			handlePreTool(infoCurtain, activeState).response,
 		).toMatchInlineSnapshot(`
 			{
-			  "decision": "deny",
+			  "action": "deny",
 			  "reason": "BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
 			}
 		`);
@@ -208,7 +210,7 @@ describe("handlers/tool.ts", () => {
 			handlePreTool(infoActiveSkill, activeState).response,
 		).toMatchInlineSnapshot(`
 			{
-			  "decision": "deny",
+			  "action": "deny",
 			  "reason": "BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
 			}
 		`);
@@ -225,7 +227,7 @@ describe("handlers/tool.ts", () => {
 		};
 
 		const result = handlePreTool(info, null);
-		expect(result.response.decision).toBe("allow");
+		expect(result.response.action).toBe("allow");
 	});
 
 	it("allows unrelated skill invocation even when active", () => {
@@ -239,7 +241,7 @@ describe("handlers/tool.ts", () => {
 		};
 
 		const result = handlePreTool(info, activeState);
-		expect(result.response.decision).toBe("allow");
+		expect(result.response.action).toBe("allow");
 	});
 
 	it("allows foreign namespaced next or curtain skills without collision", () => {
@@ -251,7 +253,7 @@ describe("handlers/tool.ts", () => {
 			skillTarget: "other-plugin:next",
 			readTargetFilePath: null,
 		};
-		expect(handlePreTool(infoForeignNext, activeState).response.decision).toBe(
+		expect(handlePreTool(infoForeignNext, activeState).response.action).toBe(
 			"allow",
 		);
 
@@ -263,8 +265,8 @@ describe("handlers/tool.ts", () => {
 			skillTarget: "other-plugin:curtain",
 			readTargetFilePath: null,
 		};
-		expect(
-			handlePreTool(infoForeignCurtain, activeState).response.decision,
-		).toBe("allow");
+		expect(handlePreTool(infoForeignCurtain, activeState).response.action).toBe(
+			"allow",
+		);
 	});
 });

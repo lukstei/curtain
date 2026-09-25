@@ -262,7 +262,7 @@ describe("agyHarness", () => {
 		it("formats Stop continue decision as continue", () => {
 			const event = createMockEvent({ type: "stop", isStop: true });
 			const egress = agyHarness.formatEgress(event, {
-				decision: "continue",
+				action: "continue",
 				reason: "Execute step 2",
 			});
 			expect(egress.exitCode).toBe(0);
@@ -276,7 +276,7 @@ describe("agyHarness", () => {
 
 		it("formats Stop allow decision", () => {
 			const event = createMockEvent({ type: "stop", isStop: true });
-			const egress = agyHarness.formatEgress(event, { decision: "allow" });
+			const egress = agyHarness.formatEgress(event, { action: "allow" });
 			expect(egress.exitCode).toBe(0);
 			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
 				{
@@ -288,7 +288,8 @@ describe("agyHarness", () => {
 		it("formats PreInvocation injectSteps", () => {
 			const event = createMockEvent({ type: "pre" });
 			const egress = agyHarness.formatEgress(event, {
-				injectSteps: [{ ephemeralMessage: "Instruction for step 1" }],
+				action: "inject",
+				message: "Instruction for step 1",
 			});
 			expect(egress.exitCode).toBe(0);
 			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
@@ -305,7 +306,7 @@ describe("agyHarness", () => {
 		it("formats tool deny decision", () => {
 			const event = createMockEvent({ type: "tool" });
 			const egress = agyHarness.formatEgress(event, {
-				decision: "deny",
+				action: "deny",
 				reason: "Blocked by Curtain",
 			});
 			expect(egress.exitCode).toBe(0);
@@ -319,7 +320,7 @@ describe("agyHarness", () => {
 
 		it("formats tool allow decision", () => {
 			const event = createMockEvent({ type: "tool" });
-			const egress = agyHarness.formatEgress(event, { decision: "allow" });
+			const egress = agyHarness.formatEgress(event, { action: "allow" });
 			expect(egress.exitCode).toBe(0);
 			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
 				{

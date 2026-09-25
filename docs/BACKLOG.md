@@ -44,3 +44,10 @@
 - **Objective:** Provide CLI subcommands (`adopt` and `eject`, or `wrap` and `unwrap`, proposed instead of `migrate`/`unmigrate`) that scan all skills visible from the working directory, copy raw skills to `PLAYBOOK.md`, install the thin curtain launcher wrapper into `SKILL.md`, and output actionable instructions to add callout delimiters manually or via `/plan`.
 - **Agent Triage:** Prefer `wrap` / `unwrap` or `adopt` / `eject` over `migrate` / `unmigrate` to reflect the thin-launcher wrapping pattern rather than schema migration. Ensure the revert command safely verifies existing wrappers before merging `PLAYBOOK.md` back to prevent accidental overwrites.
 
+### [ ] 8. Instruction Injection on Intermission Transition (Make a Plan)
+- **Current State:** When execution pauses at an intermission boundary, the runner prompts the agent to halt and await `/next`, but does not provide contextual directives (such as asking the agent to formulate an implementation plan for the upcoming step or present artifacts for review).
+- **Objective:** Inject tailored instructions into the agent prompt when pausing at an intermission step, instructing the agent to prepare a plan or review materials before waiting for user confirmation.
+- **Agent Triage:** Determine whether these instructions are statically standard or configurable via playbook callout metadata (`> [!INTERMISSION] make a plan`). Coordinate with review artifact rules across harnesses.
+
+
+

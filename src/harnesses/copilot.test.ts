@@ -160,7 +160,7 @@ describe("copilotHarness", () => {
 		it("formats Stop continue decision as block", () => {
 			const event = createMockEvent({ type: "stop", isStop: true });
 			const egress = copilotHarness.formatEgress(event, {
-				decision: "continue",
+				action: "continue",
 				reason: "Step 2",
 			});
 			expect(egress.exitCode).toBe(0);
@@ -179,7 +179,7 @@ describe("copilotHarness", () => {
 
 		it("formats Stop allow decision as empty JSON", () => {
 			const event = createMockEvent({ type: "stop", isStop: true });
-			const egress = copilotHarness.formatEgress(event, { decision: "allow" });
+			const egress = copilotHarness.formatEgress(event, { action: "allow" });
 			expect(egress.exitCode).toBe(0);
 			expect(egress.stdout).toBe("{}");
 		});
@@ -187,7 +187,7 @@ describe("copilotHarness", () => {
 		it("formats PreToolUse deny decision", () => {
 			const event = createMockEvent({ type: "tool" });
 			const egress = copilotHarness.formatEgress(event, {
-				decision: "deny",
+				action: "deny",
 				reason: "Blocked by Curtain",
 			});
 			expect(egress.exitCode).toBe(0);
@@ -206,7 +206,7 @@ describe("copilotHarness", () => {
 
 		it("formats PreToolUse allow decision", () => {
 			const event = createMockEvent({ type: "tool" });
-			const egress = copilotHarness.formatEgress(event, { decision: "allow" });
+			const egress = copilotHarness.formatEgress(event, { action: "allow" });
 			expect(egress.exitCode).toBe(0);
 			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
 				{
@@ -222,7 +222,8 @@ describe("copilotHarness", () => {
 		it("formats PreInvocation with additionalContext", () => {
 			const event = createMockEvent({ type: "pre" });
 			const egress = copilotHarness.formatEgress(event, {
-				injectSteps: [{ ephemeralMessage: "Instruction for step 1" }],
+				action: "inject",
+				message: "Instruction for step 1",
 			});
 			expect(egress.exitCode).toBe(0);
 			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`

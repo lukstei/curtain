@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { normalizeSkillName } from "../lib/normalizeSkillName.ts";
 import type { RunnerState } from "../state.ts";
-import type { HookInfo } from "../types.ts";
+import type { HookInfo, ToolHookResponse } from "../types.ts";
 import type { HandlerResult } from "./pre.ts";
 
 function isSameFile(p1: string, p2: string): boolean {
@@ -21,7 +21,7 @@ function isSameFile(p1: string, p2: string): boolean {
 export function handlePreTool(
 	info: Extract<HookInfo, { type: "tool" }>,
 	state: RunnerState | null,
-): HandlerResult {
+): HandlerResult<ToolHookResponse> {
 	if (info.skillTarget) {
 		const skill = normalizeSkillName(info.skillTarget);
 
@@ -30,7 +30,7 @@ export function handlePreTool(
 			return {
 				state,
 				response: {
-					decision: "deny",
+					action: "deny",
 					reason:
 						"BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
 				},
@@ -53,7 +53,7 @@ export function handlePreTool(
 				return {
 					state,
 					response: {
-						decision: "deny",
+						action: "deny",
 						reason:
 							"BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
 					},
@@ -61,11 +61,11 @@ export function handlePreTool(
 			}
 		}
 
-		return { state, response: { decision: "allow" } };
+		return { state, response: { action: "allow" } };
 	}
 
 	if (!state || !info.readTargetFilePath) {
-		return { state, response: { decision: "allow" } };
+		return { state, response: { action: "allow" } };
 	}
 
 	const scriptPath = path.resolve(info.workspacePath, state.script);
@@ -81,11 +81,11 @@ export function handlePreTool(
 		return {
 			state,
 			response: {
-				decision: "deny",
+				action: "deny",
 				reason: `BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect ${targetName}.`,
 			},
 		};
 	}
 
-	return { state, response: { decision: "allow" } };
+	return { state, response: { action: "allow" } };
 }

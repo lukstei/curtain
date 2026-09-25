@@ -20,25 +20,25 @@ import {
 	resumeExecution,
 	startExecution,
 } from "../transitions.ts";
-import type { HookInfo, HookResponse } from "../types.ts";
+import type { HookInfo, PreHookResponse } from "../types.ts";
 
-export interface HandlerResult {
+export interface HandlerResult<T = PreHookResponse> {
 	state: RunnerState | null;
-	response: HookResponse;
+	response: T;
 }
 
 function startScript(
 	script: Script,
 	conversationId: string,
 	env: NodeJS.ProcessEnv,
-): HandlerResult {
+): HandlerResult<PreHookResponse> {
 	const nextState = startExecution(script);
 	saveState(conversationId, nextState, env);
 	const firstStep = nextState.steps[0];
 	const msg = formatStepPrompt(firstStep, nextState.steps.length);
 	return {
 		state: nextState,
-		response: { injectSteps: [{ ephemeralMessage: msg }] },
+		response: { action: "inject", message: msg },
 	};
 }
 
@@ -46,7 +46,7 @@ export function handlePre(
 	info: Extract<HookInfo, { type: "pre" }>,
 	state: RunnerState | null,
 	env: NodeJS.ProcessEnv = process.env,
-): HandlerResult {
+): HandlerResult<PreHookResponse> {
 	const userInput = info.prompt;
 
 	const parsed = parseCommand(userInput, info.skillInvocationPath);
@@ -54,7 +54,7 @@ export function handlePre(
 		if (parsed.error) {
 			return {
 				state,
-				response: { injectSteps: [{ ephemeralMessage: parsed.error }] },
+				response: { action: "inject", message: parsed.error },
 			};
 		}
 
@@ -63,9 +63,8 @@ export function handlePre(
 				return {
 					state: null,
 					response: {
-						injectSteps: [
-							{ ephemeralMessage: "No script is currently loaded." },
-						],
+						action: "inject",
+						message: "No script is currently loaded.",
 					},
 				};
 			}
@@ -75,7 +74,8 @@ export function handlePre(
 				return {
 					state,
 					response: {
-						injectSteps: [{ ephemeralMessage: res.error }],
+						action: "inject",
+						message: res.error,
 					},
 				};
 			}
@@ -85,7 +85,8 @@ export function handlePre(
 				return {
 					state: null,
 					response: {
-						injectSteps: [{ ephemeralMessage: "Execution complete." }],
+						action: "inject",
+						message: "Execution complete.",
 					},
 				};
 			}
@@ -94,7 +95,7 @@ export function handlePre(
 			const msg = formatStepPrompt(res.step, res.state.steps.length);
 			return {
 				state: res.state,
-				response: { injectSteps: [{ ephemeralMessage: msg }] },
+				response: { action: "inject", message: msg },
 			};
 		}
 
@@ -106,7 +107,7 @@ export function handlePre(
 					: loaded.error;
 				return {
 					state,
-					response: { injectSteps: [{ ephemeralMessage: err }] },
+					response: { action: "inject", message: err },
 				};
 			}
 			return startScript(loaded.script, info.conversationId, env);
@@ -159,10 +160,11 @@ export function handlePre(
 		return {
 			state,
 			response: {
-				injectSteps: [{ ephemeralMessage: msg }],
+				action: "inject",
+				message: msg,
 			},
 		};
 	}
 
-	return { state, response: {} };
+	return { state, response: { action: "pass" } };
 }

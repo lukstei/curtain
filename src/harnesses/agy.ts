@@ -236,7 +236,7 @@ export const agyHarness: HarnessAdapter = {
 
 	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput {
 		if (event.type === "stop") {
-			if (response.decision === "continue" && response.reason) {
+			if (response.action === "continue") {
 				return {
 					exitCode: 0,
 					stdout: JSON.stringify({
@@ -252,21 +252,19 @@ export const agyHarness: HarnessAdapter = {
 		}
 
 		if (event.type === "pre") {
-			const ephemeralMessage =
-				response.injectSteps?.[0]?.ephemeralMessage || "";
-			if (!ephemeralMessage) {
-				return { exitCode: 0, stdout: "{}" };
+			if (response.action === "inject") {
+				return {
+					exitCode: 0,
+					stdout: JSON.stringify({
+						injectSteps: [{ ephemeralMessage: response.message }],
+					}),
+				};
 			}
-			return {
-				exitCode: 0,
-				stdout: JSON.stringify({
-					injectSteps: [{ ephemeralMessage }],
-				}),
-			};
+			return { exitCode: 0, stdout: "{}" };
 		}
 
 		if (event.type === "tool") {
-			if (response.decision === "deny") {
+			if (response.action === "deny") {
 				return {
 					exitCode: 0,
 					stdout: JSON.stringify({
@@ -281,7 +279,7 @@ export const agyHarness: HarnessAdapter = {
 			};
 		}
 
-		return { exitCode: 0, stdout: JSON.stringify(response) };
+		return { exitCode: 0, stdout: "{}" };
 	},
 
 	resolveConversationId(env: NodeJS.ProcessEnv): string | null {

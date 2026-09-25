@@ -1,5 +1,5 @@
 import type { RunnerState } from "../state.ts";
-import type { HookInfo } from "../types.ts";
+import type { HookInfo, HookResponse } from "../types.ts";
 import { type HandlerResult, handlePre } from "./pre.ts";
 import { handleStop } from "./stop.ts";
 import { handlePreTool } from "./tool.ts";
@@ -12,7 +12,7 @@ export function handle(
 	info: HookInfo,
 	state: RunnerState | null,
 	env: NodeJS.ProcessEnv = process.env,
-): HandlerResult {
+): HandlerResult<HookResponse> {
 	if (info.type === "stop") {
 		return handleStop(info, state, env);
 	}
