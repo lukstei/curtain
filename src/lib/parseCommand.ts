@@ -42,6 +42,21 @@ function resolveSkillNameFromPath(skillPath?: string): string | null {
 	return path.parse(fileName).name.toLowerCase();
 }
 
+function handleCurtainIntent(
+	parsed: ParsedSkill,
+	rest?: string,
+): UserIntent | null {
+	if (parsed.namespace !== "curtain") return null;
+	if (parsed.name === "next") return { type: "next" };
+	if (parsed.name === "curtain") {
+		if (rest?.trim().toLowerCase() === "next") return { type: "next" };
+		const filePath = rest ? cleanFilePathArgument(rest) : null;
+		if (filePath) return { type: "run", path: filePath };
+		return { type: "error", error: "Missing required script path argument." };
+	}
+	return null;
+}
+
 export function parseCommand(
 	input?: string,
 	skillInvocationPath?: string,
@@ -49,32 +64,18 @@ export function parseCommand(
 	const trimmed = input?.trim();
 
 	if (trimmed) {
+		// 1. Link-style: [skill-name](path) rest
 		const linkMatch = trimmed.match(SKILL_LINK_WITH_OPTIONAL_PATH_REGEX);
 		if (linkMatch) {
 			const [, rawName, rawTargetPath, rest] = linkMatch;
 			const parsed = parseSkill(rawName);
-
-			if (parsed?.namespace === "curtain") {
-				if (parsed.name === "next") {
-					return { type: "next" };
-				}
-				if (parsed.name === "curtain") {
-					const filePath = rest ? cleanFilePathArgument(rest) : null;
-					if (filePath) {
-						return { type: "run", path: filePath };
-					}
-					return {
-						type: "error",
-						error: "Missing required script path argument.",
-					};
-				}
-			}
-
 			if (parsed) {
-				const targetPath = rawTargetPath
-					? rawTargetPath.replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "").trim()
-					: undefined;
+				const curtain = handleCurtainIntent(parsed, rest);
+				if (curtain) return curtain;
 
+				const targetPath = rawTargetPath
+					?.replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "")
+					.trim();
 				return {
 					type: "skill",
 					skill: parsed,
@@ -83,68 +84,32 @@ export function parseCommand(
 			}
 		}
 
+		// 2. Slash/dollar command: /skill args or $skill args
 		if (trimmed.startsWith("/") || trimmed.startsWith("$")) {
 			const [firstWord, ...restWords] = trimmed.split(WHITESPACE_SPLIT_REGEX);
 			const rest = restWords.join(" ").trim();
 			const parsed = parseSkill(firstWord);
+			if (parsed) {
+				const curtain = handleCurtainIntent(parsed, rest);
+				if (curtain) return curtain;
 
-			if (parsed?.namespace === "curtain") {
-				if (parsed.name === "next") {
-					return { type: "next" };
-				}
-				if (parsed.name === "curtain") {
-					if (rest.toLowerCase() === "next") {
-						return { type: "next" };
-					}
-					const filePath = rest ? cleanFilePathArgument(rest) : null;
-					if (filePath) {
-						return { type: "run", path: filePath };
-					}
-					return {
-						type: "error",
-						error: "Missing required script path argument.",
-					};
-				}
-			}
-
-			if (!rest) {
-				const bareMatch = trimmed.match(BARE_SKILL_COMMAND_REGEX);
-				if (bareMatch && parsed) {
+				if (!rest && BARE_SKILL_COMMAND_REGEX.test(trimmed)) {
 					return { type: "skill", skill: parsed };
 				}
 			}
 		}
 	}
 
-	const fallbackSkill = resolveSkillNameFromPath(skillInvocationPath);
-	const parsedFallback = fallbackSkill ? parseSkill(fallbackSkill) : null;
-	if (parsedFallback?.namespace === "curtain") {
-		if (parsedFallback.name === "next") {
-			return { type: "next" };
-		}
-		if (parsedFallback.name === "curtain") {
-			const filePath = trimmed ? cleanFilePathArgument(trimmed) : null;
-			if (filePath) {
-				return { type: "run", path: filePath };
-			}
-			return {
-				type: "error",
-				error: "Missing required script path argument.",
-			};
-		}
-	}
-	if (parsedFallback) {
-		return {
-			type: "skill",
-			skill: parsedFallback,
-			targetPath: skillInvocationPath,
-		};
+	// 3. Fallback: resolve from invocation path
+	const fallbackName = resolveSkillNameFromPath(skillInvocationPath);
+	const fallback = fallbackName ? parseSkill(fallbackName) : null;
+	if (fallback) {
+		const curtain = handleCurtainIntent(fallback, trimmed);
+		if (curtain) return curtain;
+		return { type: "skill", skill: fallback, targetPath: skillInvocationPath };
 	}
 	if (skillInvocationPath) {
-		return {
-			type: "skill",
-			targetPath: skillInvocationPath,
-		};
+		return { type: "skill", targetPath: skillInvocationPath };
 	}
 
 	return { type: "none" };

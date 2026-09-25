@@ -25,65 +25,57 @@ export function handlePreTool(
 	info: Extract<HookInfo, { type: "tool" }>,
 	state: RunnerState | null,
 ): HandlerResult<ToolHookResponse> {
+	const allow: HandlerResult<ToolHookResponse> = {
+		state,
+		response: { action: "allow" },
+	};
+	const deny = (reason: string): HandlerResult<ToolHookResponse> => ({
+		state,
+		response: { action: "deny", reason },
+	});
+
 	if (info.skillTarget) {
 		const parsed = parseSkill(info.skillTarget);
-		const isCurtainNamespace = parsed?.namespace === "curtain";
+		const isCurtain = parsed?.namespace === "curtain";
 
-		// 1. Strictly block self-advancement at intermissions
-		if (isCurtainNamespace && parsed.name === "next") {
-			return {
-				state,
-				response: {
-					action: "deny",
-					reason:
-						"BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
-				},
-			};
+		// Block self-advancement at intermissions
+		if (isCurtain && parsed.name === "next") {
+			return deny(
+				"BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
+			);
 		}
 
-		// 2. If already active, block redundant curtain or active skill re-invocation
+		// Block redundant curtain or active skill re-invocation
 		if (state) {
-			const activeSkillName = state.skillName?.toLowerCase();
-			const isCurtainLauncher = isCurtainNamespace && parsed.name === "curtain";
-			const isActiveSkill = Boolean(
-				activeSkillName &&
+			const active = state.skillName?.toLowerCase();
+			if (
+				(isCurtain && parsed.name === "curtain") ||
+				(active &&
 					parsed &&
-					(parsed.name === activeSkillName ||
-						formatSkill(parsed) === activeSkillName),
-			);
-
-			if (isCurtainLauncher || isActiveSkill) {
-				return {
-					state,
-					response: {
-						action: "deny",
-						reason:
-							"BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
-					},
-				};
+					(parsed.name === active || formatSkill(parsed) === active))
+			) {
+				return deny(
+					"BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
+				);
 			}
 		}
 
-		return { state, response: { action: "allow" } };
+		return allow;
 	}
 
-	if (!state || !info.readTargetFilePath) {
-		return { state, response: { action: "allow" } };
+	// Block reading the active playbook script
+	if (
+		state &&
+		info.readTargetFilePath &&
+		isSameFile(
+			info.readTargetFilePath,
+			path.resolve(info.workspacePath, state.script),
+		)
+	) {
+		return deny(
+			`BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect ${path.basename(state.script)}.`,
+		);
 	}
 
-	const scriptPath = path.resolve(info.workspacePath, state.script);
-	const isTargetScript = isSameFile(info.readTargetFilePath, scriptPath);
-
-	if (isTargetScript) {
-		const targetName = path.basename(state.script);
-		return {
-			state,
-			response: {
-				action: "deny",
-				reason: `BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect ${targetName}.`,
-			},
-		};
-	}
-
-	return { state, response: { action: "allow" } };
+	return allow;
 }

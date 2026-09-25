@@ -24,50 +24,28 @@ export function formatSkill(skill: ParsedSkill): string {
  *    - Other namespaces and custom skills are preserved as-is.
  */
 export function parseSkill(raw: string): ParsedSkill | null {
-	const trimmed = raw.trim();
-	if (!trimmed) return null;
-
-	// 1. Strip Markdown link or bracket wrapper: [$name](url) -> $name, [name] -> name
-	const unbracketed = trimmed
+	const cleaned = raw
+		.trim()
 		.replace(/^\[\$?([^\]]+)\](?:\([^)]*\))?.*$/, "$1")
-		.trim();
-
-	// 2. Strip leading command sigils: / or $
-	const cleaned = unbracketed
 		.replace(/^[/$]+/, "")
 		.trim()
 		.toLowerCase();
 	if (!cleaned) return null;
 
-	// 3. Parse namespace and skill name
 	const parts = cleaned.split(":");
 	if (parts.length > 2) return null;
 
-	if (parts.length === 2) {
-		const [ns, skill] = parts;
-		if (!ns || !skill) return null;
+	const ns = parts.length === 2 ? parts[0] : undefined;
+	const skill = parts.at(-1);
+	if (!skill || (ns !== undefined && !ns)) return null;
 
-		if (ns === "curtain") {
-			if (skill === "start" || skill === "run") {
-				return null;
-			}
-			if (skill === "next" || skill === "curtain") {
-				return { namespace: "curtain", name: skill };
-			}
-			return null;
-		}
-
-		return { namespace: ns, name: skill };
+	if (ns === "curtain" || (!ns && (skill === "next" || skill === "curtain"))) {
+		return skill === "next" || skill === "curtain"
+			? { namespace: "curtain", name: skill }
+			: null;
 	}
 
-	const [skill] = parts;
-	if (!skill) return null;
-
-	if (skill === "next" || skill === "curtain") {
-		return { namespace: "curtain", name: skill };
-	}
-
-	return { name: skill };
+	return ns ? { namespace: ns, name: skill } : { name: skill };
 }
 
 export function normalizeSkillName(raw: string): string {

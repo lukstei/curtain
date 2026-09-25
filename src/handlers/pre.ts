@@ -44,10 +44,7 @@ export function handlePre(
 
 	switch (intent.type) {
 		case "error":
-			return {
-				state,
-				response: { action: "inject", message: intent.error },
-			};
+			return { state, response: { action: "inject", message: intent.error } };
 
 		case "next": {
 			if (!state) {
@@ -61,81 +58,60 @@ export function handlePre(
 			}
 
 			const res = resumeExecution(state);
-			if (res.action === "error") {
-				return {
-					state,
-					response: {
-						action: "inject",
-						message: res.error,
-					},
-				};
-			}
-
-			if (res.action === "finish") {
+			if (res.action === "error")
+				return { state, response: { action: "inject", message: res.error } };
+			if (res.action === "finish")
 				return {
 					state: null,
-					response: {
-						action: "inject",
-						message: "Execution complete.",
-					},
+					response: { action: "inject", message: "Execution complete." },
 				};
-			}
 
-			const msg = formatStepPrompt(res.step, res.state.steps.length);
 			return {
 				state: res.state,
-				response: { action: "inject", message: msg },
+				response: {
+					action: "inject",
+					message: formatStepPrompt(res.step, res.state.steps.length),
+				},
 			};
 		}
 
 		case "run": {
 			const loaded = loadScript(intent.path, [info.workspacePath]);
 			if (!loaded || "error" in loaded) {
-				const err = !loaded
+				const msg = !loaded
 					? `Script file not found: "${intent.path}"`
 					: loaded.error;
-				return {
-					state,
-					response: { action: "inject", message: err },
-				};
+				return { state, response: { action: "inject", message: msg } };
 			}
 			return startScript(loaded.script);
 		}
 
 		case "skill": {
-			if (!state) {
-				let targetSkillPath: string | null = null;
-				if (intent.targetPath) {
-					targetSkillPath = resolveToolReadPath(
-						intent.targetPath,
-						info.workspacePath,
-					);
-				} else if (intent.skill) {
-					const harness = info.harness as HarnessType | undefined;
-					targetSkillPath = resolveSkillPath(
-						intent.skill.name,
-						harness,
-						info.workspacePath,
-					);
-				}
+			if (state) break;
 
-				if (targetSkillPath) {
-					const playbookPath = resolvePlaybookPath(
-						targetSkillPath,
-						info.harness as HarnessType | undefined,
-						info.workspacePath,
-					);
-					if (playbookPath && hasCurtainAnnotations(playbookPath)) {
-						const loaded = loadScript(playbookPath, [info.workspacePath]);
-						if (
-							loaded &&
-							!("error" in loaded) &&
-							loaded.script.steps.length > 1
-						) {
-							return startScript(loaded.script, intent.skill?.name);
-						}
-					}
-				}
+			const targetSkillPath = intent.targetPath
+				? resolveToolReadPath(intent.targetPath, info.workspacePath)
+				: intent.skill
+					? resolveSkillPath(
+							intent.skill.name,
+							info.harness as HarnessType | undefined,
+							info.workspacePath,
+						)
+					: null;
+
+			if (!targetSkillPath) break;
+
+			const harness = info.harness as HarnessType | undefined;
+			const playbookPath = resolvePlaybookPath(
+				targetSkillPath,
+				harness,
+				info.workspacePath,
+			);
+			if (!playbookPath || !hasCurtainAnnotations(playbookPath)) break;
+
+			const loaded = loadScript(playbookPath, [info.workspacePath]);
+			if (loaded && !("error" in loaded) && loaded.script.steps.length > 1) {
+				return startScript(loaded.script, intent.skill?.name);
 			}
 			break;
 		}
@@ -149,12 +125,11 @@ export function handlePre(
 
 	if (state?.status === "paused") {
 		const currentStep = state.steps[state.currentStep];
-		const msg = formatIntermissionPrompt(currentStep?.instruction);
 		return {
 			state,
 			response: {
 				action: "inject",
-				message: msg,
+				message: formatIntermissionPrompt(currentStep?.instruction),
 			},
 		};
 	}
