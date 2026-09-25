@@ -237,7 +237,7 @@ describe("transitions.ts", () => {
 			instruction: "Ensure 100% pass rate",
 		};
 		expect(formatStepPrompt(stepWithPauseInstruction, 3)).toBe(
-			"[STEP 1 OF 3]\n\nRun test suite\n\n[INTERMISSION CRITERIA]\nEnsure 100% pass rate\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, inform the user that only /next will proceed.",
+			"[STEP 1 OF 3]\n\nRun test suite\n\n[INTERMISSION CRITERIA]\nEnsure 100% pass rate\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
 		);
 
 		const stepWithAutoInstruction = {
@@ -254,16 +254,34 @@ describe("transitions.ts", () => {
 	it("formats intermission review prompt", () => {
 		expect(formatIntermissionPrompt()).toMatchInlineSnapshot(`
 			"[INTERMISSION REVIEW]
-			Execution is PAUSED at an intermission. Do NOT execute, advance to, or anticipate any downstream steps from previous messages or memory. Respond ONLY to confirm that execution is paused and that only /next will proceed."
+
+			Execution is PAUSED at an intermission for human review.
+
+			- Follow and execute all instructions, adjustments, or questions given by the user in their prompt.
+
+			- Present your completed work or findings clearly for the user to review, using the review sidebar artifact if applicable.
+
+			- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.
+
+			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step."
 		`);
 
 		expect(
 			formatIntermissionPrompt("Verify lint checks pass"),
 		).toMatchInlineSnapshot(`
 			"[INTERMISSION REVIEW]
+
 			Verify lint checks pass
 
-			Execution is PAUSED at an intermission. Do NOT execute, advance to, or anticipate any downstream steps from previous messages or memory. Respond ONLY to confirm that execution is paused and that only /next will proceed."
+			Execution is PAUSED at an intermission for human review.
+
+			- Follow and execute all instructions, adjustments, or questions given by the user in their prompt.
+
+			- Present your completed work or findings clearly for the user to review, using the review sidebar artifact if applicable.
+
+			- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.
+
+			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step."
 		`);
 	});
 });

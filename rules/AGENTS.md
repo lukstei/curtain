@@ -25,4 +25,4 @@ Users interact with Curtain via slash commands (Claude Code / AGY) or `$` mentio
 | `/next` | `$curtain:next` | Advance to the next step when paused at an intermission. |
 
 - **Strict Ban on Runner Skills via Tool Calls:** Never call the `Skill` tool for `/next`, `curtain:next`, or to re-invoke an active playbook skill. Only the human user may advance execution past an intermission.
-- **Intermission Review:** When paused at an intermission review, stop and inform the user that only `/next` will advance execution. Do not execute downstream steps from memory.
+- **Intermission Review:** When paused at an intermission review, follow and execute all instructions, requests, or questions given by the user in their prompt. Present your work for review (using the review sidebar artifact where appropriate). Do NOT execute or anticipate downstream playbook steps. Remind the user that execution remains paused and only typing `/next` will advance to the next step.

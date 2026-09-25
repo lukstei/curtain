@@ -96,7 +96,17 @@ export function advanceExecution(state: RunnerState): AdvanceResult {
  */
 export function formatIntermissionPrompt(instruction?: string): string {
 	const criteriaPart = instruction ? `${instruction}\n\n` : "";
-	return `[INTERMISSION REVIEW]\n${criteriaPart}Execution is PAUSED at an intermission. Do NOT execute, advance to, or anticipate any downstream steps from previous messages or memory. Respond ONLY to confirm that execution is paused and that only /next will proceed.`;
+	return [
+		"[INTERMISSION REVIEW]",
+		criteriaPart ? criteriaPart.trim() : null,
+		"Execution is PAUSED at an intermission for human review.",
+		"- Follow and execute all instructions, adjustments, or questions given by the user in their prompt.",
+		"- Present your completed work or findings clearly for the user to review, using the review sidebar artifact if applicable.",
+		"- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.",
+		"- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step.",
+	]
+		.filter(Boolean)
+		.join("\n\n");
 }
 
 /**
@@ -106,9 +116,5 @@ export function formatStepPrompt(step: Step, totalSteps: number): string {
 	const criteria = step.instruction
 		? `[${step.type === "pause" ? "INTERMISSION" : "TRANSITION"} CRITERIA]\n${step.instruction}\n\n`
 		: "";
-	const pauseNotice =
-		step.type === "pause"
-			? " When concluding your turn, inform the user that only /next will proceed."
-			: "";
-	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.${pauseNotice}`;
+	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.`;
 }
