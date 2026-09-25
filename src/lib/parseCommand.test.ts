@@ -3,124 +3,133 @@ import { cleanFilePathArgument, parseCommand } from "./parseCommand.ts";
 
 describe("parseCommand.ts", () => {
 	it("parses slash commands", () => {
-		expect(parseCommand("/next")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
-		});
-		expect(parseCommand("$next")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
-		});
-		expect(parseCommand("/curtain next")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
-		});
-		expect(parseCommand("$curtain:next")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
-		});
+		expect(parseCommand("/next")).toEqual({ type: "next" });
+		expect(parseCommand("$next")).toEqual({ type: "next" });
+		expect(parseCommand("/curtain next")).toEqual({ type: "next" });
+		expect(parseCommand("$curtain:next")).toEqual({ type: "next" });
+		expect(parseCommand("/curtain:next")).toEqual({ type: "next" });
 	});
 
 	it("returns error for bare /curtain or missing path", () => {
 		expect(parseCommand("/curtain")).toEqual({
-			isCurtainCommand: true,
+			type: "error",
 			error: "Missing required script path argument.",
 		});
 		expect(parseCommand("$curtain")).toEqual({
-			isCurtainCommand: true,
+			type: "error",
 			error: "Missing required script path argument.",
 		});
-		expect(parseCommand("/curtain run")).toEqual({
-			isCurtainCommand: true,
+		expect(parseCommand("/curtain:curtain")).toEqual({
+			type: "error",
 			error: "Missing required script path argument.",
 		});
 	});
 
 	it("parses script file runs with file mentions", () => {
 		expect(parseCommand("/curtain task.md")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "run", path: "task.md" },
+			type: "run",
+			path: "task.md",
 		});
-		expect(parseCommand("$curtain:start task.md")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "run", path: "task.md" },
+		expect(parseCommand("$curtain task.md")).toEqual({
+			type: "run",
+			path: "task.md",
 		});
-		expect(parseCommand("/curtain run @[path/to/script.md]")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "run", path: "path/to/script.md" },
+		expect(parseCommand("/curtain:curtain task.md")).toEqual({
+			type: "run",
+			path: "task.md",
+		});
+		expect(parseCommand("/curtain @[path/to/script.md]")).toEqual({
+			type: "run",
+			path: "path/to/script.md",
 		});
 	});
 
-	it("returns isCurtainCommand false for non-curtain messages and arbitrary hyphenated skills", () => {
+	it("parses bare skill commands and non-curtain messages", () => {
 		expect(parseCommand("Hello agent, please fix this bug")).toEqual({
-			isCurtainCommand: false,
+			type: "none",
 		});
 		expect(parseCommand("/curtain-")).toEqual({
-			isCurtainCommand: false,
+			type: "skill",
+			skill: { name: "curtain-" },
 		});
 		expect(parseCommand("/curtain-custom")).toEqual({
-			isCurtainCommand: false,
+			type: "skill",
+			skill: { name: "curtain-custom" },
 		});
 		expect(parseCommand("/curtain-run task.md")).toEqual({
-			isCurtainCommand: false,
+			type: "none",
 		});
 		expect(parseCommand("/curtain-status")).toEqual({
-			isCurtainCommand: false,
+			type: "skill",
+			skill: { name: "curtain-status" },
 		});
 		expect(parseCommand("/curtain-stop")).toEqual({
-			isCurtainCommand: false,
+			type: "skill",
+			skill: { name: "curtain-stop" },
 		});
 		expect(parseCommand("/curtain-drop")).toEqual({
-			isCurtainCommand: false,
+			type: "skill",
+			skill: { name: "curtain-drop" },
 		});
 		expect(parseCommand("/curtain-help")).toEqual({
-			isCurtainCommand: false,
+			type: "skill",
+			skill: { name: "curtain-help" },
+		});
+		expect(parseCommand("/curtain:start")).toEqual({
+			type: "none",
+		});
+		expect(parseCommand("/curtain:run")).toEqual({
+			type: "none",
 		});
 	});
 
 	it("parses skill link commands (Codex syntax)", () => {
 		expect(parseCommand("[$next](skills/next/SKILL.md)")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
+			type: "next",
 		});
 		expect(parseCommand("[next](/path/to/SKILL.md)")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
+			type: "next",
 		});
 		expect(parseCommand("[$next]")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
+			type: "next",
 		});
 		expect(parseCommand("[next]")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
+			type: "next",
 		});
 		expect(parseCommand("[$curtain:next]")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
+			type: "next",
 		});
 		expect(
 			parseCommand("[$curtain](skills/curtain/SKILL.md) curtain-test"),
 		).toEqual({
-			isCurtainCommand: true,
-			command: { name: "run", path: "curtain-test" },
+			type: "run",
+			path: "curtain-test",
 		});
 		expect(parseCommand("[$curtain] curtain-test")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "run", path: "curtain-test" },
+			type: "run",
+			path: "curtain-test",
 		});
-		expect(parseCommand("[$curtain:start] curtain-test")).toEqual({
-			isCurtainCommand: true,
-			command: { name: "run", path: "curtain-test" },
+		expect(parseCommand("[$curtain:curtain] curtain-test")).toEqual({
+			type: "run",
+			path: "curtain-test",
 		});
 		expect(parseCommand("[$curtain]")).toEqual({
-			isCurtainCommand: true,
+			type: "error",
 			error: "Missing required script path argument.",
 		});
 		expect(
 			parseCommand("[$curtain-test](skills/curtain-test/SKILL.md)"),
 		).toEqual({
-			isCurtainCommand: false,
+			type: "skill",
+			skill: { name: "curtain-test" },
+			targetPath: "skills/curtain-test/SKILL.md",
+		});
+		expect(parseCommand("[$link-skill]")).toEqual({
+			type: "skill",
+			skill: { name: "link-skill" },
+		});
+		expect(parseCommand("[$curtain:start]")).toEqual({
+			type: "none",
 		});
 	});
 
@@ -128,14 +137,20 @@ describe("parseCommand.ts", () => {
 		expect(
 			parseCommand(undefined, "/plugins/curtain/skills/next/SKILL.md"),
 		).toEqual({
-			isCurtainCommand: true,
-			command: { name: "next" },
+			type: "next",
 		});
 		expect(
 			parseCommand("curtain-test", "/plugins/curtain/skills/curtain/SKILL.md"),
 		).toEqual({
-			isCurtainCommand: true,
-			command: { name: "run", path: "curtain-test" },
+			type: "run",
+			path: "curtain-test",
+		});
+		expect(
+			parseCommand(undefined, "/plugins/other/skills/custom/SKILL.md"),
+		).toEqual({
+			type: "skill",
+			skill: { name: "custom" },
+			targetPath: "/plugins/other/skills/custom/SKILL.md",
 		});
 	});
 

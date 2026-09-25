@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { normalizeSkillName } from "../lib/normalizeSkillName.ts";
+import { formatSkill, parseSkill } from "../lib/parseSkill.ts";
 import type { RunnerState } from "../state.ts";
 import type { HookInfo, ToolHookResponse } from "../types.ts";
 import type { HandlerResult } from "./pre.ts";
@@ -26,10 +26,11 @@ export function handlePreTool(
 	state: RunnerState | null,
 ): HandlerResult<ToolHookResponse> {
 	if (info.skillTarget) {
-		const skill = normalizeSkillName(info.skillTarget);
+		const parsed = parseSkill(info.skillTarget);
+		const isCurtainNamespace = parsed?.namespace === "curtain";
 
 		// 1. Strictly block self-advancement at intermissions
-		if (skill === "curtain:next") {
+		if (isCurtainNamespace && parsed.name === "next") {
 			return {
 				state,
 				response: {
@@ -43,13 +44,12 @@ export function handlePreTool(
 		// 2. If already active, block redundant curtain or active skill re-invocation
 		if (state) {
 			const activeSkillName = state.skillName?.toLowerCase();
-			const isCurtainLauncher =
-				skill === "curtain:curtain" ||
-				skill === "curtain:start" ||
-				skill === "curtain:run";
+			const isCurtainLauncher = isCurtainNamespace && parsed.name === "curtain";
 			const isActiveSkill = Boolean(
 				activeSkillName &&
-					(skill === activeSkillName || skill.endsWith(`:${activeSkillName}`)),
+					parsed &&
+					(parsed.name === activeSkillName ||
+						formatSkill(parsed) === activeSkillName),
 			);
 
 			if (isCurtainLauncher || isActiveSkill) {

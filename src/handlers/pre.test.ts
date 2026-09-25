@@ -196,7 +196,7 @@ describe("handlers/pre.ts", () => {
 		`);
 	});
 
-	it("starts script on /curtain run <file>", () => {
+	it("starts script on /curtain <file>", () => {
 		const scriptPath = path.join(tmpDir, "PLAYBOOK.md");
 		fs.mkdirSync(tmpDir, { recursive: true });
 		fs.writeFileSync(
@@ -208,7 +208,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c5",
 			workspacePath: tmpDir,
-			prompt: `/curtain run ${scriptPath}`,
+			prompt: `/curtain ${scriptPath}`,
 		};
 
 		const { state, response } = handlePre(info, null);

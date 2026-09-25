@@ -49,5 +49,7 @@
 - **Objective:** Inject tailored instructions into the agent prompt when pausing at an intermission step, instructing the agent to prepare a plan or review materials before waiting for user confirmation.
 - **Agent Triage:** Determine whether these instructions are statically standard or configurable via playbook callout metadata (`> [!INTERMISSION] make a plan`). Coordinate with review artifact rules across harnesses.
 
-
-
+### [ ] 9. Case Study: Monolithic Prompt vs. Curtain Step Execution
+- **Current State:** Curtain is designed to eliminate context leakage and premature task execution by withholding downstream instructions behind step boundaries, but has no empirical benchmark comparing single monolithic prompts to curtain-gated execution.
+- **Objective:** Run a controlled case study measuring token usage, instruction adherence, premature downstream actions, and error rates between pasting a complete multi-step prompt upfront versus executing it step-by-step with Curtain.
+- **Agent Triage:** Pick a representative multi-phase task (e.g. multi-file refactor + verification). Track concrete failure modes: skipped constraints, out-of-order execution, and token waste from early backtracking.

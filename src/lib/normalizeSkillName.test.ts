@@ -25,11 +25,11 @@ describe("normalizeSkillName", () => {
 		expect(normalizeSkillName("$curtain:curtain")).toBe("curtain:curtain");
 	});
 
-	it("preserves other curtain runner commands with prefixes intact", () => {
-		expect(normalizeSkillName("$curtain:start")).toBe("curtain:start");
-		expect(normalizeSkillName("curtain:start")).toBe("curtain:start");
-		expect(normalizeSkillName("$curtain:run")).toBe("curtain:run");
-		expect(normalizeSkillName("curtain:run")).toBe("curtain:run");
+	it("returns empty string for dropped or invalid curtain runner commands", () => {
+		expect(normalizeSkillName("$curtain:start")).toBe("");
+		expect(normalizeSkillName("curtain:start")).toBe("");
+		expect(normalizeSkillName("$curtain:run")).toBe("");
+		expect(normalizeSkillName("curtain:run")).toBe("");
 	});
 
 	it("preserves foreign namespaces without collision", () => {
