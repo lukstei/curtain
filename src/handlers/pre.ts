@@ -1,15 +1,19 @@
 import type { HarnessType } from "../harnesses/types.ts";
 import { assertNever } from "../lib/assertNever.ts";
-import { parseCommand } from "../lib/parseCommand.ts";
+import { parseCommand, type UserIntent } from "../lib/parseCommand.ts";
 import type { Script } from "../parser/index.ts";
-import { loadScript, loadSkillScript } from "../resolver/index.ts";
+import { resolveIntentScript } from "../resolver/index.ts";
 import type { RunnerState } from "../state.ts";
 import {
 	executeResume,
 	executeStart,
 	formatIntermissionPrompt,
 } from "../transitions.ts";
-import type { HookInfo, PreHookResponse } from "../types.ts";
+import type {
+	HookInfo,
+	PreHookResponse,
+	ResolvedScriptResult,
+} from "../types.ts";
 
 export interface HandlerResult<T = PreHookResponse> {
 	state: RunnerState | null;
@@ -27,12 +31,32 @@ function startScript(
 	};
 }
 
-export function handlePre(
+/**
+ * Isolated side-effect function: resolves script associated with pre intent.
+ */
+function resolvePreScript(
+	intent: UserIntent,
 	info: Extract<HookInfo, { type: "pre" }>,
 	state: RunnerState | null,
-): HandlerResult<PreHookResponse> {
-	const intent = parseCommand(info.prompt, info.skillInvocationPath);
+): ResolvedScriptResult | undefined {
+	if (intent.type === "run" || (intent.type === "skill" && !state)) {
+		return resolveIntentScript(
+			intent,
+			info.workspacePath,
+			info.harness as HarnessType | undefined,
+		);
+	}
+	return undefined;
+}
 
+/**
+ * Pure evaluation function: computes next state and response given intent and resolved script.
+ */
+export function evaluatePreIntent(
+	intent: UserIntent,
+	state: RunnerState | null,
+	resolved?: ResolvedScriptResult,
+): HandlerResult<PreHookResponse> {
 	switch (intent.type) {
 		case "error":
 			return { state, response: { action: "inject", message: intent.error } };
@@ -56,27 +80,32 @@ export function handlePre(
 		}
 
 		case "run": {
-			const loaded = loadScript(intent.path, [info.workspacePath]);
-			if (!loaded || "error" in loaded) {
-				const msg = !loaded
-					? `Script file not found: "${intent.path}"`
-					: loaded.error;
-				return { state, response: { action: "inject", message: msg } };
+			if (!resolved || resolved.type === "none") {
+				return {
+					state,
+					response: {
+						action: "inject",
+						message: `Script file not found: "${intent.path}"`,
+					},
+				};
 			}
-			return startScript(loaded.script);
+			if (resolved.type === "error") {
+				return {
+					state,
+					response: { action: "inject", message: resolved.error },
+				};
+			}
+			return startScript(resolved.script);
 		}
 
 		case "skill": {
 			if (state) break;
 
-			const target = intent.targetPath ?? intent.skill?.name;
-			const script = loadSkillScript(
-				target,
-				info.workspacePath,
-				info.harness as HarnessType | undefined,
-			);
-			if (script) {
-				return startScript(script, intent.skill?.name);
+			if (resolved?.type === "resolved") {
+				return startScript(
+					resolved.script,
+					resolved.skillName ?? intent.skill?.name,
+				);
 			}
 			break;
 		}
@@ -100,4 +129,13 @@ export function handlePre(
 	}
 
 	return { state, response: { action: "pass" } };
+}
+
+export function handlePre(
+	info: Extract<HookInfo, { type: "pre" }>,
+	state: RunnerState | null,
+): HandlerResult<PreHookResponse> {
+	const intent = parseCommand(info.prompt, info.skillInvocationPath);
+	const resolved = resolvePreScript(intent, info, state);
+	return evaluatePreIntent(intent, state, resolved);
 }

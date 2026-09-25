@@ -1,3 +1,5 @@
+import type { Script } from "./parser/index.ts";
+
 export interface LatestMessage {
 	type: string;
 	content: string;
@@ -10,6 +12,11 @@ export interface ToolCall {
 	name: string;
 	args: Record<string, unknown>;
 }
+
+export type ResolvedScriptResult =
+	| { type: "resolved"; script: Script; skillName?: string }
+	| { type: "error"; error: string }
+	| { type: "none" };
 
 type BaseHookInfo = {
 	conversationId: string;

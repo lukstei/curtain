@@ -2,8 +2,6 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { getLatestMessage } from "../lib/getLatestMessage.ts";
-import { normalizeSkillName } from "../resolver/index.ts";
-
 /** Extracts skill name and target file path from an embedded Markdown link mention. */
 export const SKILL_LINK_PATH_CAPTURE_REGEX =
 	/\[\$?([a-zA-Z0-9_.:-]+)\]\(([^)]+)\)/;
@@ -18,6 +16,7 @@ export const ANGLE_BRACKET_ENCLOSURE_REGEX = /^<|>$/g;
 import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,
+	defaultExtractSkillTarget,
 	extractToolCall,
 	getGenericSkillDirs,
 	resolveToolReadPath,
@@ -168,18 +167,7 @@ export const codexHarness: HarnessAdapter = {
 		);
 	},
 
-	extractSkillTarget(toolCall: ToolCall): string | null {
-		if (
-			toolCall.name === "Skill" ||
-			toolCall.name === "invoke_skill" ||
-			toolCall.name.endsWith("__Skill")
-		) {
-			const skill =
-				toolCall.args.skill ?? toolCall.args.name ?? toolCall.args.skill_name;
-			return typeof skill === "string" ? normalizeSkillName(skill) : null;
-		}
-		return null;
-	},
+	extractSkillTarget: defaultExtractSkillTarget,
 
 	extractLatestMessage(event: {
 		type: "pre" | "stop" | "tool";

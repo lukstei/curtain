@@ -3,8 +3,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { RunnerState } from "../state.ts";
-import type { HookInfo } from "../types.ts";
-import { handlePre } from "./pre.ts";
+import type { HookInfo, ResolvedScriptResult } from "../types.ts";
+import { evaluatePreIntent, handlePre } from "./pre.ts";
 
 describe("handlers/pre.ts", () => {
 	const tmpDir = path.join(os.tmpdir(), `curtain-pre-test-${Date.now()}`);
@@ -519,5 +519,27 @@ describe("handlers/pre.ts", () => {
 		expect(response.action === "inject" && response.message).toContain(
 			'Say "Act 1"',
 		);
+	});
+
+	it("executes purely without filesystem access via evaluatePreIntent", () => {
+		const intent = { type: "run" as const, path: "nonexistent.md" };
+		const resolved: ResolvedScriptResult = {
+			type: "resolved",
+			script: {
+				filePath: "/non-existent-pure-dir/playbook.md",
+				steps: [
+					{ index: 0, type: "auto", content: "Pure Step 1" },
+					{ index: 1, type: "auto", content: "Pure Step 2" },
+				],
+			},
+		};
+
+		const { state, response } = evaluatePreIntent(intent, null, resolved);
+		expect(state?.status).toBe("running");
+		expect(state?.currentStep).toBe(0);
+		expect(response).toEqual({
+			action: "inject",
+			message: expect.stringContaining("Pure Step 1"),
+		});
 	});
 });

@@ -4,6 +4,7 @@ import { loadScript } from "./resolver/index.ts";
 import { runShim } from "./shim/runtime-shim.ts";
 import { deleteState, loadState, saveState } from "./state.ts";
 import { executeResume, executeStart } from "./transitions.ts";
+import { getVersion } from "./version.ts";
 
 export interface ParsedCli {
 	command?: string;
@@ -79,7 +80,7 @@ export async function runCli(
 	}
 
 	if (parsed.options.version || parsed.command === "version") {
-		const version = "0.2.0";
+		const version = getVersion();
 		writeOut(version);
 		return { exitCode: 0, output: version };
 	}

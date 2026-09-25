@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import * as path from "node:path";
 import { getLatestMessage } from "../lib/getLatestMessage.ts";
+import { normalizeSkillName } from "../resolver/index.ts";
 import type { HookType, LatestMessage, ToolCall } from "../types.ts";
 import type { HarnessType, NormalizedEvent } from "./types.ts";
 
@@ -124,6 +125,19 @@ export function resolveToolReadPath(
 	if (typeof rawPath !== "string" || !rawPath.trim()) return null;
 	const target = rawPath.trim();
 	return path.isAbsolute(target) ? target : path.resolve(workspacePath, target);
+}
+
+export function defaultExtractSkillTarget(toolCall: ToolCall): string | null {
+	if (
+		toolCall.name === "Skill" ||
+		toolCall.name === "invoke_skill" ||
+		toolCall.name.endsWith("__Skill")
+	) {
+		const skill =
+			toolCall.args.skill ?? toolCall.args.name ?? toolCall.args.skill_name;
+		return typeof skill === "string" ? normalizeSkillName(skill) : null;
+	}
+	return null;
 }
 
 export function createNormalizedEvent(params: {

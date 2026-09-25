@@ -36,8 +36,11 @@ export function getLatestMessage(
 		const readSize = Math.min(stat.size, 256 * 1024);
 		const buffer = Buffer.alloc(readSize);
 		const fd = fs.openSync(transcriptPath, "r");
-		fs.readSync(fd, buffer, 0, readSize, stat.size - readSize);
-		fs.closeSync(fd);
+		try {
+			fs.readSync(fd, buffer, 0, readSize, stat.size - readSize);
+		} finally {
+			fs.closeSync(fd);
+		}
 
 		const chunk = buffer.toString("utf-8");
 		const lines = chunk.split("\n").filter((l) => l.trim().length > 0);

@@ -55,6 +55,13 @@ describe("cli.ts", () => {
 		);
 	});
 
+	it("displays version output matching package.json", async () => {
+		const { io, getOut } = createIo();
+		const res = await runCli(["--version"], io, env);
+		expect(res.exitCode).toBe(0);
+		expect(getOut().trim()).toBe("0.1.3");
+	});
+
 	it("runs playbook with start", async () => {
 		const fixturePath = path.join(tmpDir, "PLAYBOOK.md");
 		fs.mkdirSync(tmpDir, { recursive: true });

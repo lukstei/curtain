@@ -44,6 +44,16 @@ export function getDebugLogPath(
 		: path.join(base, "debug.log");
 }
 
+function isValidStep(step: unknown): boolean {
+	if (!step || typeof step !== "object") return false;
+	const s = step as Record<string, unknown>;
+	return (
+		typeof s.index === "number" &&
+		(s.type === "auto" || s.type === "pause") &&
+		typeof s.content === "string"
+	);
+}
+
 export function loadState(
 	conversationId: string,
 	env: NodeJS.ProcessEnv = process.env,
@@ -60,7 +70,8 @@ export function loadState(
 			typeof data.script !== "string" ||
 			(data.status !== "running" && data.status !== "paused") ||
 			typeof data.currentStep !== "number" ||
-			!Array.isArray(data.steps)
+			!Array.isArray(data.steps) ||
+			!data.steps.every(isValidStep)
 		) {
 			logDebug(`Corrupt state schema at ${filePath}`);
 			return null;

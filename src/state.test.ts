@@ -89,4 +89,28 @@ describe("state.ts", () => {
 		);
 		spy.mockRestore();
 	});
+
+	it("returns null and logs when state file has corrupt step schema", () => {
+		const sessionId = "test-session-corrupt-step";
+		const statePath = getStatePath(sessionId, env);
+		fs.mkdirSync(path.dirname(statePath), { recursive: true });
+		fs.writeFileSync(
+			statePath,
+			JSON.stringify({
+				script: "playbook.md",
+				status: "running",
+				currentStep: 0,
+				steps: [{ index: 0, type: "invalid-type", content: 123 }],
+			}),
+			"utf-8",
+		);
+
+		const spy = vi.spyOn(logDebugModule, "logDebug");
+		const loaded = loadState(sessionId, env);
+		expect(loaded).toBeNull();
+		expect(spy).toHaveBeenCalledWith(
+			expect.stringContaining("Corrupt state schema"),
+		);
+		spy.mockRestore();
+	});
 });

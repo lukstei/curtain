@@ -5,7 +5,6 @@ import { type HandlerResult, handlePre } from "./pre.ts";
 import { handleStop } from "./stop.ts";
 import { handlePreTool } from "./tool.ts";
 
-export { assertNever } from "../lib/assertNever.ts";
 export { type HandlerResult, handlePre } from "./pre.ts";
 export { handleStop } from "./stop.ts";
 export { handlePreTool } from "./tool.ts";

@@ -1,11 +1,11 @@
 // see reference docs: docs/harnesses/copilot.md
 import * as os from "node:os";
 import * as path from "node:path";
-import { normalizeSkillName } from "../resolver/index.ts";
 import type { HookResponse, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,
 	defaultExtractLatestMessage,
+	defaultExtractSkillTarget,
 	extractToolCall,
 	getGenericSkillDirs,
 	resolveToolReadPath,
@@ -106,18 +106,7 @@ export const copilotHarness: HarnessAdapter = {
 		);
 	},
 
-	extractSkillTarget(toolCall: ToolCall): string | null {
-		if (
-			toolCall.name === "Skill" ||
-			toolCall.name === "invoke_skill" ||
-			toolCall.name.endsWith("__Skill")
-		) {
-			const skill =
-				toolCall.args.skill ?? toolCall.args.name ?? toolCall.args.skill_name;
-			return typeof skill === "string" ? normalizeSkillName(skill) : null;
-		}
-		return null;
-	},
+	extractSkillTarget: defaultExtractSkillTarget,
 
 	extractLatestMessage: defaultExtractLatestMessage,
 

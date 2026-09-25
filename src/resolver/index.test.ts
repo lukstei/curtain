@@ -3,7 +3,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { stripAbsolutePath } from "../../tests/test-utils.ts";
-import { loadSkillScript, resolveScriptPath } from "./index.ts";
+import {
+	loadSkillScript,
+	resolveIntentScript,
+	resolveScriptPath,
+} from "./index.ts";
 
 describe("resolver.ts", () => {
 	let tmpDir: string;
@@ -114,6 +118,70 @@ describe("resolver.ts", () => {
 			expect(loadSkillScript(null)).toBeNull();
 			expect(loadSkillScript(undefined)).toBeNull();
 			expect(loadSkillScript("nonexistent-skill-target", tmpDir)).toBeNull();
+		});
+	});
+
+	describe("resolveIntentScript", () => {
+		it("resolves script for run intent when file exists", () => {
+			const res = resolveIntentScript(
+				{ type: "run", path: "PLAYBOOK.md" },
+				tmpDir,
+			);
+			expect(res.type).toBe("resolved");
+			if (res.type === "resolved") {
+				expect(res.script.filePath).toBe(scriptPath);
+			}
+		});
+
+		it("returns error for run intent when file does not exist", () => {
+			const res = resolveIntentScript(
+				{ type: "run", path: "nonexistent.md" },
+				tmpDir,
+			);
+			expect(res.type).toBe("error");
+			if (res.type === "error") {
+				expect(res.error).toContain("Script file not found");
+			}
+		});
+
+		it("resolves skill for skill intent when annotated playbook exists", () => {
+			const skillDir = path.join(
+				tmpDir,
+				".agents",
+				"skills",
+				"test-intent-skill",
+			);
+			fs.mkdirSync(skillDir, { recursive: true });
+			fs.writeFileSync(
+				path.join(skillDir, "SKILL.md"),
+				"---\nname: test-intent-skill\n---\n/curtain test-intent-skill",
+			);
+			fs.writeFileSync(
+				path.join(skillDir, "PLAYBOOK.md"),
+				"# Step 1\n> [!CURTAIN]\n# Step 2",
+			);
+
+			const res = resolveIntentScript(
+				{
+					type: "skill",
+					skill: { name: "test-intent-skill" },
+				},
+				tmpDir,
+			);
+			expect(res.type).toBe("resolved");
+			if (res.type === "resolved") {
+				expect(res.script.steps.length).toBe(2);
+				expect(res.skillName).toBe("test-intent-skill");
+			}
+		});
+
+		it("returns none for other intent types", () => {
+			expect(resolveIntentScript({ type: "next" }, tmpDir)).toEqual({
+				type: "none",
+			});
+			expect(resolveIntentScript({ type: "none" }, tmpDir)).toEqual({
+				type: "none",
+			});
 		});
 	});
 });
