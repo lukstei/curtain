@@ -249,6 +249,34 @@ describe("handlers/pre.ts", () => {
 		);
 	});
 
+	it("starts script on direct custom file invocation /curtain SMELLS.md", () => {
+		const smellsPath = path.join(tmpDir, "SMELLS.md");
+		fs.writeFileSync(
+			smellsPath,
+			["Phase 1", "> [!INTERMISSION] Review 1", "Phase 2"].join("\n"),
+		);
+
+		const info: HookInfo = {
+			type: "pre",
+			conversationId: "test-smells-direct",
+			workspacePath: tmpDir,
+			prompt: "/curtain SMELLS.md",
+			latestMessage: {
+				type: "USER_INPUT",
+				content: "/curtain SMELLS.md",
+			},
+		};
+
+		const { state, response } = handlePre(info, null, env);
+		expect(state?.status).toBe("running");
+		expect(state?.currentStep).toBe(0);
+		expect(state?.script).toBe(smellsPath);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain(
+			"[STEP 1 OF 2]",
+		);
+		expect(response.injectSteps?.[0]?.ephemeralMessage).toContain("Phase 1");
+	});
+
 	it("implicitly starts execution when user invokes an annotated skill via slash command", () => {
 		const skillDir = path.join(tmpDir, ".agents/skills/deploy-skill");
 		fs.mkdirSync(skillDir, { recursive: true });

@@ -23,17 +23,17 @@ export function resolveScriptPath(
 		}
 	}
 
-	// Reject any explicit file path that does not end in PLAYBOOK.md
-	if (
-		path.extname(cleanPath) &&
-		path.basename(cleanPath).toUpperCase() !== "PLAYBOOK.MD"
-	) {
-		return null;
+	// If an explicit file extension is provided, require markdown
+	if (path.extname(cleanPath)) {
+		const ext = path.extname(cleanPath).toLowerCase();
+		if (ext !== ".md" && ext !== ".markdown") {
+			return null;
+		}
 	}
 
 	const searchRoots = [...(workspacePaths ?? []), process.cwd()];
 
-	// 1. Check if cleanPath is or contains PLAYBOOK.md directly
+	// 1. Check if cleanPath is a direct file or directory containing PLAYBOOK.md
 	for (const root of searchRoots) {
 		const candidate = path.isAbsolute(cleanPath)
 			? cleanPath
@@ -41,11 +41,11 @@ export function resolveScriptPath(
 
 		if (fs.existsSync(candidate)) {
 			const stat = fs.statSync(candidate);
-			if (
-				stat.isFile() &&
-				path.basename(candidate).toUpperCase() === "PLAYBOOK.MD"
-			) {
-				return candidate;
+			if (stat.isFile()) {
+				const ext = path.extname(candidate).toLowerCase();
+				if (ext === ".md" || ext === ".markdown") {
+					return candidate;
+				}
 			}
 			if (stat.isDirectory()) {
 				const pb = path.join(candidate, "PLAYBOOK.md");
@@ -71,14 +71,13 @@ export function loadScript(
 ): { filePath: string; script: Script } | { error: string } | null {
 	const resolved = resolveScriptPath(targetPath, workspacePaths);
 	if (!resolved) {
-		if (
-			path.extname(targetPath) &&
-			path.basename(targetPath).toUpperCase() !== "PLAYBOOK.MD"
-		) {
-			return {
-				error:
-					"Curtain scripts must be named PLAYBOOK.md. Custom script files are not supported.",
-			};
+		if (path.extname(targetPath)) {
+			const ext = path.extname(targetPath).toLowerCase();
+			if (ext !== ".md" && ext !== ".markdown") {
+				return {
+					error: "Curtain scripts must be Markdown files (.md or .markdown).",
+				};
+			}
 		}
 		return null;
 	}

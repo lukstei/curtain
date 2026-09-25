@@ -60,6 +60,31 @@ describe("handlers/tool.ts", () => {
 		`);
 	});
 
+	it("denies reading custom active script file like SMELLS.md and dynamically formats reason", () => {
+		const customFile = path.join(testDir, "SMELLS.md");
+		fs.writeFileSync(customFile, "# Smells\n");
+		const customState: RunnerState = {
+			script: customFile,
+			status: "running",
+			currentStep: 0,
+			steps: [{ index: 0, type: "auto", content: "Step 1" }],
+		};
+
+		const info: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "view_file", args: {} },
+			readTargetFilePath: customFile,
+		};
+
+		const result = handlePreTool(info, customState);
+		expect(result.response.decision).toBe("deny");
+		expect(result.response.reason).toBe(
+			"BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect SMELLS.md.",
+		);
+	});
+
 	it("allows when readTargetFilePath points to SKILL.md", () => {
 		const skillFile = path.join(testDir, "SKILL.md");
 		fs.writeFileSync(skillFile, "# Skill Launcher\n");
