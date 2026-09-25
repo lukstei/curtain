@@ -5,42 +5,33 @@ import { describe, expect, it } from "vitest";
 import type { HarnessType } from "../src/harnesses/types.ts";
 import { runShim } from "../src/shim/runtime-shim.ts";
 import { loadState, type RunnerState } from "../src/state.ts";
+import {
+	findNormalizedTranscripts,
+	type NormalizedTranscriptItem,
+} from "./normalize-transcripts.ts";
 import { stripAbsolutePath } from "./test-utils.ts";
 
 const sanitizeState = (s: RunnerState | null) =>
 	s ? { script: s.script, status: s.status, currentStep: s.currentStep } : null;
-
-const fixtures = [
-	{
-		harness: "agy" as HarnessType,
-		conversationId: "66756276-9b45-4fd5-8c99-2d03252bf57c",
-	},
-	{
-		harness: "codex" as HarnessType,
-		conversationId: "01a0d54d-356d-77b3-bc97-04cbd84bb28b",
-	},
-];
 
 const sharedSnapshotPath = path.resolve(
 	import.meta.dirname,
 	"fixtures/transcripts/curtain-test.snapshot.json",
 );
 
-async function replayTranscript(harness: HarnessType, conversationId: string) {
+async function replayNormalizedTranscript(
+	harness: HarnessType,
+	conversationId: string,
+	filePath: string,
+) {
 	const repoRoot = path.resolve(import.meta.dirname, "..");
 	const workspacePath = path.join(repoRoot, "examples");
-	const fixturePath = path.resolve(
-		import.meta.dirname,
-		`fixtures/transcripts/${harness}/${conversationId}.jsonl`,
-	);
 
-	const normalizedContent = fs
-		.readFileSync(fixturePath, "utf-8")
-		.replace(/\/Users\/[^/\s"']+\/Downloads\/skill-test/g, workspacePath);
+	const rawJson = fs.readFileSync(filePath, "utf-8");
+	const replacedJson = rawJson.replaceAll("{{workspace}}", workspacePath);
+	const items: NormalizedTranscriptItem[] = JSON.parse(replacedJson);
 
-	const lines = normalizedContent.trim().split("\n").filter(Boolean);
 	const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "curtain-replay-"));
-	const mockTranscriptPath = path.join(tmpDir, "transcript.jsonl");
 
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
@@ -75,8 +66,6 @@ async function replayTranscript(harness: HarnessType, conversationId: string) {
 			workspacePaths: [workspacePath],
 			workspacePath,
 			cwd: workspacePath,
-			transcriptPath: mockTranscriptPath,
-			transcript_path: mockTranscriptPath,
 			...extra,
 		};
 		const egress = await runShim(hook, JSON.stringify(payload), env);
@@ -104,62 +93,24 @@ async function replayTranscript(harness: HarnessType, conversationId: string) {
 	};
 
 	try {
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i];
-			fs.appendFileSync(mockTranscriptPath, `${line}\n`);
-
-			let item: Record<string, unknown>;
-			try {
-				item = JSON.parse(line);
-			} catch {
-				continue;
-			}
-
-			if (harness === "codex") {
-				const payload = item.payload as Record<string, unknown> | undefined;
-				const meta = payload?.internal_chat_message_metadata_passthrough as
-					| Record<string, unknown>
-					| undefined;
-				const contentKinds = meta?.content_item_kinds as string[] | undefined;
-				const contentList = payload?.content as
-					| Array<{ text?: string }>
-					| undefined;
-
-				if (
-					item.type === "response_item" &&
-					payload?.role === "user" &&
-					contentKinds?.includes("user.text")
-				) {
-					await invoke("pre", {
+		for (const item of items) {
+			if (item.type === "user") {
+				await invoke("pre", {
+					prompt: item.content,
+					...(harness === "agy" && { invocationNum: invocationNum++ }),
+					...(harness === "codex" && {
 						hook_event_name: "UserPromptSubmit",
-						prompt: contentList?.[0]?.text,
-					});
-				} else if (
-					item.type === "response_item" &&
-					payload?.role === "assistant"
-				) {
-					await invoke("stop", {
-						hook_event_name: "Stop",
-						last_assistant_message: contentList?.[0]?.text,
-					});
-				}
-			} else {
-				if (item.type === "USER_INPUT" || item.source === "USER_EXPLICIT") {
-					await invoke("pre", {
-						invocationNum: invocationNum++,
-						prompt: typeof item.content === "string" ? item.content : undefined,
-					});
-				} else if (
-					item.type === "PLANNER_RESPONSE" ||
-					item.source === "MODEL"
-				) {
-					await invoke("stop", {
+					}),
+				});
+			} else if (item.type === "assistant") {
+				await invoke("stop", {
+					last_assistant_message: item.content,
+					...(harness === "agy" && {
 						terminationReason: "model_stop",
 						fullyIdle: true,
-						last_assistant_message:
-							typeof item.content === "string" ? item.content : undefined,
-					});
-				}
+					}),
+					...(harness === "codex" && { hook_event_name: "Stop" }),
+				});
 			}
 		}
 	} finally {
@@ -169,11 +120,17 @@ async function replayTranscript(harness: HarnessType, conversationId: string) {
 	return stripAbsolutePath(trace, repoRoot);
 }
 
+const fixtures = findNormalizedTranscripts();
+
 describe("Transcript Replay Integration", () => {
 	it.each(fixtures)(
 		"replays $harness transcript $conversationId against shared snapshot",
-		async ({ harness, conversationId }) => {
-			const trace = await replayTranscript(harness, conversationId);
+		async ({ harness, conversationId, filePath }) => {
+			const trace = await replayNormalizedTranscript(
+				harness,
+				conversationId,
+				filePath,
+			);
 			await expect(
 				`${JSON.stringify(trace, null, "\t")}\n`,
 			).toMatchFileSnapshot(sharedSnapshotPath);

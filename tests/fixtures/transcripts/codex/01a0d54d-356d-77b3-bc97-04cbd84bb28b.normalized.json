@@ -1,0 +1,30 @@
+[
+	{
+		"type": "user",
+		"content": "[$curtain-test]({{workspace}}/.agents/skills/curtain-test/SKILL.md) \n"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 1\n\nOnly `/next` will proceed."
+	},
+	{
+		"type": "user",
+		"content": "next\n"
+	},
+	{
+		"type": "assistant",
+		"content": "Execution is paused at the intermission. Only `/next` will proceed."
+	},
+	{
+		"type": "user",
+		"content": "[$curtain:next](/Users/Lukas.Steinbrecher/.codex/plugins/cache/curtain/curtain/0.2.0/skills/next/SKILL.md) \n"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 2"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 3"
+	}
+]

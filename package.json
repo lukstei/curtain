@@ -39,6 +39,7 @@
 		"test": "vitest run --reporter=minimal",
 		"test:watch": "vitest",
 		"test:update": "vitest run -u",
+		"fixtures:normalize": "node tests/normalize-transcripts.ts",
 		"verify": "npm run typecheck && npm run check && npm run test",
 		"check:clean": "test -z \"$(git status --porcelain)\" || (echo \"Error: Git working directory is not clean\" && exit 1)",
 		"dev:install:agy": "npm run build && node scripts/dev-install.js ~/.gemini/config/plugins/curtain",

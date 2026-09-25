@@ -1,0 +1,30 @@
+[
+	{
+		"type": "user",
+		"content": "<USER_REQUEST>\n/curtain-test \n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-09-24T00:50:33+02:00.\n\nThe user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:\n\n/curtain-test is a [Slash Command]:\n<SKILL>The user requested you read and use the \"curtain-test\" skill. The path to the skill file is:\n{{workspace}}/.agents/skills/curtain-test/SKILL.md</SKILL>\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Gemini 3.8 Flash (Low). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 1\n\nUse `/next` to proceed."
+	},
+	{
+		"type": "user",
+		"content": "<USER_REQUEST>\nnext\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-09-24T00:50:44+02:00.\n</ADDITIONAL_METADATA>"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 2\n\nOnly `/next` will proceed."
+	},
+	{
+		"type": "user",
+		"content": "<USER_REQUEST>\n/next \n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-09-24T00:50:54+02:00.\n\nThe user has mentioned some items in the form @[ITEM]. Here is extra information about the items that were mentioned by the user, in the order that they appear:\n\n/next is a [Slash Command]:\n<SKILL>The user requested you read and use the \"next\" skill. The path to the skill file is:\n/Users/Lukas.Steinbrecher/.gemini/config/plugins/curtain/skills/next/SKILL.md</SKILL>\n</ADDITIONAL_METADATA>"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 2"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 3"
+	}
+]
