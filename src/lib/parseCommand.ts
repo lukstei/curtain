@@ -16,7 +16,7 @@ export interface ParseResult {
 	error?: string;
 }
 
-function parseFilePath(raw: string): string | null {
+export function cleanFilePathArgument(raw: string): string | null {
 	const trimmed = raw.trim();
 	if (!trimmed) return null;
 
@@ -59,7 +59,7 @@ export function parseCommand(
 			}
 
 			if (!isCurtainPrefix && command === "curtain") {
-				const filePath = rest ? parseFilePath(rest) : null;
+				const filePath = rest ? cleanFilePathArgument(rest) : null;
 				if (filePath) {
 					return {
 						isCurtainCommand: true,
@@ -74,7 +74,7 @@ export function parseCommand(
 
 			if (isCurtainPrefix) {
 				if (command === "run" || command === "start") {
-					const filePath = rest ? parseFilePath(rest) : null;
+					const filePath = rest ? cleanFilePathArgument(rest) : null;
 					if (filePath) {
 						return {
 							isCurtainCommand: true,
@@ -88,7 +88,7 @@ export function parseCommand(
 				}
 
 				const fullArgs = [name, rest].filter(Boolean).join(" ");
-				const filePath = parseFilePath(fullArgs);
+				const filePath = cleanFilePathArgument(fullArgs);
 				if (filePath) {
 					return {
 						isCurtainCommand: true,
@@ -116,7 +116,7 @@ export function parseCommand(
 				name === "curtain:start" ||
 				name === "curtain:run"
 			) {
-				const filePath = rest ? parseFilePath(rest) : null;
+				const filePath = rest ? cleanFilePathArgument(rest) : null;
 				if (filePath) {
 					return {
 						isCurtainCommand: true,
@@ -136,7 +136,7 @@ export function parseCommand(
 		return { isCurtainCommand: true, command: { name: "next" } };
 	}
 	if (skillName === "curtain") {
-		const filePath = trimmed ? parseFilePath(trimmed) : null;
+		const filePath = trimmed ? cleanFilePathArgument(trimmed) : null;
 		if (filePath) {
 			return {
 				isCurtainCommand: true,

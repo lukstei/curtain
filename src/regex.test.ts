@@ -11,8 +11,6 @@ import {
 	FILE_BRACKET_REGEX,
 	FILE_QUOTE_REGEX,
 	LINE_SPLIT_REGEX,
-	RESOLVER_BRACKET_REGEX,
-	RESOLVER_QUOTE_REGEX,
 	SKILL_LINK_PATH_CAPTURE_REGEX,
 	SKILL_LINK_WITH_OPTIONAL_PATH_REGEX,
 	TERMINATION_CANCEL_REGEX,
@@ -399,21 +397,6 @@ describe("regex.ts", () => {
 			expect("@path/to/playbook.md".match(FILE_AT_REGEX)?.[1]).toBe(
 				"path/to/playbook.md",
 			);
-		});
-
-		it("matches exact resolver paths", () => {
-			expect("@[my/script.md]".match(RESOLVER_BRACKET_REGEX)?.[1]).toBe(
-				"my/script.md",
-			);
-			expect("@[my/script.md] extra".match(RESOLVER_BRACKET_REGEX)).toBeNull();
-
-			expect('"my/script.md"'.match(RESOLVER_QUOTE_REGEX)?.[1]).toBe(
-				"my/script.md",
-			);
-			expect("'my/script.md'".match(RESOLVER_QUOTE_REGEX)?.[1]).toBe(
-				"my/script.md",
-			);
-			expect('"my/script.md" extra'.match(RESOLVER_QUOTE_REGEX)).toBeNull();
 		});
 	});
 

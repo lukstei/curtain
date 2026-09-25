@@ -60,12 +60,6 @@ export const FILE_QUOTE_REGEX = /^["']([^"']+)["']/;
 /** Extracts an unquoted file path argument prefixed with `@` (e.g. `@path/to/file`). */
 export const FILE_AT_REGEX = /^@(\S+)/;
 
-/** Matches an exact bracketed file path for script resolution (e.g. `@[path]`). */
-export const RESOLVER_BRACKET_REGEX = /^@\[([^\]]+)\]$/;
-
-/** Matches an exact quoted file path for script resolution (e.g. `"path"`). */
-export const RESOLVER_QUOTE_REGEX = /^["']([^"']+)["']$/;
-
 // -----------------------------------------------------------------------------
 // Lifecycle, Hooks & Transcripts
 // -----------------------------------------------------------------------------

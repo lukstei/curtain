@@ -1,26 +1,17 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { cleanFilePathArgument } from "./lib/parseCommand.ts";
 import { resolvePlaybookPath } from "./lib/resolveSkill.ts";
 import { parseScript, type Script } from "./parser.ts";
-import { RESOLVER_BRACKET_REGEX, RESOLVER_QUOTE_REGEX } from "./regex.ts";
 
 export function resolveScriptPath(
 	userPath: string,
 	workspacePaths?: string[],
 	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
-	let cleanPath = userPath.trim();
-	const bracketMatch = cleanPath.match(RESOLVER_BRACKET_REGEX);
-	if (bracketMatch) {
-		cleanPath = bracketMatch[1].trim();
-	} else {
-		if (cleanPath.startsWith("@")) {
-			cleanPath = cleanPath.slice(1).trim();
-		}
-		const quoteMatch = cleanPath.match(RESOLVER_QUOTE_REGEX);
-		if (quoteMatch) {
-			cleanPath = quoteMatch[1].trim();
-		}
+	const cleanPath = cleanFilePathArgument(userPath);
+	if (!cleanPath) {
+		return null;
 	}
 
 	// If an explicit file extension is provided, require markdown

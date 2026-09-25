@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCommand } from "./parseCommand.ts";
+import { cleanFilePathArgument, parseCommand } from "./parseCommand.ts";
 
 describe("parseCommand.ts", () => {
 	it("parses slash commands", () => {
@@ -136,6 +136,28 @@ describe("parseCommand.ts", () => {
 		).toEqual({
 			isCurtainCommand: true,
 			command: { name: "run", path: "curtain-test" },
+		});
+	});
+
+	describe("cleanFilePathArgument", () => {
+		it("cleans bracket, quote, at-sign, and plain file path arguments", () => {
+			expect(cleanFilePathArgument("@[path/to/script.md]")).toBe(
+				"path/to/script.md",
+			);
+			expect(cleanFilePathArgument('"path/to/script.md"')).toBe(
+				"path/to/script.md",
+			);
+			expect(cleanFilePathArgument("'path/to/script.md'")).toBe(
+				"path/to/script.md",
+			);
+			expect(cleanFilePathArgument("@path/to/script.md")).toBe(
+				"path/to/script.md",
+			);
+			expect(cleanFilePathArgument("path/to/script.md extra")).toBe(
+				"path/to/script.md",
+			);
+			expect(cleanFilePathArgument("")).toBeNull();
+			expect(cleanFilePathArgument("   ")).toBeNull();
 		});
 	});
 });
