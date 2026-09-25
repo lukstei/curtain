@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MarkdownNode } from "./ast";
-import { parse } from "./parsing";
+import { type MarkdownNode, parse } from "./markdown.ts";
 
 describe("A Markdown parser function", () => {
 	type ParsingScenario = {

@@ -1,4 +1,6 @@
-import { TERMINATION_CANCEL_REGEX } from "../regex.ts";
+/** Detects cancellation, abort, or interrupt in termination reasons. */
+export const TERMINATION_CANCEL_REGEX = /cancel|abort|interrupt/i;
+
 import type { RunnerState } from "../state.ts";
 import { advanceExecution, formatStepPrompt } from "../transitions.ts";
 import type { HookInfo, StopHookResponse } from "../types.ts";

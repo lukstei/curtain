@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { resolveStorageDirFromHarnesses } from "./harnesses/index.ts";
 import { logDebug } from "./lib/logDebug.ts";
-import type { Step } from "./parser.ts";
+import type { Step } from "./parser/index.ts";
 
 export interface RunnerState {
 	script: string;

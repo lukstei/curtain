@@ -1,14 +1,31 @@
 import * as path from "node:path";
-import {
-	ANGLE_BRACKET_ENCLOSURE_REGEX,
-	BARE_SKILL_COMMAND_REGEX,
-	FILE_AT_REGEX,
-	FILE_BRACKET_REGEX,
-	FILE_QUOTE_REGEX,
-	SKILL_LINK_WITH_OPTIONAL_PATH_REGEX,
-	WHITESPACE_SPLIT_REGEX,
-} from "../regex.ts";
-import { type ParsedSkill, parseSkill } from "./parseSkill.ts";
+import { type ParsedSkill, parseSkill } from "../resolver/index.ts";
+
+/** Matches a Markdown skill link with optional path and optional trailing arguments. */
+export const SKILL_LINK_WITH_OPTIONAL_PATH_REGEX =
+	/^\[\$?([a-zA-Z0-9_.:-]+)\](?:\(([^)]+)\))?(?:\s+([\s\S]*))?$/;
+
+/** Matches a bare slash or dollar command invoking a skill (e.g. `/my-skill`, `$my-skill`). */
+export const BARE_SKILL_COMMAND_REGEX = /^[/$]([a-zA-Z0-9_.:-]+)$/;
+
+/** Strips enclosing `<` and `>` angle brackets from paths in Markdown links. */
+export const ANGLE_BRACKET_ENCLOSURE_REGEX = /^<|>$/g;
+
+/** Matches runner command prefix (/ or $ or /curtain: or $curtain:) and extracts the command name and rest. */
+export const COMMAND_REGEX = /^([/$]curtain[:\s]+|[/$])([^\s]+)(?:\s+(.*))?$/i;
+export const CURTAIN_COMMAND_REGEX = COMMAND_REGEX;
+
+/** Extracts a bracketed file path argument prefixed with `@` (e.g. `@[path/to/file]`). */
+export const FILE_BRACKET_REGEX = /^@\[([^\]]+)\]/;
+
+/** Extracts a quoted file path argument (e.g. `"path/to/file"`). */
+export const FILE_QUOTE_REGEX = /^["']([^"']+)["']/;
+
+/** Extracts an unquoted file path argument prefixed with `@` (e.g. `@path/to/file`). */
+export const FILE_AT_REGEX = /^@(\S+)/;
+
+/** Splits a string by one or more whitespace characters. */
+export const WHITESPACE_SPLIT_REGEX = /\s+/;
 
 export type UserIntent =
 	| { type: "next" }

@@ -2,12 +2,19 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { getLatestMessage } from "../lib/getLatestMessage.ts";
-import { normalizeSkillName } from "../lib/normalizeSkillName.ts";
-import {
-	ANGLE_BRACKET_ENCLOSURE_REGEX,
-	SKILL_LINK_PATH_CAPTURE_REGEX,
-	XML_SKILL_PATH_REGEX,
-} from "../regex.ts";
+import { normalizeSkillName } from "../resolver/index.ts";
+
+/** Extracts skill name and target file path from an embedded Markdown link mention. */
+export const SKILL_LINK_PATH_CAPTURE_REGEX =
+	/\[\$?([a-zA-Z0-9_.:-]+)\]\(([^)]+)\)/;
+
+/** Extracts the skill file path from a `<skill><path>...</path></skill>` XML block. */
+export const XML_SKILL_PATH_REGEX =
+	/<skill>[\s\S]*?<path>([^<]+)<\/path>[\s\S]*?<\/skill>/i;
+
+/** Strips enclosing `<` and `>` angle brackets from paths in Markdown links. */
+export const ANGLE_BRACKET_ENCLOSURE_REGEX = /^<|>$/g;
+
 import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,

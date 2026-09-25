@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { resolveConversationIdFromHarnesses } from "./harnesses/index.ts";
-import { loadScript } from "./resolver.ts";
+import { loadScript } from "./resolver/index.ts";
 import { runShim } from "./shim/runtime-shim.ts";
 import { deleteState, loadState, saveState } from "./state.ts";
 import { executeResume, executeStart } from "./transitions.ts";

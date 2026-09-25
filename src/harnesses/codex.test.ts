@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, expect, it } from "vitest";
 import {
+	ANGLE_BRACKET_ENCLOSURE_REGEX,
 	codexHarness,
 	extractCodexSkillPath,
 	parseCodexMessage,
+	SKILL_LINK_PATH_CAPTURE_REGEX,
+	XML_SKILL_PATH_REGEX,
 } from "./codex.ts";
 import type { NormalizedEvent } from "./types.ts";
 
@@ -408,6 +411,53 @@ describe("codexHarness", () => {
 					args: { path: "foo.md" },
 				}),
 			).toBeNull();
+		});
+	});
+
+	describe("Regular Expressions", () => {
+		it("captures skill link and path within text", () => {
+			const text =
+				"Please review [$curtain](plugins/curtain/skills/curtain/SKILL.md) before starting.";
+			const match = text.match(SKILL_LINK_PATH_CAPTURE_REGEX);
+
+			expect(
+				match ? { name: match[1], path: match[2] } : null,
+			).toMatchInlineSnapshot(`
+				{
+				  "name": "curtain",
+				  "path": "plugins/curtain/skills/curtain/SKILL.md",
+				}
+			`);
+		});
+
+		it("extracts skill path from XML block", () => {
+			const xml =
+				"<skill>\n  <name>curtain-test</name>\n  <path>/home/user/skills/curtain-test/SKILL.md</path>\n</skill>";
+			const match = xml.match(XML_SKILL_PATH_REGEX);
+
+			expect(match ? match[1] : null).toMatchInlineSnapshot(
+				`"/home/user/skills/curtain-test/SKILL.md"`,
+			);
+		});
+
+		it("strips enclosing angle brackets from path strings", () => {
+			const paths = [
+				"<path/to/file.md>",
+				"path/to/file.md",
+				"<only_start",
+				"only_end>",
+			];
+
+			expect(
+				paths.map((p) => p.replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "")),
+			).toMatchInlineSnapshot(`
+				[
+				  "path/to/file.md",
+				  "path/to/file.md",
+				  "only_start",
+				  "only_end",
+				]
+			`);
 		});
 	});
 });

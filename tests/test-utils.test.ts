@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stripAbsolutePath } from "./test-utils.ts";
+import { stripAbsolutePath, TRAILING_SLASHES_REGEX } from "./test-utils.ts";
 
 describe("test-utils", () => {
 	it("stripAbsolutePath normalizes paths and arrays correctly", () => {
@@ -37,6 +37,46 @@ describe("test-utils", () => {
 			    "nested": {
 			      "path": "file.ts",
 			    },
+			  },
+			]
+		`);
+	});
+
+	it("strips trailing slashes from path strings", () => {
+		const samples = [
+			"path/to/dir/",
+			"path/to/dir///",
+			"path\\to\\dir\\",
+			"path\\to\\dir\\\\\\",
+			"path/without/trailing",
+		];
+
+		expect(
+			samples.map((s) => ({
+				original: s,
+				cleaned: s.replace(TRAILING_SLASHES_REGEX, ""),
+			})),
+		).toMatchInlineSnapshot(`
+			[
+			  {
+			    "cleaned": "path/to/dir",
+			    "original": "path/to/dir/",
+			  },
+			  {
+			    "cleaned": "path/to/dir",
+			    "original": "path/to/dir///",
+			  },
+			  {
+			    "cleaned": "path\\to\\dir",
+			    "original": "path\\to\\dir\\",
+			  },
+			  {
+			    "cleaned": "path\\to\\dir",
+			    "original": "path\\to\\dir\\\\\\",
+			  },
+			  {
+			    "cleaned": "path/without/trailing",
+			    "original": "path/without/trailing",
 			  },
 			]
 		`);

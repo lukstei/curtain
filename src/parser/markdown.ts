@@ -3,7 +3,58 @@
  * Copyright (c) Croct Tech - MIT License
  */
 
-import type { MarkdownNode } from "./ast";
+type MarkdownNodeMap = {
+	text: {
+		content: string;
+	};
+	heading: {
+		depth: number;
+		children: MarkdownNode[];
+	};
+	bold: {
+		children: MarkdownNode;
+	};
+	italic: {
+		children: MarkdownNode;
+	};
+	strike: {
+		children: MarkdownNode;
+	};
+	code: {
+		content: string;
+	};
+	codeblock: {
+		language?: string;
+		content: string;
+	};
+	blockquote: {
+		children: MarkdownNode[];
+	};
+	link: {
+		href: string;
+		title?: string;
+		children: MarkdownNode;
+	};
+	image: {
+		src: string;
+		alt: string;
+	};
+	paragraph: {
+		children: MarkdownNode[];
+	};
+	fragment: {
+		children: MarkdownNode[];
+	};
+};
+
+export type MarkdownNodeType = keyof MarkdownNodeMap;
+
+export type MarkdownNode<T extends MarkdownNodeType = MarkdownNodeType> = {
+	[K in MarkdownNodeType]: MarkdownNodeMap[K] & {
+		type: K;
+		source: string;
+	};
+}[T];
 
 export function parse(markdown: string): MarkdownNode {
 	return MarkdownParser.parse(markdown);

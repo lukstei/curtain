@@ -5,12 +5,7 @@ export default defineConfig({
 		coverage: {
 			provider: "v8",
 			include: ["src/**/*.ts"],
-			exclude: [
-				"src/**/types.ts",
-				"src/lib/markdown/ast.ts",
-				"src/test-utils.ts",
-				"src/**/*.test.ts",
-			],
+			exclude: ["src/**/types.ts", "src/**/*.test.ts"],
 		},
 	},
 });

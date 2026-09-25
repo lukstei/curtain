@@ -1,12 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { HarnessType } from "./harnesses/types.ts";
-import { cleanFilePathArgument } from "./lib/parseCommand.ts";
-import {
-	hasCurtainAnnotations,
-	resolvePlaybookPath,
-} from "./lib/resolveSkill.ts";
-import { parseScript, type Script } from "./parser.ts";
+import type { HarnessType } from "../harnesses/types.ts";
+import { cleanFilePathArgument } from "../lib/parseCommand.ts";
+import { parseScript, type Script } from "../parser/index.ts";
+import { hasCurtainAnnotations, resolvePlaybookPath } from "./resolveSkill.ts";
+
+export * from "./parseSkill.ts";
+export * from "./resolveSkill.ts";
 
 export function resolveScriptPath(
 	userPath: string,

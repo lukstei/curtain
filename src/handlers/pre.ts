@@ -1,8 +1,8 @@
 import type { HarnessType } from "../harnesses/types.ts";
 import { assertNever } from "../lib/assertNever.ts";
 import { parseCommand } from "../lib/parseCommand.ts";
-import type { Script } from "../parser.ts";
-import { loadScript, loadSkillScript } from "../resolver.ts";
+import type { Script } from "../parser/index.ts";
+import { loadScript, loadSkillScript } from "../resolver/index.ts";
 import type { RunnerState } from "../state.ts";
 import {
 	executeResume,

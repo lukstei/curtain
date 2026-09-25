@@ -1,5 +1,6 @@
 import { logDebug } from "../lib/logDebug.ts";
-import { UTF8_BOM_REGEX } from "../regex.ts";
+/** Strips leading UTF-8 Byte Order Mark (BOM) from stdin input. */
+export const UTF8_BOM_REGEX = /^\uFEFF/;
 
 export function stripBom(text: string): string {
 	return text.replace(UTF8_BOM_REGEX, "");

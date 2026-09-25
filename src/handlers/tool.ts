@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { formatSkill, parseSkill } from "../lib/parseSkill.ts";
+import { formatSkill, parseSkill } from "../resolver/index.ts";
 import type { RunnerState } from "../state.ts";
 import type { HookInfo, ToolHookResponse } from "../types.ts";
 import type { HandlerResult } from "./pre.ts";

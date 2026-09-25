@@ -104,4 +104,25 @@ describe("handlers/stop.ts", () => {
 		expect(state).toBeNull();
 		expect(response).toEqual({ action: "allow" });
 	});
+
+	it("allows stop without advancing when termination reason indicates cancellation", () => {
+		const info: HookInfo = {
+			type: "stop",
+			conversationId: "c6",
+			workspacePath: "/test",
+			terminationReason: "User cancelled the operation",
+		};
+		const runningState: RunnerState = {
+			script: "sample.md",
+			status: "running",
+			currentStep: 0,
+			steps: [
+				{ index: 0, type: "auto", content: "Step 1" },
+				{ index: 1, type: "auto", content: "Step 2" },
+			],
+		};
+		const { state, response } = handleStop(info, runningState);
+		expect(state).toEqual(runningState);
+		expect(response).toEqual({ action: "allow" });
+	});
 });

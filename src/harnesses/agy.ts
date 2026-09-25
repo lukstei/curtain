@@ -2,12 +2,19 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { getLatestMessage } from "../lib/getLatestMessage.ts";
-import { normalizeSkillName } from "../lib/normalizeSkillName.ts";
-import {
-	AGY_SKILL_PATH_REGEX,
-	TERMINATION_CANCEL_REGEX,
-	USER_REQUEST_TAG_REGEX,
-} from "../regex.ts";
+import { normalizeSkillName } from "../resolver/index.ts";
+
+/** Extracts the skill file path from an Antigravity `<SKILL>` prompt block. */
+export const AGY_SKILL_PATH_REGEX =
+	/<SKILL>[\s\S]*?The path to the skill file is:\s*([^<]+?)<\/SKILL>/i;
+
+/** Detects cancellation, abort, or interrupt in termination reasons. */
+export const TERMINATION_CANCEL_REGEX = /cancel|abort|interrupt/i;
+
+/** Extracts the user prompt wrapped in Antigravity `<USER_REQUEST>` tags. */
+export const USER_REQUEST_TAG_REGEX =
+	/<USER_REQUEST>([\s\S]*?)<\/USER_REQUEST>/i;
+
 import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,

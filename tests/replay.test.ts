@@ -2,9 +2,9 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
-import type { HarnessType } from "./harnesses/types.ts";
-import { runShim } from "./shim/runtime-shim.ts";
-import { loadState, type RunnerState } from "./state.ts";
+import type { HarnessType } from "../src/harnesses/types.ts";
+import { runShim } from "../src/shim/runtime-shim.ts";
+import { loadState, type RunnerState } from "../src/state.ts";
 import { stripAbsolutePath } from "./test-utils.ts";
 
 const sanitizeState = (s: RunnerState | null) =>
@@ -23,7 +23,7 @@ const fixtures = [
 
 const sharedSnapshotPath = path.resolve(
 	import.meta.dirname,
-	"../tests/fixtures/transcripts/curtain-test.snapshot.json",
+	"fixtures/transcripts/curtain-test.snapshot.json",
 );
 
 async function replayTranscript(harness: HarnessType, conversationId: string) {
@@ -31,7 +31,7 @@ async function replayTranscript(harness: HarnessType, conversationId: string) {
 	const workspacePath = path.join(repoRoot, "examples");
 	const fixturePath = path.resolve(
 		import.meta.dirname,
-		`../tests/fixtures/transcripts/${harness}/${conversationId}.jsonl`,
+		`fixtures/transcripts/${harness}/${conversationId}.jsonl`,
 	);
 
 	const normalizedContent = fs

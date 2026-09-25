@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseScript } from "./parser.ts";
+import { parseScript } from "./parser/index.ts";
 import {
 	advanceExecution,
 	executeResume,

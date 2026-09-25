@@ -1,11 +1,19 @@
 import assert from "node:assert/strict";
-import type { MarkdownNode } from "./lib/markdown/ast.ts";
-import { parse } from "./lib/markdown/parsing.ts";
-import {
-	BLOCKQUOTE_PREFIX_REGEX,
-	CALLOUT_LINE_REGEX,
-	LINE_SPLIT_REGEX,
-} from "./regex.ts";
+import { type MarkdownNode, parse } from "./markdown.ts";
+
+/** Detects if a document contains at least one Curtain delimiter callout. */
+export const CALLOUT_ANNOTATION_REGEX =
+	/(?:^|\s)>\s*\[!(CURTAIN|INTERMISSION)\]/im;
+
+/** Matches a callout line inside a blockquote, capturing delimiter type and criteria. */
+export const CALLOUT_LINE_REGEX =
+	/^[ \t]*\[!(CURTAIN|INTERMISSION)\][ \t]*(.*)$/i;
+
+/** Strips leading blockquote `>` prefix and optional whitespace. */
+export const BLOCKQUOTE_PREFIX_REGEX = /^[ ]{0,3}>[ \t]?/;
+
+/** Splits text lines across Unix (`\n`) and Windows (`\r\n`) line endings. */
+export const LINE_SPLIT_REGEX = /\r?\n/;
 
 export interface Step {
 	index: number;

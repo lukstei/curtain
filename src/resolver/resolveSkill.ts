@@ -2,8 +2,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { getHarness, HARNESSES } from "../harnesses/index.ts";
 import type { HarnessType } from "../harnesses/types.ts";
-import { CALLOUT_ANNOTATION_REGEX } from "../regex.ts";
-import { logDebug } from "./logDebug.ts";
+import { logDebug } from "../lib/logDebug.ts";
+import { CALLOUT_ANNOTATION_REGEX } from "../parser/index.ts";
 
 /**
  * Checks whether a markdown file contains at least one Curtain delimiter annotation.

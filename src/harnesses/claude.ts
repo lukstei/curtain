@@ -1,7 +1,7 @@
 // see reference docs: docs/harnesses/claude.md
 import * as os from "node:os";
 import * as path from "node:path";
-import { normalizeSkillName } from "../lib/normalizeSkillName.ts";
+import { normalizeSkillName } from "../resolver/index.ts";
 import type { HookResponse, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,

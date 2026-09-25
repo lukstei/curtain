@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { Script, Step } from "./parser.ts";
+import type { Script, Step } from "./parser/index.ts";
 import type { RunnerState } from "./state.ts";
 
 export type AdvanceResult =

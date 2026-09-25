@@ -12,20 +12,25 @@
 
 ### Root (`src/`)
 - `cli.ts`: Entry point for the CLI, parsing subcommands and flags.
-- `parser.ts`: Generic Markdown AST parser splitting playbooks by callout delimiters (`> [!CURTAIN]`, `> [!INTERMISSION]`) with optional instructions.
 - `transitions.ts`: Pure state transition functions and status mutations for runner lifecycle.
 - `state.ts`: Reads, writes, and paths `curtain-state.json` on disk keyed by conversation ID.
-- `resolver.ts`: Locates and loads script files across workspace paths.
 - `types.ts`: TypeScript interfaces for hook payloads, egress responses, and messages.
-- `test-utils.ts`: Test utilities for path stripping and snapshot normalization across environments.
 
 ### Subsystems
+- `parser/`: Generic Markdown AST tokenizer and block parser splitting playbooks by callout delimiters (`> [!CURTAIN]`, `> [!INTERMISSION]`).
+- `resolver/`: Locates and loads script and skill files across workspace paths and harnesses.
 - `handlers/index.ts`: Deterministic hook dispatcher routing lifecycle events to pre or stop handlers.
 - `handlers/pre.ts`: Handles PreInvocation lifecycle hook, intercepting slash commands and user prompts.
 - `handlers/stop.ts`: Handles Stop lifecycle hook, auto-advancing, pausing at review curtains, and completing runs.
 - `harnesses/`: Adapters for agent environments (AGY, Claude Code, Codex, Copilot) normalizing ingress/egress.
+- `lib/assertNever.ts`: Exhaustiveness checking helper for union types.
 - `lib/getLatestMessage.ts`: Extracts the latest message from conversation transcript files across harnesses.
 - `lib/logDebug.ts`: File-based debug logger active when debug flags are set.
 - `lib/parseCommand.ts`: Extracts and parses runner slash commands from text inputs.
 - `shim/runtime-shim.ts`: Entry point for agent hook execution, detecting the harness and dispatching to handlers.
 - `shim/stdin.ts`: Reads and parses JSON payloads from standard input with timeout handling.
+
+### Tests (`tests/`)
+- `test-utils.ts`: Test utilities for path stripping and snapshot normalization across environments.
+- `replay.test.ts`: End-to-end transcript replay integration tests.
+- `fixtures/`: Recorded transcript logs and shared snapshot fixtures.

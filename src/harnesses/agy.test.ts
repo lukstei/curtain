@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, expect, it } from "vitest";
-import { agyHarness, parseAgyMessage } from "./agy.ts";
+import {
+	AGY_SKILL_PATH_REGEX,
+	agyHarness,
+	parseAgyMessage,
+	TERMINATION_CANCEL_REGEX,
+	USER_REQUEST_TAG_REGEX,
+} from "./agy.ts";
 import type { NormalizedEvent } from "./types.ts";
 
 function createMockEvent(
@@ -374,6 +380,70 @@ describe("agyHarness", () => {
 					args: { AbsolutePath: "/path/to/file" },
 				}),
 			).toBeNull();
+		});
+	});
+
+	describe("Regular Expressions & Prompt Parsing", () => {
+		it("strips user request tags", () => {
+			const tagged = "<USER_REQUEST>Write a function</USER_REQUEST>";
+			const untagged = "Write a function";
+
+			expect(tagged.replace(USER_REQUEST_TAG_REGEX, "$1")).toBe(
+				"Write a function",
+			);
+			expect(untagged.replace(USER_REQUEST_TAG_REGEX, "$1")).toBe(
+				"Write a function",
+			);
+		});
+
+		it("extracts skill path from AGY skill block", () => {
+			const agyPrompt =
+				"<SKILL>The path to the skill file is: /Users/dev/.gemini/skills/run/SKILL.md</SKILL>";
+			const match = agyPrompt.match(AGY_SKILL_PATH_REGEX);
+
+			expect(match ? match[1] : null).toMatchInlineSnapshot(
+				`"/Users/dev/.gemini/skills/run/SKILL.md"`,
+			);
+		});
+
+		it("detects termination cancel reasons", () => {
+			const reasons = [
+				"User cancelled the operation",
+				"Session aborted by user",
+				"Execution interrupted",
+				"Normal completion",
+				"Process timeout",
+			];
+
+			expect(
+				reasons.map((r) => ({
+					reason: r,
+					cancelled: TERMINATION_CANCEL_REGEX.test(r),
+				})),
+			).toMatchInlineSnapshot(`
+				[
+				  {
+				    "cancelled": true,
+				    "reason": "User cancelled the operation",
+				  },
+				  {
+				    "cancelled": true,
+				    "reason": "Session aborted by user",
+				  },
+				  {
+				    "cancelled": true,
+				    "reason": "Execution interrupted",
+				  },
+				  {
+				    "cancelled": false,
+				    "reason": "Normal completion",
+				  },
+				  {
+				    "cancelled": false,
+				    "reason": "Process timeout",
+				  },
+				]
+			`);
 		});
 	});
 });

@@ -2,8 +2,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { loadSkillScript, resolveScriptPath } from "./resolver.ts";
-import { stripAbsolutePath } from "./test-utils.ts";
+import { stripAbsolutePath } from "../../tests/test-utils.ts";
+import { loadSkillScript, resolveScriptPath } from "./index.ts";
 
 describe("resolver.ts", () => {
 	let tmpDir: string;

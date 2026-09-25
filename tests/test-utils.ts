@@ -1,5 +1,6 @@
 import * as path from "node:path";
-import { TRAILING_SLASHES_REGEX } from "./regex.ts";
+
+export const TRAILING_SLASHES_REGEX = /[/\\]+$/;
 
 const defaultRepoRoot = path.resolve(import.meta.dirname, "..");
 
