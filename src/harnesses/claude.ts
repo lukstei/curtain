@@ -12,6 +12,16 @@ import {
 } from "./common.ts";
 import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
 
+/** Extracts the command from Claude Code's `<command-name>` tag. */
+export const CLAUDE_COMMAND_NAME_REGEX =
+	/<command-name>([\s\S]*?)<\/command-name>/i;
+
+export function extractClaudePrompt(rawPrompt?: string): string | undefined {
+	if (!rawPrompt) return undefined;
+	const match = rawPrompt.match(CLAUDE_COMMAND_NAME_REGEX);
+	return match ? match[1].trim() : rawPrompt;
+}
+
 export const claudeHarness: HarnessAdapter = {
 	id: "claude",
 
@@ -46,8 +56,9 @@ export const claudeHarness: HarnessAdapter = {
 				? "stop"
 				: "pre";
 
-		const prompt =
-			typeof payload.prompt === "string" ? payload.prompt : undefined;
+		const prompt = extractClaudePrompt(
+			typeof payload.prompt === "string" ? payload.prompt : undefined,
+		);
 		const stopHookActive = Boolean(payload.stop_hook_active);
 		const toolCall = type === "tool" ? extractToolCall(payload) : null;
 		const readTargetFilePath = toolCall
@@ -111,8 +122,10 @@ export const claudeHarness: HarnessAdapter = {
 				return {
 					exitCode: 0,
 					stdout: JSON.stringify({
-						decision: "block",
-						reason: response.reason,
+						hookSpecificOutput: {
+							hookEventName: "Stop",
+							additionalContext: response.reason,
+						},
 					}),
 				};
 			}

@@ -1,0 +1,30 @@
+[
+	{
+		"type": "user",
+		"content": "<command-message>curtain-test</command-message>\n<command-name>/curtain-test</command-name>"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 1\n\nExecution paused for review. Type `/next` to advance to the next step."
+	},
+	{
+		"type": "user",
+		"content": "next"
+	},
+	{
+		"type": "assistant",
+		"content": "I see you typed \"next\", but to advance the playbook, please use the `/next` command (with the forward slash). That will trigger the Curtain runner to provide the next step."
+	},
+	{
+		"type": "user",
+		"content": "<command-message>curtain:next</command-message>\n<command-name>/curtain:next</command-name>"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 2"
+	},
+	{
+		"type": "assistant",
+		"content": "Step 3"
+	}
+]

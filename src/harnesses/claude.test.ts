@@ -170,8 +170,10 @@ describe("claudeHarness", () => {
 			expect(egress.exitCode).toBe(0);
 			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
 				{
-				  "decision": "block",
-				  "reason": "Execute step 2",
+				  "hookSpecificOutput": {
+				    "additionalContext": "Execute step 2",
+				    "hookEventName": "Stop",
+				  },
 				}
 			`);
 		});

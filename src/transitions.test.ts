@@ -270,7 +270,7 @@ describe("transitions.ts", () => {
 			instruction: "Ensure 100% pass rate",
 		};
 		expect(formatStepPrompt(stepWithPauseInstruction, 3)).toBe(
-			"[STEP 1 OF 3]\n\nRun test suite\n\n[INTERMISSION CRITERIA]\nEnsure 100% pass rate\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+			"[STEP 1 OF 3]\n\nRun test suite\n\n[INTERMISSION CRITERIA]\nEnsure 100% pass rate\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, summarize your work in the review sidebar/artifact (if available), inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step. Do NOT invoke runner tools or /next yourself.",
 		);
 
 		const stepWithAutoInstruction = {
@@ -296,6 +296,8 @@ describe("transitions.ts", () => {
 
 			- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.
 
+			- Do NOT attempt to invoke runner tools or /next yourself; only the user can advance execution by typing /next.
+
 			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step."
 		`);
 
@@ -314,6 +316,8 @@ describe("transitions.ts", () => {
 
 			- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.
 
+			- Do NOT attempt to invoke runner tools or /next yourself; only the user can advance execution by typing /next.
+
 			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step."
 		`);
 	});
@@ -329,7 +333,7 @@ describe("transitions.ts", () => {
 
 				Step 1: Scaffolding
 
-				Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+				Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, summarize your work in the review sidebar/artifact (if available), inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step. Do NOT invoke runner tools or /next yourself.",
 				  "nextState": {
 				    "currentStep": 0,
 				    "script": "sample.md",

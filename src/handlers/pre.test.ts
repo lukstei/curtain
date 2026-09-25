@@ -156,6 +156,8 @@ describe("handlers/pre.ts", () => {
 
 			- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.
 
+			- Do NOT attempt to invoke runner tools or /next yourself; only the user can advance execution by typing /next.
+
 			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step.",
 			}
 		`);
@@ -190,6 +192,8 @@ describe("handlers/pre.ts", () => {
 			- Present your completed work or findings clearly for the user to review, using the review sidebar artifact if applicable.
 
 			- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.
+
+			- Do NOT attempt to invoke runner tools or /next yourself; only the user can advance execution by typing /next.
 
 			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step.",
 			}

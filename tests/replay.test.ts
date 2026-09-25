@@ -45,6 +45,10 @@ async function replayNormalizedTranscript(
 			PLUGIN_DATA: tmpDir,
 			CODEX_SESSION_ID: conversationId,
 		}),
+		...(harness === "claude" && {
+			CLAUDE_PLUGIN_DATA: tmpDir,
+			CLAUDE_CODE_SESSION_ID: conversationId,
+		}),
 	};
 
 	const trace: Array<{
@@ -71,17 +75,32 @@ async function replayNormalizedTranscript(
 		const egress = await runShim(hook, JSON.stringify(payload), env);
 		const out = egress.stdout ? JSON.parse(egress.stdout) : {};
 
-		const decision =
-			out.decision === "block"
-				? "continue"
-				: (out.decision ?? (hook === "stop" ? "allow" : undefined));
-		const reason = out.reason;
 		const injectedMessage =
 			out.injectSteps?.[0]?.ephemeralMessage ??
 			out.hookSpecificOutput?.additionalContext;
-		const injectSteps = injectedMessage
-			? [{ ephemeralMessage: injectedMessage }]
-			: undefined;
+
+		let decision: string | undefined;
+		let reason: string | undefined;
+		let injectSteps: unknown[] | undefined;
+
+		if (hook === "stop") {
+			if (
+				out.decision === "block" ||
+				out.decision === "continue" ||
+				injectedMessage
+			) {
+				decision = "continue";
+				reason = out.reason ?? injectedMessage;
+			} else {
+				decision = "allow";
+			}
+		} else {
+			decision = out.decision;
+			reason = out.reason;
+			if (injectedMessage) {
+				injectSteps = [{ ephemeralMessage: injectedMessage }];
+			}
+		}
 
 		trace.push({
 			hook,
@@ -101,6 +120,9 @@ async function replayNormalizedTranscript(
 					...(harness === "codex" && {
 						hook_event_name: "UserPromptSubmit",
 					}),
+					...(harness === "claude" && {
+						hook_event_name: "UserPromptSubmit",
+					}),
 				});
 			} else if (item.type === "assistant") {
 				await invoke("stop", {
@@ -110,6 +132,7 @@ async function replayNormalizedTranscript(
 						fullyIdle: true,
 					}),
 					...(harness === "codex" && { hook_event_name: "Stop" }),
+					...(harness === "claude" && { hook_event_name: "Stop" }),
 				});
 			}
 		}

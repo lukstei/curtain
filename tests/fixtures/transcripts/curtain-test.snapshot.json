@@ -3,7 +3,7 @@
 		"hook": "pre",
 		"injectSteps": [
 			{
-				"ephemeralMessage": "[STEP 1 OF 3]\n\nThis is a test skill to see if the the plugin works, follow instructions exactly.\n\nSay \"Step 1\"\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps."
+				"ephemeralMessage": "[STEP 1 OF 3]\n\nThis is a test skill to see if the the plugin works, follow instructions exactly.\n\nSay \"Step 1\"\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, summarize your work in the review sidebar/artifact (if available), inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step. Do NOT invoke runner tools or /next yourself."
 			}
 		],
 		"state": {
@@ -25,7 +25,7 @@
 		"hook": "pre",
 		"injectSteps": [
 			{
-				"ephemeralMessage": "[INTERMISSION REVIEW]\n\nExecution is PAUSED at an intermission for human review.\n\n- Follow and execute all instructions, adjustments, or questions given by the user in their prompt.\n\n- Present your completed work or findings clearly for the user to review, using the review sidebar artifact if applicable.\n\n- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.\n\n- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step."
+				"ephemeralMessage": "[INTERMISSION REVIEW]\n\nExecution is PAUSED at an intermission for human review.\n\n- Follow and execute all instructions, adjustments, or questions given by the user in their prompt.\n\n- Present your completed work or findings clearly for the user to review, using the review sidebar artifact if applicable.\n\n- Do NOT execute, advance to, or anticipate any DOWNSTREAM or FUTURE steps from the playbook script.\n\n- Do NOT attempt to invoke runner tools or /next yourself; only the user can advance execution by typing /next.\n\n- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step."
 			}
 		],
 		"state": {

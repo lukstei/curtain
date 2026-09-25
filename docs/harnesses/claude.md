@@ -37,6 +37,6 @@ As implemented in [`src/harnesses/claude.ts`](../../src/harnesses/claude.ts#L145
 | **Tool Matchers** | Pipe-delimited string (e.g. `"Bash|Edit|Write"`) |
 | **Blocking Mechanism** | **Exit Code 2** (+ explanation written to `stderr`) |
 | **Context Injection** | `{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "..."}}` |
-| **Autonomous Loop Continuation** | `Stop`: `{"decision": "block", "reason": "..."}` with exit code `0` |
+| **Autonomous Loop Continuation** | `Stop`: `{"hookSpecificOutput": {"hookEventName": "Stop", "additionalContext": "..."}}` with exit code `0` |
 | **Root Environment Variable** | `CLAUDE_PLUGIN_ROOT` |
 | **State Storage Variable** | `CLAUDE_PLUGIN_DATA` |

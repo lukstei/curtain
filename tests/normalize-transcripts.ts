@@ -91,6 +91,45 @@ export function normalizeTranscript(
 					content: sanitizeWorkspacePath(item.content),
 				});
 			}
+		} else if (harness === "claude") {
+			if (item.type === "user") {
+				const msg = item.message as Record<string, unknown> | undefined;
+				if (typeof msg?.content === "string") {
+					result.push({
+						type: "user",
+						content: sanitizeWorkspacePath(msg.content),
+					});
+				} else if (Array.isArray(msg?.content)) {
+					const textItem = msg.content.find(
+						(c: { type?: string; text?: string }) =>
+							c.type === "text" && typeof c.text === "string",
+					);
+					if (
+						textItem &&
+						typeof textItem.text === "string" &&
+						!textItem.text.startsWith("Base directory for this skill:")
+					) {
+						result.push({
+							type: "user",
+							content: sanitizeWorkspacePath(textItem.text),
+						});
+					}
+				}
+			} else if (item.type === "assistant") {
+				const msg = item.message as Record<string, unknown> | undefined;
+				if (Array.isArray(msg?.content)) {
+					const textItem = msg.content.find(
+						(c: { type?: string; text?: string }) =>
+							c.type === "text" && typeof c.text === "string",
+					);
+					if (textItem && typeof textItem.text === "string") {
+						result.push({
+							type: "assistant",
+							content: sanitizeWorkspacePath(textItem.text),
+						});
+					}
+				}
+			}
 		}
 	}
 
