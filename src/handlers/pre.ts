@@ -11,10 +11,9 @@ import type { Script } from "../parser.ts";
 import { loadScript } from "../resolver.ts";
 import type { RunnerState } from "../state.ts";
 import {
+	executeResume,
+	executeStart,
 	formatIntermissionPrompt,
-	formatStepPrompt,
-	resumeExecution,
-	startExecution,
 } from "../transitions.ts";
 import type { HookInfo, PreHookResponse } from "../types.ts";
 
@@ -27,12 +26,10 @@ function startScript(
 	script: Script,
 	skillName?: string,
 ): HandlerResult<PreHookResponse> {
-	const nextState = startExecution(script, skillName);
-	const firstStep = nextState.steps[0];
-	const msg = formatStepPrompt(firstStep, nextState.steps.length);
+	const res = executeStart(script, skillName);
 	return {
-		state: nextState,
-		response: { action: "inject", message: msg },
+		state: res.nextState,
+		response: { action: "inject", message: res.message },
 	};
 }
 
@@ -57,21 +54,10 @@ export function handlePre(
 				};
 			}
 
-			const res = resumeExecution(state);
-			if (res.action === "error")
-				return { state, response: { action: "inject", message: res.error } };
-			if (res.action === "finish")
-				return {
-					state: null,
-					response: { action: "inject", message: "Execution complete." },
-				};
-
+			const res = executeResume(state);
 			return {
-				state: res.state,
-				response: {
-					action: "inject",
-					message: formatStepPrompt(res.step, res.state.steps.length),
-				},
+				state: res.nextState,
+				response: { action: "inject", message: res.message },
 			};
 		}
 

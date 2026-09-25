@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { parseScript } from "./parser.ts";
 import {
 	advanceExecution,
+	executeResume,
+	executeStart,
 	formatIntermissionPrompt,
 	formatStepPrompt,
 	resumeExecution,
@@ -314,5 +316,145 @@ describe("transitions.ts", () => {
 
 			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step."
 		`);
+	});
+
+	describe("executeStart", () => {
+		it("initializes execution and formats the first step prompt", () => {
+			const res = executeStart(sampleScript);
+			expect(res).toMatchInlineSnapshot(`
+				{
+				  "message": "[STEP 1 OF 3]
+
+				# Script Title
+
+				Step 1: Scaffolding
+
+				Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+				  "nextState": {
+				    "currentStep": 0,
+				    "script": "sample.md",
+				    "status": "running",
+				    "steps": [
+				      {
+				        "content": "# Script Title
+
+				Step 1: Scaffolding",
+				        "index": 0,
+				        "type": "pause",
+				      },
+				      {
+				        "content": "Step 2: Verification",
+				        "index": 1,
+				        "type": "auto",
+				      },
+				      {
+				        "content": "Step 3: Cleanup",
+				        "index": 2,
+				        "type": "auto",
+				      },
+				    ],
+				  },
+				}
+			`);
+		});
+
+		it("initializes execution with optional skillName", () => {
+			const res = executeStart(sampleScript, "curtain-skill");
+			expect(res.nextState.skillName).toBe("curtain-skill");
+		});
+	});
+
+	describe("executeResume", () => {
+		it("returns error action when runner is not paused", () => {
+			const state = startExecution(sampleScript);
+			const res = executeResume(state);
+			expect(res).toMatchInlineSnapshot(`
+				{
+				  "action": "error",
+				  "message": "The curtain is not currently paused.",
+				  "nextState": {
+				    "currentStep": 0,
+				    "script": "sample.md",
+				    "status": "running",
+				    "steps": [
+				      {
+				        "content": "# Script Title
+
+				Step 1: Scaffolding",
+				        "index": 0,
+				        "type": "pause",
+				      },
+				      {
+				        "content": "Step 2: Verification",
+				        "index": 1,
+				        "type": "auto",
+				      },
+				      {
+				        "content": "Step 3: Cleanup",
+				        "index": 2,
+				        "type": "auto",
+				      },
+				    ],
+				  },
+				}
+			`);
+		});
+
+		it("advances to next step with formatted prompt when paused", () => {
+			const state = startExecution(sampleScript);
+			const pausedState = { ...state, status: "paused" as const };
+			const res = executeResume(pausedState);
+			expect(res).toMatchInlineSnapshot(`
+				{
+				  "action": "advance",
+				  "message": "[STEP 2 OF 3]
+
+				Step 2: Verification
+
+				Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+				  "nextState": {
+				    "currentStep": 1,
+				    "script": "sample.md",
+				    "status": "running",
+				    "steps": [
+				      {
+				        "content": "# Script Title
+
+				Step 1: Scaffolding",
+				        "index": 0,
+				        "type": "pause",
+				      },
+				      {
+				        "content": "Step 2: Verification",
+				        "index": 1,
+				        "type": "auto",
+				      },
+				      {
+				        "content": "Step 3: Cleanup",
+				        "index": 2,
+				        "type": "auto",
+				      },
+				    ],
+				  },
+				}
+			`);
+		});
+
+		it("returns finish action when resuming at final step", () => {
+			const state = startExecution(sampleScript);
+			const finalPausedState = {
+				...state,
+				currentStep: 2,
+				status: "paused" as const,
+			};
+			const res = executeResume(finalPausedState);
+			expect(res).toMatchInlineSnapshot(`
+				{
+				  "action": "finish",
+				  "message": "Execution complete.",
+				  "nextState": null,
+				}
+			`);
+		});
 	});
 });

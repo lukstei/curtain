@@ -122,3 +122,52 @@ export function formatStepPrompt(step: Step, totalSteps: number): string {
 		: "";
 	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.`;
 }
+
+export interface ExecuteStartResult {
+	nextState: RunnerState;
+	message: string;
+}
+
+/**
+ * High-level domain operation: initializes execution and formats the first step prompt.
+ */
+export function executeStart(
+	script: Script,
+	skillName?: string,
+): ExecuteStartResult {
+	const nextState = startExecution(script, skillName);
+	const firstStep = nextState.steps[0];
+	const message = formatStepPrompt(firstStep, nextState.steps.length);
+	return { nextState, message };
+}
+
+export type ExecuteResumeResult =
+	| { action: "advance"; nextState: RunnerState; message: string }
+	| { action: "finish"; nextState: null; message: string }
+	| { action: "error"; nextState: RunnerState; message: string };
+
+/**
+ * High-level domain operation: resumes execution from a gate, formatting the prompt or completion.
+ */
+export function executeResume(state: RunnerState): ExecuteResumeResult {
+	const res = resumeExecution(state);
+	if (res.action === "error") {
+		return {
+			action: "error",
+			nextState: state,
+			message: res.error,
+		};
+	}
+	if (res.action === "finish") {
+		return {
+			action: "finish",
+			nextState: null,
+			message: "Execution complete.",
+		};
+	}
+	return {
+		action: "advance",
+		nextState: res.state,
+		message: formatStepPrompt(res.step, res.state.steps.length),
+	};
+}

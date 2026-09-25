@@ -3,11 +3,7 @@ import { resolveConversationIdFromHarnesses } from "./harnesses/index.ts";
 import { loadScript } from "./resolver.ts";
 import { runShim } from "./shim/runtime-shim.ts";
 import { deleteState, loadState, saveState } from "./state.ts";
-import {
-	formatStepPrompt,
-	resumeExecution,
-	startExecution,
-} from "./transitions.ts";
+import { executeResume, executeStart } from "./transitions.ts";
 
 export interface ParsedCli {
 	command?: string;
@@ -108,23 +104,21 @@ export async function runCli(
 			return { exitCode: 1, output: err };
 		}
 
-		const res = resumeExecution(state);
+		const res = executeResume(state);
 		if (res.action === "error") {
-			writeErr(res.error);
-			return { exitCode: 1, output: res.error };
+			writeErr(res.message);
+			return { exitCode: 1, output: res.message };
 		}
 
 		if (res.action === "finish") {
 			deleteState(conversationId, env);
-			const msg = "Execution complete.";
-			writeOut(msg);
-			return { exitCode: 0, output: msg };
+			writeOut(res.message);
+			return { exitCode: 0, output: res.message };
 		}
 
-		saveState(conversationId, res.state, env);
-		const msg = formatStepPrompt(res.step, res.state.steps.length);
-		writeOut(msg);
-		return { exitCode: 0, output: msg };
+		saveState(conversationId, res.nextState, env);
+		writeOut(res.message);
+		return { exitCode: 0, output: res.message };
 	}
 
 	// Check for start / run or direct file argument
@@ -141,12 +135,10 @@ export async function runCli(
 			return { exitCode: 1, output: err };
 		}
 
-		const nextState = startExecution(loaded.script);
-		saveState(conversationId, nextState, env);
-		const firstStep = nextState.steps[0];
-		const msg = formatStepPrompt(firstStep, nextState.steps.length);
-		writeOut(msg);
-		return { exitCode: 0, output: msg };
+		const res = executeStart(loaded.script);
+		saveState(conversationId, res.nextState, env);
+		writeOut(res.message);
+		return { exitCode: 0, output: res.message };
 	}
 
 	const helpText = getCliHelp();
