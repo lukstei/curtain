@@ -1,14 +1,8 @@
-import { resolveToolReadPath } from "../harnesses/common.ts";
 import type { HarnessType } from "../harnesses/types.ts";
 import { assertNever } from "../lib/assertNever.ts";
 import { parseCommand } from "../lib/parseCommand.ts";
-import {
-	hasCurtainAnnotations,
-	resolvePlaybookPath,
-	resolveSkillPath,
-} from "../lib/resolveSkill.ts";
 import type { Script } from "../parser.ts";
-import { loadScript } from "../resolver.ts";
+import { loadScript, loadSkillScript } from "../resolver.ts";
 import type { RunnerState } from "../state.ts";
 import {
 	executeResume,
@@ -75,29 +69,14 @@ export function handlePre(
 		case "skill": {
 			if (state) break;
 
-			const targetSkillPath = intent.targetPath
-				? resolveToolReadPath(intent.targetPath, info.workspacePath)
-				: intent.skill
-					? resolveSkillPath(
-							intent.skill.name,
-							info.harness as HarnessType | undefined,
-							info.workspacePath,
-						)
-					: null;
-
-			if (!targetSkillPath) break;
-
-			const harness = info.harness as HarnessType | undefined;
-			const playbookPath = resolvePlaybookPath(
-				targetSkillPath,
-				harness,
+			const target = intent.targetPath ?? intent.skill?.name;
+			const script = loadSkillScript(
+				target,
 				info.workspacePath,
+				info.harness as HarnessType | undefined,
 			);
-			if (!playbookPath || !hasCurtainAnnotations(playbookPath)) break;
-
-			const loaded = loadScript(playbookPath, [info.workspacePath]);
-			if (loaded && !("error" in loaded) && loaded.script.steps.length > 1) {
-				return startScript(loaded.script, intent.skill?.name);
+			if (script) {
+				return startScript(script, intent.skill?.name);
 			}
 			break;
 		}

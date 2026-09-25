@@ -1,7 +1,11 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import type { HarnessType } from "./harnesses/types.ts";
 import { cleanFilePathArgument } from "./lib/parseCommand.ts";
-import { resolvePlaybookPath } from "./lib/resolveSkill.ts";
+import {
+	hasCurtainAnnotations,
+	resolvePlaybookPath,
+} from "./lib/resolveSkill.ts";
 import { parseScript, type Script } from "./parser.ts";
 
 export function resolveScriptPath(
@@ -81,4 +85,29 @@ export function loadScript(
 		const message = err instanceof Error ? err.message : String(err);
 		return { error: `Failed to load script "${targetPath}": ${message}` };
 	}
+}
+
+/**
+ * Loads a multi-step Curtain script associated with a skill or target path.
+ * Verifies that the resolved playbook exists, contains curtain callout annotations,
+ * and contains more than one step.
+ */
+export function loadSkillScript(
+	target?: string | null,
+	workspacePath = ".",
+	harness?: HarnessType,
+): Script | null {
+	if (!target?.trim()) return null;
+
+	const playbookPath = resolvePlaybookPath(target, harness, workspacePath);
+	if (!playbookPath || !hasCurtainAnnotations(playbookPath)) {
+		return null;
+	}
+
+	const loaded = loadScript(playbookPath, [workspacePath]);
+	if (!loaded || "error" in loaded || loaded.script.steps.length <= 1) {
+		return null;
+	}
+
+	return loaded.script;
 }
