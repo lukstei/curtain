@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { resolveStorageDirFromHarnesses } from "./harnesses/index.ts";
+import { logDebug } from "./lib/logDebug.ts";
 import type { Step } from "./parser.ts";
 
 export interface RunnerState {
@@ -47,9 +48,10 @@ export function loadState(
 	conversationId: string,
 	env: NodeJS.ProcessEnv = process.env,
 ): RunnerState | null {
+	const filePath = getStatePath(conversationId, env);
+	if (!fs.existsSync(filePath)) return null;
+
 	try {
-		const filePath = getStatePath(conversationId, env);
-		if (!fs.existsSync(filePath)) return null;
 		const raw = fs.readFileSync(filePath, "utf-8");
 		const data = JSON.parse(raw);
 		if (
@@ -60,10 +62,15 @@ export function loadState(
 			typeof data.currentStep !== "number" ||
 			!Array.isArray(data.steps)
 		) {
+			logDebug(`Corrupt state schema at ${filePath}`);
 			return null;
 		}
 		return data as RunnerState;
-	} catch {
+	} catch (err) {
+		const isEnoent = (err as NodeJS.ErrnoException).code === "ENOENT";
+		if (!isEnoent) {
+			logDebug(`Failed to read state file at ${filePath}`, err);
+		}
 		return null;
 	}
 }
@@ -85,12 +92,15 @@ export function deleteState(
 	conversationId: string,
 	env: NodeJS.ProcessEnv = process.env,
 ): void {
+	const filePath = getStatePath(conversationId, env);
 	try {
-		const filePath = getStatePath(conversationId, env);
 		if (fs.existsSync(filePath)) {
 			fs.unlinkSync(filePath);
 		}
-	} catch {
-		// Ignore unlink errors
+	} catch (err) {
+		const isEnoent = (err as NodeJS.ErrnoException).code === "ENOENT";
+		if (!isEnoent) {
+			logDebug(`Failed to delete state file at ${filePath}`, err);
+		}
 	}
 }

@@ -1,6 +1,8 @@
+import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as logDebugModule from "./lib/logDebug.ts";
 import type { RunnerState } from "./state.ts";
 import { deleteState, getStatePath, loadState, saveState } from "./state.ts";
 
@@ -55,5 +57,36 @@ describe("state.ts", () => {
 		expect(loaded).toEqual(sampleState);
 
 		deleteState(sessionId, env);
+	});
+
+	it("returns null and logs when state file contains invalid JSON", () => {
+		const sessionId = "test-session-corrupt";
+		const statePath = getStatePath(sessionId, env);
+		fs.mkdirSync(path.dirname(statePath), { recursive: true });
+		fs.writeFileSync(statePath, "{ broken json ...", "utf-8");
+
+		const spy = vi.spyOn(logDebugModule, "logDebug");
+		const loaded = loadState(sessionId, env);
+		expect(loaded).toBeNull();
+		expect(spy).toHaveBeenCalledWith(
+			expect.stringContaining("Failed to read state file"),
+			expect.anything(),
+		);
+		spy.mockRestore();
+	});
+
+	it("returns null and logs when state file has invalid schema", () => {
+		const sessionId = "test-session-invalid-schema";
+		const statePath = getStatePath(sessionId, env);
+		fs.mkdirSync(path.dirname(statePath), { recursive: true });
+		fs.writeFileSync(statePath, JSON.stringify({ notAState: true }), "utf-8");
+
+		const spy = vi.spyOn(logDebugModule, "logDebug");
+		const loaded = loadState(sessionId, env);
+		expect(loaded).toBeNull();
+		expect(spy).toHaveBeenCalledWith(
+			expect.stringContaining("Corrupt state schema"),
+		);
+		spy.mockRestore();
 	});
 });

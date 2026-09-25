@@ -1,3 +1,4 @@
+import { logDebug } from "../lib/logDebug.ts";
 import { UTF8_BOM_REGEX } from "../regex.ts";
 
 export function stripBom(text: string): string {
@@ -9,7 +10,11 @@ export function parseJsonSafe(raw: string): Record<string, unknown> {
 	if (!clean) return {};
 	try {
 		return JSON.parse(clean);
-	} catch {
+	} catch (err) {
+		logDebug("Failed to parse stdin payload", {
+			error: err instanceof Error ? err.message : String(err),
+			input: clean.slice(0, 200),
+		});
 		return {};
 	}
 }

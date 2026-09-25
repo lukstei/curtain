@@ -1,5 +1,6 @@
 import { Readable } from "node:stream";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as logDebugModule from "../lib/logDebug.ts";
 import { parseJsonSafe, readStdin, stripBom } from "./stdin.ts";
 
 describe("stdin", () => {
@@ -21,6 +22,16 @@ describe("stdin", () => {
 			expect(parseJsonSafe("")).toEqual({});
 			expect(parseJsonSafe("not valid json")).toEqual({});
 			expect(parseJsonSafe("   ")).toEqual({});
+		});
+
+		it("logs parsing failure via logDebug when non-empty input is invalid", () => {
+			const spy = vi.spyOn(logDebugModule, "logDebug");
+			expect(parseJsonSafe("invalid { json")).toEqual({});
+			expect(spy).toHaveBeenCalledWith(
+				"Failed to parse stdin payload",
+				expect.objectContaining({ input: "invalid { json" }),
+			);
+			spy.mockRestore();
 		});
 	});
 
