@@ -177,7 +177,12 @@ export function createNormalizedEvent(params: {
 		conversationId: params.conversationId,
 		workspacePath: params.workspacePath,
 		rawPayload: params.rawPayload,
-		prompt: params.prompt ?? params.latestMessage?.content ?? "",
+		prompt:
+			params.prompt ??
+			(params.latestMessage?.type === "USER_INPUT"
+				? params.latestMessage.content
+				: "") ??
+			"",
 		latestMessage: params.latestMessage,
 		...(params.skillInvocationPath
 			? { skillInvocationPath: params.skillInvocationPath }

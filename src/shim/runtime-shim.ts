@@ -36,7 +36,6 @@ export async function runShim(
 					...base,
 					type: "pre",
 					prompt: event.prompt,
-					latestMessage: event.latestMessage,
 					...(event.skillInvocationPath
 						? { skillInvocationPath: event.skillInvocationPath }
 						: {}),
@@ -46,7 +45,6 @@ export async function runShim(
 						...base,
 						type: "stop",
 						terminationReason: event.terminationReason,
-						latestMessage: event.latestMessage,
 					}
 				: {
 						...base,

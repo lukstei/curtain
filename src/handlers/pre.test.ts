@@ -31,10 +31,6 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-c1",
 			workspacePath: "/test",
 			prompt: "/next",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "/next",
-			},
 		};
 
 		const { state, response } = handlePre(info, sampleState, env);
@@ -62,10 +58,6 @@ describe("handlers/pre.ts", () => {
 			workspacePath: "/test",
 			prompt: "[$next](/path/to/skills/next/SKILL.md) \n",
 			skillInvocationPath: "/path/to/skills/next/SKILL.md",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "[$next](/path/to/skills/next/SKILL.md) \n",
-			},
 		};
 
 		const { state, response } = handlePre(info, sampleState, env);
@@ -92,10 +84,6 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-c1-bare-link",
 			workspacePath: "/test",
 			prompt: "[$next]",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "[$next]",
-			},
 		};
 
 		const { state } = handlePre(info, sampleState, env);
@@ -109,10 +97,6 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-c1-plain-next",
 			workspacePath: "/test",
 			prompt: "next",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "next",
-			},
 		};
 
 		const { state, response } = handlePre(info, sampleState, env);
@@ -142,10 +126,6 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-c1-final",
 			workspacePath: "/test",
 			prompt: "/next",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "/next",
-			},
 		};
 
 		const { state, response } = handlePre(info, singleStepPausedState, env);
@@ -167,10 +147,6 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-c4-review",
 			workspacePath: "/test",
 			prompt: "I have added the missing migration column",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "I have added the missing migration column",
-			},
 		};
 
 		const { state, response } = handlePre(info, sampleState, env);
@@ -211,10 +187,6 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-c4-no-inst",
 			workspacePath: "/test",
 			prompt: "Please check this specific edge case first",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "Please check this specific edge case first",
-			},
 		};
 
 		const { state, response } = handlePre(info, stateWithoutInstruction, env);
@@ -253,10 +225,6 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-c5",
 			workspacePath: tmpDir,
 			prompt: `/curtain run ${scriptPath}`,
-			latestMessage: {
-				type: "USER_INPUT",
-				content: `/curtain run ${scriptPath}`,
-			},
 		};
 
 		const { state, response } = handlePre(info, null, env);
@@ -279,10 +247,6 @@ describe("handlers/pre.ts", () => {
 			conversationId: "test-smells-direct",
 			workspacePath: tmpDir,
 			prompt: "/curtain SMELLS.md",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "/curtain SMELLS.md",
-			},
 		};
 
 		const { state, response } = handlePre(info, null, env);
@@ -325,10 +289,6 @@ describe("handlers/pre.ts", () => {
 			workspacePath: tmpDir,
 			harness: "agy",
 			prompt: "/deploy-skill",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "/deploy-skill",
-			},
 		};
 
 		const { state, response } = handlePre(info, null, env);
@@ -453,10 +413,6 @@ describe("handlers/pre.ts", () => {
 			workspacePath: tmpDir,
 			harness: "agy",
 			prompt: "/doc-skill",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "/doc-skill",
-			},
 		};
 
 		const { state, response } = handlePre(info, null, env);
@@ -486,10 +442,6 @@ describe("handlers/pre.ts", () => {
 			workspacePath: tmpDir,
 			harness: "agy",
 			prompt: "/plain-skill",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "/plain-skill",
-			},
 		};
 
 		const { state, response } = handlePre(info, null, env);
@@ -504,10 +456,6 @@ describe("handlers/pre.ts", () => {
 			workspacePath: tmpDir,
 			harness: "agy",
 			prompt: "Can you help me write a new function?",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "Can you help me write a new function?",
-			},
 		};
 
 		const { state, response } = handlePre(info, null, env);
@@ -541,10 +489,6 @@ describe("handlers/pre.ts", () => {
 			workspacePath: tmpDir,
 			harness: "codex",
 			prompt: `[$curtain-test](${skillFile}) \n`,
-			latestMessage: {
-				type: "USER_INPUT",
-				content: `[$curtain-test](${skillFile}) \n`,
-			},
 		};
 
 		const { state, response } = handlePre(info, null, env);
@@ -581,10 +525,6 @@ describe("handlers/pre.ts", () => {
 			workspacePath: tmpDir,
 			harness: "codex",
 			prompt: "[$link-skill]",
-			latestMessage: {
-				type: "USER_INPUT",
-				content: "[$link-skill]",
-			},
 		};
 
 		const { state, response } = handlePre(info, null, env);

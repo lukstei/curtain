@@ -22,13 +22,11 @@ export type HookInfo = BaseHookInfo &
 		| {
 				type: "pre";
 				prompt: string;
-				latestMessage?: LatestMessage | null;
 				skillInvocationPath?: string;
 		  }
 		| {
 				type: "stop";
 				terminationReason?: string;
-				latestMessage?: LatestMessage | null;
 		  }
 		| {
 				type: "tool";

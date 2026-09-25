@@ -47,10 +47,7 @@ export function handlePre(
 	state: RunnerState | null,
 	env: NodeJS.ProcessEnv = process.env,
 ): HandlerResult {
-	const userInput =
-		info.latestMessage?.type === "USER_INPUT"
-			? info.latestMessage.content
-			: info.prompt;
+	const userInput = info.prompt;
 
 	const parsed = parseCommand(userInput, info.skillInvocationPath);
 	if (parsed.isCurtainCommand) {
