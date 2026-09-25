@@ -7,10 +7,13 @@ import type { HandlerResult } from "./pre.ts";
 
 function isSameFile(p1: string, p2: string): boolean {
 	if (p1 === p2) return true;
+	const r1 = path.resolve(p1);
+	const r2 = path.resolve(p2);
+	if (r1 === r2) return true;
 	try {
-		return fs.realpathSync(p1) === fs.realpathSync(p2);
+		return fs.realpathSync(r1) === fs.realpathSync(r2);
 	} catch {
-		return path.resolve(p1) === path.resolve(p2);
+		return false;
 	}
 }
 
@@ -39,15 +42,15 @@ export function handlePreTool(
 
 		// 2. If already active, block redundant curtain or active skill re-invocation
 		if (state) {
-			const activeSkillName = path
-				.basename(path.dirname(state.script))
-				.toLowerCase();
+			const activeSkillName = state.skillName?.toLowerCase();
 			const isCurtainLauncher =
 				skill === "curtain:curtain" ||
 				skill === "curtain:start" ||
 				skill === "curtain:run";
-			const isActiveSkill =
-				skill === activeSkillName || skill.endsWith(`:${activeSkillName}`);
+			const isActiveSkill = Boolean(
+				activeSkillName &&
+					(skill === activeSkillName || skill.endsWith(`:${activeSkillName}`)),
+			);
 
 			if (isCurtainLauncher || isActiveSkill) {
 				return {
@@ -69,12 +72,7 @@ export function handlePreTool(
 	}
 
 	const scriptPath = path.resolve(info.workspacePath, state.script);
-	const scriptBase = path.basename(state.script).toUpperCase();
-	const targetBase = path.basename(info.readTargetFilePath).toUpperCase();
-
-	const isTargetScript =
-		isSameFile(info.readTargetFilePath, scriptPath) ||
-		(scriptBase === "PLAYBOOK.MD" && targetBase === "PLAYBOOK.MD");
+	const isTargetScript = isSameFile(info.readTargetFilePath, scriptPath);
 
 	if (isTargetScript) {
 		const targetName = path.basename(state.script);

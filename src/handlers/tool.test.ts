@@ -34,6 +34,7 @@ describe("handlers/tool.ts", () => {
 				{ index: 0, type: "auto", content: "Act 1" },
 				{ index: 1, type: "auto", content: "Act 2" },
 			],
+			skillName: path.basename(testDir),
 		};
 	});
 
@@ -109,6 +110,24 @@ describe("handlers/tool.ts", () => {
 			workspacePath: testDir,
 			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: otherFile,
+		};
+
+		const result = handlePreTool(info, activeState);
+		expect(result.response.action).toBe("allow");
+	});
+
+	it("allows reading an unrelated PLAYBOOK.md located in another directory", () => {
+		const unrelatedDir = path.join(testDir, "other-skill");
+		fs.mkdirSync(unrelatedDir, { recursive: true });
+		const unrelatedPlaybook = path.join(unrelatedDir, "PLAYBOOK.md");
+		fs.writeFileSync(unrelatedPlaybook, "# Other Playbook\n");
+
+		const info: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "view_file", args: {} },
+			readTargetFilePath: unrelatedPlaybook,
 		};
 
 		const result = handlePreTool(info, activeState);
