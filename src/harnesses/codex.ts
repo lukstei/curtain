@@ -2,6 +2,7 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { getLatestMessage } from "../lib/getLatestMessage.ts";
+import { normalizeSkillName } from "../lib/normalizeSkillName.ts";
 import {
 	ANGLE_BRACKET_ENCLOSURE_REGEX,
 	SKILL_LINK_PATH_CAPTURE_REGEX,
@@ -108,6 +109,9 @@ export const codexHarness: HarnessAdapter = {
 		const readTargetFilePath = toolCall
 			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
 			: null;
+		const skillTarget = toolCall
+			? (this.extractSkillTarget?.(toolCall) ?? null)
+			: null;
 		const latestMessage = this.extractLatestMessage({
 			type,
 			prompt,
@@ -126,6 +130,7 @@ export const codexHarness: HarnessAdapter = {
 			stopHookActive,
 			toolCall,
 			readTargetFilePath,
+			skillTarget,
 			latestMessage,
 			prompt,
 			skillInvocationPath,
@@ -154,6 +159,19 @@ export const codexHarness: HarnessAdapter = {
 				toolCall.args.AbsolutePath,
 			workspacePath,
 		);
+	},
+
+	extractSkillTarget(toolCall: ToolCall): string | null {
+		if (
+			toolCall.name === "Skill" ||
+			toolCall.name === "invoke_skill" ||
+			toolCall.name.endsWith("__Skill")
+		) {
+			const skill =
+				toolCall.args.skill ?? toolCall.args.name ?? toolCall.args.skill_name;
+			return typeof skill === "string" ? normalizeSkillName(skill) : null;
+		}
+		return null;
 	},
 
 	extractLatestMessage(event: {

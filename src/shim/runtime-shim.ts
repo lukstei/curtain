@@ -53,6 +53,7 @@ export async function runShim(
 						type: "tool",
 						toolCall: event.toolCall,
 						readTargetFilePath: event.readTargetFilePath,
+						skillTarget: event.skillTarget,
 					};
 
 	const state = loadState(event.conversationId, env);

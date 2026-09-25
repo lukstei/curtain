@@ -8,7 +8,7 @@
 		],
 		"PreToolUse": [
 			{
-				"matcher": "view_file",
+				"matcher": "view_file|read_file|Read|View|Skill|invoke_subagent",
 				"hooks": [
 					{
 						"type": "command",

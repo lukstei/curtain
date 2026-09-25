@@ -344,4 +344,35 @@ describe("agyHarness", () => {
 			]);
 		});
 	});
+
+	describe("extractSkillTarget", () => {
+		it("extracts target from invoke_subagent tool call", () => {
+			expect(
+				agyHarness.extractSkillTarget?.({
+					name: "invoke_subagent",
+					args: {
+						Subagents: [{ TypeName: "curtain-subagent", Role: "Runner" }],
+					},
+				}),
+			).toBe("curtain-subagent");
+		});
+
+		it("extracts target from Skill tool call", () => {
+			expect(
+				agyHarness.extractSkillTarget?.({
+					name: "Skill",
+					args: { skill: "curtain:next" },
+				}),
+			).toBe("curtain:next");
+		});
+
+		it("returns null for other tool calls", () => {
+			expect(
+				agyHarness.extractSkillTarget?.({
+					name: "view_file",
+					args: { AbsolutePath: "/path/to/file" },
+				}),
+			).toBeNull();
+		});
+	});
 });

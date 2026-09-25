@@ -115,4 +115,131 @@ describe("handlers/tool.ts", () => {
 		const result = handlePreTool(info, null);
 		expect(result.response.decision).toBe("allow");
 	});
+
+	it("strictly denies skillTarget next or curtain:next", () => {
+		const infoNext: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "Skill", args: { skill: "curtain:next" } },
+			skillTarget: "curtain:next",
+			readTargetFilePath: null,
+		};
+
+		const result = handlePreTool(infoNext, activeState);
+		expect(result.response).toMatchInlineSnapshot(`
+			{
+			  "decision": "deny",
+			  "reason": "BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
+			}
+		`);
+
+		const infoBareNext: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "Skill", args: { skill: "next" } },
+			skillTarget: "next",
+			readTargetFilePath: null,
+		};
+		expect(handlePreTool(infoBareNext, null).response).toMatchInlineSnapshot(`
+			{
+			  "decision": "deny",
+			  "reason": "BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
+			}
+		`);
+	});
+
+	it("denies redundant curtain:curtain or active skill re-invocation when active", () => {
+		const infoCurtain: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "Skill", args: { skill: "curtain:curtain" } },
+			skillTarget: "curtain:curtain",
+			readTargetFilePath: null,
+		};
+
+		expect(
+			handlePreTool(infoCurtain, activeState).response,
+		).toMatchInlineSnapshot(`
+			{
+			  "decision": "deny",
+			  "reason": "BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
+			}
+		`);
+
+		const activeSkillName = path.basename(testDir);
+		const infoActiveSkill: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "Skill", args: { skill: activeSkillName } },
+			skillTarget: activeSkillName,
+			readTargetFilePath: null,
+		};
+
+		expect(
+			handlePreTool(infoActiveSkill, activeState).response,
+		).toMatchInlineSnapshot(`
+			{
+			  "decision": "deny",
+			  "reason": "BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
+			}
+		`);
+	});
+
+	it("allows curtain:curtain when runner state is null", () => {
+		const info: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "Skill", args: { skill: "curtain:curtain" } },
+			skillTarget: "curtain:curtain",
+			readTargetFilePath: null,
+		};
+
+		const result = handlePreTool(info, null);
+		expect(result.response.decision).toBe("allow");
+	});
+
+	it("allows unrelated skill invocation even when active", () => {
+		const info: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "Skill", args: { skill: "unrelated-tool" } },
+			skillTarget: "unrelated-tool",
+			readTargetFilePath: null,
+		};
+
+		const result = handlePreTool(info, activeState);
+		expect(result.response.decision).toBe("allow");
+	});
+
+	it("allows foreign namespaced next or curtain skills without collision", () => {
+		const infoForeignNext: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "Skill", args: { skill: "other-plugin:next" } },
+			skillTarget: "other-plugin:next",
+			readTargetFilePath: null,
+		};
+		expect(handlePreTool(infoForeignNext, activeState).response.decision).toBe(
+			"allow",
+		);
+
+		const infoForeignCurtain: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			toolCall: { name: "Skill", args: { skill: "other-plugin:curtain" } },
+			skillTarget: "other-plugin:curtain",
+			readTargetFilePath: null,
+		};
+		expect(
+			handlePreTool(infoForeignCurtain, activeState).response.decision,
+		).toBe("allow");
+	});
 });

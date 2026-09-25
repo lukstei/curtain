@@ -34,6 +34,7 @@ export type HookInfo = BaseHookInfo &
 				type: "tool";
 				toolCall: ToolCall;
 				readTargetFilePath?: string | null;
+				skillTarget?: string | null;
 		  }
 	);
 

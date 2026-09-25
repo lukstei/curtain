@@ -135,6 +135,7 @@ export function createNormalizedEvent(params: {
 	stopHookActive: boolean;
 	toolCall?: ToolCall | null;
 	readTargetFilePath?: string | null;
+	skillTarget?: string | null;
 	latestMessage: LatestMessage | null;
 	prompt?: string;
 	skillInvocationPath?: string;
@@ -151,6 +152,7 @@ export function createNormalizedEvent(params: {
 			rawPayload: params.rawPayload,
 			toolCall: params.toolCall,
 			readTargetFilePath: params.readTargetFilePath ?? null,
+			skillTarget: params.skillTarget ?? null,
 		};
 	}
 

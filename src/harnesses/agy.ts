@@ -2,6 +2,7 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { getLatestMessage } from "../lib/getLatestMessage.ts";
+import { normalizeSkillName } from "../lib/normalizeSkillName.ts";
 import {
 	AGY_SKILL_PATH_REGEX,
 	TERMINATION_CANCEL_REGEX,
@@ -122,6 +123,9 @@ export const agyHarness: HarnessAdapter = {
 		const readTargetFilePath = toolCall
 			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
 			: null;
+		const skillTarget = toolCall
+			? (this.extractSkillTarget?.(toolCall) ?? null)
+			: null;
 
 		const latestMessage = this.extractLatestMessage({
 			type,
@@ -144,6 +148,7 @@ export const agyHarness: HarnessAdapter = {
 			stopHookActive,
 			toolCall,
 			readTargetFilePath,
+			skillTarget,
 			latestMessage,
 			prompt,
 			skillInvocationPath,
@@ -161,6 +166,22 @@ export const agyHarness: HarnessAdapter = {
 			toolCall.args.AbsolutePath ?? toolCall.args.path,
 			workspacePath,
 		);
+	},
+
+	extractSkillTarget(toolCall: ToolCall): string | null {
+		if (toolCall.name === "Skill") {
+			const skill = toolCall.args.skill;
+			return typeof skill === "string" ? normalizeSkillName(skill) : null;
+		}
+		if (toolCall.name === "invoke_subagent") {
+			const subagents = toolCall.args.Subagents;
+			if (Array.isArray(subagents) && subagents.length > 0) {
+				const first = subagents[0] as Record<string, unknown>;
+				const target = first.TypeName ?? first.Role;
+				return typeof target === "string" ? normalizeSkillName(target) : null;
+			}
+		}
+		return null;
 	},
 
 	extractLatestMessage(event: {

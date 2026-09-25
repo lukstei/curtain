@@ -235,4 +235,31 @@ describe("claudeHarness", () => {
 			]);
 		});
 	});
+
+	describe("extractSkillTarget", () => {
+		it("extracts skill target from Skill tool call", () => {
+			expect(
+				claudeHarness.extractSkillTarget?.({
+					name: "Skill",
+					args: { skill: "curtain:next" },
+				}),
+			).toBe("curtain:next");
+
+			expect(
+				claudeHarness.extractSkillTarget?.({
+					name: "Skill",
+					args: { skill: "curtain-test" },
+				}),
+			).toBe("curtain-test");
+		});
+
+		it("returns null for non-Skill tool calls", () => {
+			expect(
+				claudeHarness.extractSkillTarget?.({
+					name: "Read",
+					args: { file_path: "foo.md" },
+				}),
+			).toBeNull();
+		});
+	});
 });

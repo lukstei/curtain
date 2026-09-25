@@ -35,6 +35,7 @@ export type NormalizedEvent = BaseNormalizedEvent &
 				type: "tool";
 				toolCall: ToolCall;
 				readTargetFilePath?: string | null;
+				skillTarget?: string | null;
 		  }
 	);
 
@@ -56,6 +57,7 @@ export interface HarnessAdapter {
 		toolCall: ToolCall,
 		workspacePath: string,
 	): string | null;
+	extractSkillTarget?(toolCall: ToolCall): string | null;
 	resolveConversationId?(env: NodeJS.ProcessEnv): string | null;
 	resolveStorageDir?(env: NodeJS.ProcessEnv): string | null;
 	getSkillDirs?(workspacePath: string, env?: NodeJS.ProcessEnv): string[];

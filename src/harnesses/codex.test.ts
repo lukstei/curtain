@@ -382,4 +382,31 @@ describe("codexHarness", () => {
 			).toBeNull();
 		});
 	});
+
+	describe("extractSkillTarget", () => {
+		it("extracts target from Skill or invoke_skill tool calls", () => {
+			expect(
+				codexHarness.extractSkillTarget?.({
+					name: "Skill",
+					args: { skill: "curtain:next" },
+				}),
+			).toBe("curtain:next");
+
+			expect(
+				codexHarness.extractSkillTarget?.({
+					name: "invoke_skill",
+					args: { name: "curtain-test" },
+				}),
+			).toBe("curtain-test");
+		});
+
+		it("returns null for non-skill tool calls", () => {
+			expect(
+				codexHarness.extractSkillTarget?.({
+					name: "read_file",
+					args: { path: "foo.md" },
+				}),
+			).toBeNull();
+		});
+	});
 });

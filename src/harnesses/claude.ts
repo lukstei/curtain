@@ -1,6 +1,7 @@
 // see reference docs: docs/harnesses/claude.md
 import * as os from "node:os";
 import * as path from "node:path";
+import { normalizeSkillName } from "../lib/normalizeSkillName.ts";
 import type { HookResponse, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,
@@ -52,6 +53,9 @@ export const claudeHarness: HarnessAdapter = {
 		const readTargetFilePath = toolCall
 			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
 			: null;
+		const skillTarget = toolCall
+			? (this.extractSkillTarget?.(toolCall) ?? null)
+			: null;
 		const latestMessage = this.extractLatestMessage({
 			type,
 			prompt,
@@ -67,6 +71,7 @@ export const claudeHarness: HarnessAdapter = {
 			stopHookActive,
 			toolCall,
 			readTargetFilePath,
+			skillTarget,
 			latestMessage,
 			prompt,
 		});
@@ -88,6 +93,14 @@ export const claudeHarness: HarnessAdapter = {
 			toolCall.args.file_path ?? toolCall.args.path,
 			workspacePath,
 		);
+	},
+
+	extractSkillTarget(toolCall: ToolCall): string | null {
+		if (toolCall.name !== "Skill") {
+			return null;
+		}
+		const skill = toolCall.args.skill;
+		return typeof skill === "string" ? normalizeSkillName(skill) : null;
 	},
 
 	extractLatestMessage: defaultExtractLatestMessage,

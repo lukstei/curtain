@@ -25,7 +25,7 @@
 		],
 		"PreToolUse": [
 			{
-				"matcher": "View|read_file",
+				"matcher": "View|Read|read_file|Skill",
 				"hooks": [
 					{
 						"type": "command",
