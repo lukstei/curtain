@@ -16,7 +16,9 @@ fs.mkdirSync(targetDir, { recursive: true });
 
 const subdirs = fs
 	.readdirSync(targetDir, { withFileTypes: true })
-	.filter((d) => d.isDirectory() && /^\d+\./.test(d.name))
+	.filter(
+		(d) => d.isDirectory() && (/^\d+\./.test(d.name) || d.name === "latest"),
+	)
 	.map((d) => path.join(targetDir, d.name));
 
 const targetDirs = subdirs.length > 0 ? subdirs : [targetDir];

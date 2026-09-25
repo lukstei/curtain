@@ -39,3 +39,8 @@
 - **Objective:** Support passing parameters in `/curtain <file> <params>` (and harness skill invocations), parse positional and flag parameters reliably, and expose them to the runner context.
 - **Agent Triage:** Decide how parameters interpolate into step instructions or script context (e.g. variable replacement vs environment payload). Ensure quote-handling handles paths with spaces alongside flags.
 
+### [ ] 7. Skill Migration Subcommands (`adopt` / `eject` or `wrap` / `unwrap`)
+- **Current State:** Adopting Curtain for existing agent skills requires manually moving instructions from `SKILL.md` into `PLAYBOOK.md`, authoring the thin launcher wrapper, and inserting curtain callout delimiters. No tooling exists to discover visible skills or automate wrapping and unwrapping.
+- **Objective:** Provide CLI subcommands (`adopt` and `eject`, or `wrap` and `unwrap`, proposed instead of `migrate`/`unmigrate`) that scan all skills visible from the working directory, copy raw skills to `PLAYBOOK.md`, install the thin curtain launcher wrapper into `SKILL.md`, and output actionable instructions to add callout delimiters manually or via `/plan`.
+- **Agent Triage:** Prefer `wrap` / `unwrap` or `adopt` / `eject` over `migrate` / `unmigrate` to reflect the thin-launcher wrapping pattern rather than schema migration. Ensure the revert command safely verifies existing wrappers before merging `PLAYBOOK.md` back to prevent accidental overwrites.
+

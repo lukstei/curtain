@@ -42,7 +42,7 @@
 		"verify": "npm run typecheck && npm run check && npm run test",
 		"check:clean": "test -z \"$(git status --porcelain)\" || (echo \"Error: Git working directory is not clean\" && exit 1)",
 		"dev:install:agy": "npm run build && node scripts/dev-install.js ~/.gemini/config/plugins/curtain",
-		"dev:install:claude": "npm run build && node scripts/dev-install.js ~/.claude/plugins/cache/curtain-marketplace/curtain/latest",
+		"dev:install:claude": "npm run build && node scripts/dev-install.js ~/.claude/plugins/cache/curtain-marketplace/curtain",
 		"dev:install:codex": "npm run build && node scripts/dev-install.js ~/.codex/plugins/cache/curtain/curtain",
 		"release:patch": "node scripts/release.js patch",
 		"release:minor": "node scripts/release.js minor",
