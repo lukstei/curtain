@@ -13,7 +13,7 @@ import {
 	SKILL_LINK_WITH_OPTIONAL_PATH_REGEX,
 } from "../regex.ts";
 import { loadScript } from "../resolver.ts";
-import { deleteState, type RunnerState, saveState } from "../state.ts";
+import type { RunnerState } from "../state.ts";
 import {
 	formatIntermissionPrompt,
 	formatStepPrompt,
@@ -27,13 +27,8 @@ export interface HandlerResult<T = PreHookResponse> {
 	response: T;
 }
 
-function startScript(
-	script: Script,
-	conversationId: string,
-	env: NodeJS.ProcessEnv,
-): HandlerResult<PreHookResponse> {
+function startScript(script: Script): HandlerResult<PreHookResponse> {
 	const nextState = startExecution(script);
-	saveState(conversationId, nextState, env);
 	const firstStep = nextState.steps[0];
 	const msg = formatStepPrompt(firstStep, nextState.steps.length);
 	return {
@@ -45,7 +40,6 @@ function startScript(
 export function handlePre(
 	info: Extract<HookInfo, { type: "pre" }>,
 	state: RunnerState | null,
-	env: NodeJS.ProcessEnv = process.env,
 ): HandlerResult<PreHookResponse> {
 	const userInput = info.prompt;
 
@@ -81,7 +75,6 @@ export function handlePre(
 			}
 
 			if (res.action === "finish") {
-				deleteState(info.conversationId, env);
 				return {
 					state: null,
 					response: {
@@ -91,7 +84,6 @@ export function handlePre(
 				};
 			}
 
-			saveState(info.conversationId, res.state, env);
 			const msg = formatStepPrompt(res.step, res.state.steps.length);
 			return {
 				state: res.state,
@@ -110,7 +102,7 @@ export function handlePre(
 					response: { action: "inject", message: err },
 				};
 			}
-			return startScript(loaded.script, info.conversationId, env);
+			return startScript(loaded.script);
 		}
 	}
 
@@ -133,7 +125,6 @@ export function handlePre(
 						skillName,
 						harness,
 						info.workspacePath,
-						env,
 					);
 				}
 			}
@@ -143,12 +134,11 @@ export function handlePre(
 				targetSkillPath,
 				info.harness as HarnessType | undefined,
 				info.workspacePath,
-				env,
 			);
 			if (playbookPath && hasCurtainAnnotations(playbookPath)) {
 				const loaded = loadScript(playbookPath, [info.workspacePath]);
 				if (loaded && !("error" in loaded) && loaded.script.steps.length > 1) {
-					return startScript(loaded.script, info.conversationId, env);
+					return startScript(loaded.script);
 				}
 			}
 		}

@@ -1,7 +1,7 @@
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
-import { saveState } from "../state.ts";
+import { loadState, saveState } from "../state.ts";
 import { runShim } from "./runtime-shim.ts";
 
 describe("runShim End-to-End Simulation", () => {
@@ -95,6 +95,7 @@ describe("runShim End-to-End Simulation", () => {
 			  "suppressOutput": true,
 			}
 		`);
+		expect(loadState(sessionId, env)?.currentStep).toBe(1);
 	});
 
 	it("processes Claude stop hook with pause step (allows stop)", async () => {
@@ -124,5 +125,35 @@ describe("runShim End-to-End Simulation", () => {
 		const egress = await runShim("stop", rawInput, env);
 		expect(egress.exitCode).toBe(0);
 		expect(egress.stdout).toBe("{}");
+		expect(loadState(sessionId, env)?.status).toBe("paused");
+	});
+
+	it("deletes state when stop hook finishes final step", async () => {
+		const sessionId = "codex-finish-1";
+		const env = { PLUGIN_DATA: tmpDir };
+
+		saveState(
+			sessionId,
+			{
+				script: "sample.md",
+				status: "running",
+				currentStep: 1,
+				steps: [
+					{ index: 0, type: "auto", content: "Step 1 content" },
+					{ index: 1, type: "auto", content: "Step 2 content" },
+				],
+			},
+			env,
+		);
+
+		const rawInput = JSON.stringify({
+			hookEventName: "Stop",
+			session_id: sessionId,
+			cwd: "/test",
+		});
+
+		const egress = await runShim("stop", rawInput, env);
+		expect(egress.exitCode).toBe(0);
+		expect(loadState(sessionId, env)).toBeNull();
 	});
 });

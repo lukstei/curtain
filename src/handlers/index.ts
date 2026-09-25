@@ -11,13 +11,12 @@ export { handlePreTool } from "./tool.ts";
 export function handle(
 	info: HookInfo,
 	state: RunnerState | null,
-	env: NodeJS.ProcessEnv = process.env,
 ): HandlerResult<HookResponse> {
 	if (info.type === "stop") {
-		return handleStop(info, state, env);
+		return handleStop(info, state);
 	}
 	if (info.type === "pre") {
-		return handlePre(info, state, env);
+		return handlePre(info, state);
 	}
 	if (info.type === "tool") {
 		return handlePreTool(info, state);

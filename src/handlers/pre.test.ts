@@ -8,7 +8,6 @@ import { handlePre } from "./pre.ts";
 
 describe("handlers/pre.ts", () => {
 	const tmpDir = path.join(os.tmpdir(), `curtain-pre-test-${Date.now()}`);
-	const env = { AGY_PLUGIN_DATA: tmpDir };
 
 	const sampleState: RunnerState = {
 		script: "sample.md",
@@ -33,7 +32,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "/next",
 		};
 
-		const { state, response } = handlePre(info, sampleState, env);
+		const { state, response } = handlePre(info, sampleState);
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(1);
 		expect(response).toMatchInlineSnapshot(`
@@ -57,7 +56,7 @@ describe("handlers/pre.ts", () => {
 			skillInvocationPath: "/path/to/skills/next/SKILL.md",
 		};
 
-		const { state, response } = handlePre(info, sampleState, env);
+		const { state, response } = handlePre(info, sampleState);
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(1);
 		expect(response).toMatchInlineSnapshot(`
@@ -80,7 +79,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "[$next]",
 		};
 
-		const { state } = handlePre(info, sampleState, env);
+		const { state } = handlePre(info, sampleState);
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(1);
 	});
@@ -93,7 +92,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "next",
 		};
 
-		const { state, response } = handlePre(info, sampleState, env);
+		const { state, response } = handlePre(info, sampleState);
 		expect(state?.status).toBe("paused");
 		expect(state?.currentStep).toBe(0);
 		expect(response.action === "inject" && response.message).toContain(
@@ -122,7 +121,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "/next",
 		};
 
-		const { state, response } = handlePre(info, singleStepPausedState, env);
+		const { state, response } = handlePre(info, singleStepPausedState);
 		expect(state).toBeNull();
 		expect(response).toMatchInlineSnapshot(`
 			{
@@ -140,7 +139,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "I have added the missing migration column",
 		};
 
-		const { state, response } = handlePre(info, sampleState, env);
+		const { state, response } = handlePre(info, sampleState);
 		expect(state).toEqual(sampleState);
 		expect(response).toMatchInlineSnapshot(`
 			{
@@ -177,7 +176,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "Please check this specific edge case first",
 		};
 
-		const { state, response } = handlePre(info, stateWithoutInstruction, env);
+		const { state, response } = handlePre(info, stateWithoutInstruction);
 		expect(state).toEqual(stateWithoutInstruction);
 		expect(response).toMatchInlineSnapshot(`
 			{
@@ -212,7 +211,7 @@ describe("handlers/pre.ts", () => {
 			prompt: `/curtain run ${scriptPath}`,
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(0);
 		expect(response.action === "inject" && response.message).toContain(
@@ -234,7 +233,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "/curtain SMELLS.md",
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(0);
 		expect(state?.script).toBe(smellsPath);
@@ -278,7 +277,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "/deploy-skill",
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(0);
 		expect(state?.steps.length).toBe(2);
@@ -328,7 +327,7 @@ describe("handlers/pre.ts", () => {
 			skillInvocationPath: skillFile,
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state?.status).toBe("running");
 		expect(state?.script).toBe(playbookFile);
 		expect(response.action === "inject" && response.message).toContain(
@@ -370,7 +369,7 @@ describe("handlers/pre.ts", () => {
 			skillInvocationPath: skillFile,
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state?.status).toBe("running");
 		expect(state?.script).toBe(playbookFile);
 		expect(response.action === "inject" && response.message).toBeDefined();
@@ -402,7 +401,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "/doc-skill",
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state).toBeNull();
 		expect(response).toEqual({ action: "pass" });
 	});
@@ -431,7 +430,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "/plain-skill",
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state).toBeNull();
 		expect(response).toEqual({ action: "pass" });
 	});
@@ -445,7 +444,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "Can you help me write a new function?",
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state).toBeNull();
 		expect(response).toEqual({ action: "pass" });
 	});
@@ -478,7 +477,7 @@ describe("handlers/pre.ts", () => {
 			prompt: `[$curtain-test](${skillFile}) \n`,
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state?.status).toBe("running");
 		expect(state?.script).toBe(playbookFile);
 		expect(response.action === "inject" && response.message).toContain(
@@ -514,7 +513,7 @@ describe("handlers/pre.ts", () => {
 			prompt: "[$link-skill]",
 		};
 
-		const { state, response } = handlePre(info, null, env);
+		const { state, response } = handlePre(info, null);
 		expect(state?.status).toBe("running");
 		expect(state?.script).toBe(playbookFile);
 		expect(response.action === "inject" && response.message).toContain(

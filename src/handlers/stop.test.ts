@@ -1,21 +1,16 @@
-import * as os from "node:os";
-import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { RunnerState } from "../state.ts";
 import type { HookInfo } from "../types.ts";
 import { handleStop } from "./stop.ts";
 
 describe("handlers/stop.ts", () => {
-	const tmpDir = path.join(os.tmpdir(), `curtain-stop-test-${Date.now()}`);
-	const env = { AGY_PLUGIN_DATA: tmpDir };
-
 	it("allows stop when state is null", () => {
 		const info: HookInfo = {
 			type: "stop",
 			conversationId: "c1",
 			workspacePath: "/test",
 		};
-		const { state, response } = handleStop(info, null, env);
+		const { state, response } = handleStop(info, null);
 		expect(state).toBeNull();
 		expect(response).toEqual({ action: "allow" });
 	});
@@ -35,7 +30,7 @@ describe("handlers/stop.ts", () => {
 				{ index: 1, type: "auto", content: "Step 2" },
 			],
 		};
-		const { state, response } = handleStop(info, pausedState, env);
+		const { state, response } = handleStop(info, pausedState);
 		expect(state?.status).toBe("paused");
 		expect(response).toEqual({ action: "allow" });
 	});
@@ -55,7 +50,7 @@ describe("handlers/stop.ts", () => {
 				{ index: 1, type: "auto", content: "Step 2" },
 			],
 		};
-		const { state, response } = handleStop(info, runningState, env);
+		const { state, response } = handleStop(info, runningState);
 		expect(state?.status).toBe("paused");
 		expect(response).toEqual({ action: "allow" });
 	});
@@ -75,7 +70,7 @@ describe("handlers/stop.ts", () => {
 				{ index: 1, type: "auto", content: "Step 2 instruction" },
 			],
 		};
-		const { state, response } = handleStop(info, runningState, env);
+		const { state, response } = handleStop(info, runningState);
 		expect(state?.status).toBe("running");
 		expect(state?.currentStep).toBe(1);
 		expect(response).toMatchInlineSnapshot(`
@@ -90,7 +85,7 @@ describe("handlers/stop.ts", () => {
 		`);
 	});
 
-	it("finishes and unlinks state when concluding final step", () => {
+	it("finishes and allows stop when concluding final step", () => {
 		const info: HookInfo = {
 			type: "stop",
 			conversationId: "c5",
@@ -105,7 +100,7 @@ describe("handlers/stop.ts", () => {
 				{ index: 1, type: "auto", content: "Step 2" },
 			],
 		};
-		const { state, response } = handleStop(info, runningState, env);
+		const { state, response } = handleStop(info, runningState);
 		expect(state).toBeNull();
 		expect(response).toEqual({ action: "allow" });
 	});

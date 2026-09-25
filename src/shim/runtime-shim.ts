@@ -2,7 +2,7 @@ import { handle } from "../handlers/index.ts";
 import { detectHarness, getHarness } from "../harnesses/index.ts";
 import type { EgressOutput } from "../harnesses/types.ts";
 import { logDebug } from "../lib/logDebug.ts";
-import { loadState } from "../state.ts";
+import { deleteState, loadState, saveState } from "../state.ts";
 import type { HookInfo } from "../types.ts";
 import { parseJsonSafe, readStdin } from "./stdin.ts";
 
@@ -55,7 +55,15 @@ export async function runShim(
 					};
 
 	const state = loadState(event.conversationId, env);
-	const { response } = handle(hookInfo, state, env);
+	const { state: nextState, response } = handle(hookInfo, state);
+
+	if (nextState === null) {
+		if (state !== null) {
+			deleteState(event.conversationId, env);
+		}
+	} else if (nextState !== state) {
+		saveState(event.conversationId, nextState, env);
+	}
 
 	return adapter.formatEgress(event, response);
 }
