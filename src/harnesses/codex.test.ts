@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, expect, it } from "vitest";
-import { codexHarness, extractCodexSkillPath } from "./codex.ts";
+import {
+	codexHarness,
+	extractCodexSkillPath,
+	parseCodexMessage,
+} from "./codex.ts";
 import type { NormalizedEvent } from "./types.ts";
 
 function createMockEvent(
@@ -334,6 +338,48 @@ describe("codexHarness", () => {
 				"/home/user/.codex/plugins/cache",
 				"/home/user/.codex/plugins/marketplaces",
 			]);
+		});
+	});
+
+	describe("parseCodexMessage", () => {
+		it("parses assistant response item", () => {
+			const item = {
+				type: "response_item",
+				payload: {
+					type: "message",
+					role: "assistant",
+					content: [{ type: "output_text", text: "Assistant response" }],
+				},
+			};
+			expect(parseCodexMessage(item)).toEqual({
+				type: "PLANNER_RESPONSE",
+				content: "Assistant response",
+			});
+		});
+
+		it("parses user response item", () => {
+			const item = {
+				type: "response_item",
+				payload: {
+					type: "message",
+					role: "user",
+					content: [{ type: "input_text", text: "User prompt" }],
+				},
+			};
+			expect(parseCodexMessage(item)).toEqual({
+				type: "USER_INPUT",
+				content: "User prompt",
+			});
+		});
+
+		it("returns null for non-message items", () => {
+			expect(parseCodexMessage({ type: "event_msg" })).toBeNull();
+			expect(
+				parseCodexMessage({
+					type: "response_item",
+					payload: { type: "other" },
+				}),
+			).toBeNull();
 		});
 	});
 });

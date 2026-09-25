@@ -1,6 +1,5 @@
 [
 	{
-		"stepIndex": 0,
 		"hook": "pre",
 		"injectSteps": [
 			{
@@ -14,7 +13,6 @@
 		}
 	},
 	{
-		"stepIndex": 2,
 		"hook": "stop",
 		"decision": "allow",
 		"state": {
@@ -24,7 +22,6 @@
 		}
 	},
 	{
-		"stepIndex": 3,
 		"hook": "pre",
 		"injectSteps": [
 			{
@@ -38,7 +35,6 @@
 		}
 	},
 	{
-		"stepIndex": 5,
 		"hook": "stop",
 		"decision": "allow",
 		"state": {
@@ -48,7 +44,6 @@
 		}
 	},
 	{
-		"stepIndex": 6,
 		"hook": "pre",
 		"injectSteps": [
 			{
@@ -62,7 +57,6 @@
 		}
 	},
 	{
-		"stepIndex": 8,
 		"hook": "stop",
 		"decision": "continue",
 		"reason": "[STEP 3 OF 3]\n\nSay \"Step 3\"\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
@@ -73,7 +67,6 @@
 		}
 	},
 	{
-		"stepIndex": 10,
 		"hook": "stop",
 		"decision": "allow",
 		"state": null

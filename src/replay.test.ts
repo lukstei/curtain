@@ -8,12 +8,16 @@ import { loadState, type RunnerState } from "./state.ts";
 import { stripAbsolutePath } from "./test-utils.ts";
 
 const sanitizeState = (s: RunnerState | null) =>
-	s ? (({ steps: _steps, ...rest }) => rest)(s) : null;
+	s ? { script: s.script, status: s.status, currentStep: s.currentStep } : null;
 
 const fixtures = [
 	{
 		harness: "agy" as HarnessType,
 		conversationId: "66756276-9b45-4fd5-8c99-2d03252bf57c",
+	},
+	{
+		harness: "codex" as HarnessType,
+		conversationId: "01a0d54d-356d-77b3-bc97-04cbd84bb28b",
 	},
 ];
 
@@ -40,15 +44,19 @@ async function replayTranscript(harness: HarnessType, conversationId: string) {
 
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
-		AGY_PLUGIN_DATA: tmpDir,
 		HOME: tmpDir,
-		...(harness === "agy"
-			? { AGY_HOOK_ACTIVE: "1", ANTIGRAVITY_CONVERSATION_ID: conversationId }
-			: {}),
+		...(harness === "agy" && {
+			AGY_PLUGIN_DATA: tmpDir,
+			AGY_HOOK_ACTIVE: "1",
+			ANTIGRAVITY_CONVERSATION_ID: conversationId,
+		}),
+		...(harness === "codex" && {
+			PLUGIN_DATA: tmpDir,
+			CODEX_SESSION_ID: conversationId,
+		}),
 	};
 
 	const trace: Array<{
-		stepIndex: number;
 		hook: string;
 		decision?: string;
 		reason?: string;
@@ -56,80 +64,108 @@ async function replayTranscript(harness: HarnessType, conversationId: string) {
 		state: Omit<RunnerState, "steps"> | null;
 	}> = [];
 	let invocationNum = 0;
-	let executionNum = 0;
 
 	const invoke = async (
-		hook: "pre" | "tool" | "stop",
-		stepIndex: number,
+		hook: "pre" | "stop",
 		extra: Record<string, unknown>,
 	) => {
 		const payload = {
 			conversationId,
+			session_id: conversationId,
 			workspacePaths: [workspacePath],
+			workspacePath,
+			cwd: workspacePath,
 			transcriptPath: mockTranscriptPath,
+			transcript_path: mockTranscriptPath,
 			...extra,
 		};
 		const egress = await runShim(hook, JSON.stringify(payload), env);
 		const out = egress.stdout ? JSON.parse(egress.stdout) : {};
+
+		const decision =
+			out.decision === "block"
+				? "continue"
+				: (out.decision ?? (hook === "stop" ? "allow" : undefined));
+		const reason = out.reason;
+		const injectedMessage =
+			out.injectSteps?.[0]?.ephemeralMessage ??
+			out.hookSpecificOutput?.additionalContext;
+		const injectSteps = injectedMessage
+			? [{ ephemeralMessage: injectedMessage }]
+			: undefined;
+
 		trace.push({
-			stepIndex,
 			hook,
-			decision: out.decision,
-			reason: out.reason,
-			injectSteps: out.injectSteps,
+			...(decision ? { decision } : {}),
+			...(reason ? { reason } : {}),
+			...(injectSteps ? { injectSteps } : {}),
 			state: sanitizeState(loadState(conversationId, env)),
 		});
 	};
 
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i];
-		fs.appendFileSync(mockTranscriptPath, `${line}\n`);
+	try {
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			fs.appendFileSync(mockTranscriptPath, `${line}\n`);
 
-		let item: Record<string, unknown>;
-		try {
-			item = JSON.parse(line);
-		} catch {
-			continue;
+			let item: Record<string, unknown>;
+			try {
+				item = JSON.parse(line);
+			} catch {
+				continue;
+			}
+
+			if (harness === "codex") {
+				const payload = item.payload as Record<string, unknown> | undefined;
+				const meta = payload?.internal_chat_message_metadata_passthrough as
+					| Record<string, unknown>
+					| undefined;
+				const contentKinds = meta?.content_item_kinds as string[] | undefined;
+				const contentList = payload?.content as
+					| Array<{ text?: string }>
+					| undefined;
+
+				if (
+					item.type === "response_item" &&
+					payload?.role === "user" &&
+					contentKinds?.includes("user.text")
+				) {
+					await invoke("pre", {
+						hook_event_name: "UserPromptSubmit",
+						prompt: contentList?.[0]?.text,
+					});
+				} else if (
+					item.type === "response_item" &&
+					payload?.role === "assistant"
+				) {
+					await invoke("stop", {
+						hook_event_name: "Stop",
+						last_assistant_message: contentList?.[0]?.text,
+					});
+				}
+			} else {
+				if (item.type === "USER_INPUT" || item.source === "USER_EXPLICIT") {
+					await invoke("pre", {
+						invocationNum: invocationNum++,
+						prompt: typeof item.content === "string" ? item.content : undefined,
+					});
+				} else if (
+					item.type === "PLANNER_RESPONSE" ||
+					item.source === "MODEL"
+				) {
+					await invoke("stop", {
+						terminationReason: "model_stop",
+						fullyIdle: true,
+						last_assistant_message:
+							typeof item.content === "string" ? item.content : undefined,
+					});
+				}
+			}
 		}
-
-		if (item.type === "USER_INPUT" || item.source === "USER_EXPLICIT") {
-			await invoke("pre", (item.step_index as number) ?? i, {
-				invocationNum: invocationNum++,
-				initialNumSteps: i + 1,
-				prompt: typeof item.content === "string" ? item.content : undefined,
-			});
-			continue;
-		}
-
-		const toolCalls = Array.isArray(item.tool_calls)
-			? (item.tool_calls as Array<Record<string, unknown>>)
-			: [];
-		for (const tc of toolCalls) {
-			await invoke("tool", (item.step_index as number) ?? i, {
-				toolCall: tc,
-				tool_name: tc.name,
-				tool_input: tc.args ?? tc.input,
-				stepIdx: (item.step_index as number) ?? i,
-			});
-		}
-
-		const isModelTurn =
-			(item.type === "PLANNER_RESPONSE" || item.source === "MODEL") &&
-			item.type !== "GENERIC";
-		const nextItem = i + 1 < lines.length ? JSON.parse(lines[i + 1]) : null;
-
-		if (isModelTurn && nextItem?.type !== "GENERIC") {
-			await invoke("stop", (item.step_index as number) ?? i, {
-				executionNum: ++executionNum,
-				terminationReason: "model_stop",
-				fullyIdle: true,
-				last_assistant_message:
-					typeof item.content === "string" ? item.content : undefined,
-			});
-		}
+	} finally {
+		fs.rmSync(tmpDir, { recursive: true, force: true });
 	}
 
-	fs.rmSync(tmpDir, { recursive: true, force: true });
 	return stripAbsolutePath(trace, repoRoot);
 }
 
