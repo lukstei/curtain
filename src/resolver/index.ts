@@ -32,6 +32,7 @@ export function loadSkillScript(
 		const content = fs.readFileSync(playbookPath, "utf-8");
 		if (!CALLOUT_ANNOTATION_REGEX.test(content)) return null;
 		const script = parseScript(content, playbookPath);
+		// edge case: single-step scripts do not require multi-act runner interception and execute natively
 		return script.steps.length > 1 ? script : null;
 	} catch {
 		return null;

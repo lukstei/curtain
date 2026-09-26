@@ -79,6 +79,7 @@ export async function runCli(
 	}
 
 	if (parsed.command === "hook") {
+		// edge case: when invoked as 'curtain hook' without a subcommand, default to the stop hook
 		const modeArg = parsed.subcommand ?? "stop";
 		const egress = await runShim(modeArg, env);
 		if (egress.stdout) writeOut(egress.stdout);
@@ -95,6 +96,7 @@ const isDirectExecution =
 	Boolean(process.argv[1]?.endsWith("curtain.mjs")) ||
 	Boolean(process.argv[1]?.endsWith("cli.ts"));
 
+// smell: suppress CLI execution when imported in test suites
 if (isDirectExecution && !process.env.VITEST) {
 	runCli().then((res) => {
 		if (res.exitCode !== 0) {

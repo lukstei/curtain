@@ -7,8 +7,7 @@ export const WHITESPACE_SPLIT_REGEX = /\s+/;
 export type UserIntent =
 	| { type: "next" }
 	| { type: "skill"; skill: ParsedSkill }
-	| { type: "none" }
-	| { type: "error"; error: string };
+	| { type: "none" };
 
 function resolveSkillNameFromPath(skillPath?: string): string | null {
 	if (!skillPath) return null;

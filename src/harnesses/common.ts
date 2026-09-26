@@ -8,6 +8,7 @@ import type { HarnessType, NormalizedEvent } from "./types.ts";
 export function parseClaudeMessage(
 	item: Record<string, unknown>,
 ): LatestMessage | null {
+	// edge case: Claude transcript entries may wrap the message payload inside an inner message property
 	if (
 		item.role === "assistant" ||
 		(item.message as Record<string, unknown>)?.role === "assistant"

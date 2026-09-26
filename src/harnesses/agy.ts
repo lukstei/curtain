@@ -103,6 +103,7 @@ export const agyHarness: HarnessAdapter = {
 				: undefined;
 
 		const isTool = modeArg === "tool" || payload.toolCall !== undefined;
+		// edge case: AGY stop events omit invocationNum while pre events include it
 		const isStop =
 			!isTool &&
 			(modeArg === "stop" ||

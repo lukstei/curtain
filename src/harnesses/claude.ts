@@ -28,6 +28,7 @@ export const claudeHarness: HarnessAdapter = {
 
 	detect(payload: Record<string, unknown>, env: NodeJS.ProcessEnv): boolean {
 		if (env.CLAUDE_CODE_SESSION_ID || env.CLAUDE_PLUGIN_DATA) return true;
+		// edge case: Claude Code payloads share hook_event_name with Codex and Copilot but omit turn_id and timestamp
 		return (
 			payload.hook_event_name !== undefined &&
 			payload.turn_id === undefined &&
@@ -134,6 +135,7 @@ export const claudeHarness: HarnessAdapter = {
 		}
 
 		if (event.type === "tool") {
+			// edge case: Claude PreToolUse requires exit code 2 and stderr to deny tool execution
 			if (response.action === "deny") {
 				return {
 					exitCode: 2,

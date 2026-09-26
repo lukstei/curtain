@@ -205,6 +205,7 @@ export const codexHarness: HarnessAdapter = {
 	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput {
 		if (event.type === "stop") {
 			if (response.action === "continue") {
+				// edge case: Codex Stop hook requires decision: 'block' to prevent agent stop and inject continuation prompt
 				return {
 					exitCode: 0,
 					stdout: JSON.stringify({

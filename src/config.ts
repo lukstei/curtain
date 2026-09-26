@@ -13,7 +13,7 @@ export function loadCurtainConfig(workspacePath?: string): CurtainConfig {
 	}
 	searchPaths.push(path.join(process.cwd(), "curtain.json"));
 
-	// Check plugin root (relative to src/ or dist/)
+	// smell: search paths account for varying bundle nesting depths relative to import.meta.dirname
 	searchPaths.push(path.resolve(import.meta.dirname, "..", "curtain.json"));
 	searchPaths.push(path.resolve(import.meta.dirname, "../..", "curtain.json"));
 

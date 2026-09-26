@@ -53,9 +53,6 @@ export function evaluatePreIntent(
 	resolved?: ResolvedScriptResult,
 ): HandlerResult<PreHookResponse> {
 	switch (intent.type) {
-		case "error":
-			return { state, response: { action: "inject", message: intent.error } };
-
 		case "next": {
 			// edge case: user typed /next without any active or paused playbook execution
 			if (!state) {

@@ -10,8 +10,6 @@ export function getVersion(): string {
 				return pkg.version;
 			}
 		}
-	} catch {
-		// Fallback if package.json cannot be read
-	}
-	return "0.1.3";
+	} catch {}
+	return "cannot parse version";
 }

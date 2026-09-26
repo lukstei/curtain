@@ -61,7 +61,7 @@ export function parseScript(content: string, filePath: string): Script {
 	assert(trimmed.length > 0, `Script file "${filePath}" contains no content.`);
 
 	const ast = parse(content);
-	// edge case: single-block documents parse as a direct AST node rather than a fragment
+	// smell: internal markdown parser unwraps single-block fragments into a direct AST node
 	const topLevelBlocks = ast.type === "fragment" ? ast.children : [ast];
 
 	const steps: Step[] = [];
