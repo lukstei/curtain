@@ -200,53 +200,21 @@ describe("handlers/pre.ts", () => {
 		`);
 	});
 
-	it("starts script on /curtain <file>", () => {
-		const scriptPath = path.join(tmpDir, "PLAYBOOK.md");
-		fs.mkdirSync(tmpDir, { recursive: true });
-		fs.writeFileSync(
-			scriptPath,
-			["Step 1 instruction", "> [!CURTAIN]", "Step 2 instruction"].join("\n"),
-		);
-
+	it("returns informative error when user invokes /curtain <file>", () => {
 		const info: HookInfo = {
 			type: "pre",
 			conversationId: "test-c5",
 			workspacePath: tmpDir,
-			prompt: `/curtain ${scriptPath}`,
+			prompt: "/curtain task.md",
 		};
 
 		const { state, response } = handlePre(info, null);
-		expect(state?.status).toBe("running");
-		expect(state?.currentStep).toBe(0);
-		expect(response.action === "inject" && response.message).toContain(
-			"[STEP 1 OF 2]",
-		);
-	});
-
-	it("starts script on direct custom file invocation /curtain SMELLS.md", () => {
-		const smellsPath = path.join(tmpDir, "SMELLS.md");
-		fs.writeFileSync(
-			smellsPath,
-			["Phase 1", "> [!INTERMISSION] Review 1", "Phase 2"].join("\n"),
-		);
-
-		const info: HookInfo = {
-			type: "pre",
-			conversationId: "test-smells-direct",
-			workspacePath: tmpDir,
-			prompt: "/curtain SMELLS.md",
-		};
-
-		const { state, response } = handlePre(info, null);
-		expect(state?.status).toBe("running");
-		expect(state?.currentStep).toBe(0);
-		expect(state?.script).toBe(smellsPath);
-		expect(response.action === "inject" && response.message).toContain(
-			"[STEP 1 OF 2]",
-		);
-		expect(response.action === "inject" && response.message).toContain(
-			"Phase 1",
-		);
+		expect(state).toBeNull();
+		expect(response).toEqual({
+			action: "inject",
+			message:
+				"Curtain is an instruction runner. Start a workflow by invoking its skill directly (e.g. /<skill-name>).",
+		});
 	});
 
 	it("implicitly starts execution when user invokes an annotated skill via slash command", () => {
@@ -259,7 +227,7 @@ describe("handlers/pre.ts", () => {
 				"name: deploy-skill",
 				"description: Deploy procedure",
 				"---",
-				"/curtain deploy-skill",
+				"Workflow description",
 			].join("\n"),
 		);
 		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
@@ -308,7 +276,7 @@ describe("handlers/pre.ts", () => {
 				"name: invoked-skill",
 				"description: Invoked skill with curtains",
 				"---",
-				"/curtain invoked-skill",
+				"Workflow description",
 			].join("\n"),
 		);
 		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
@@ -350,7 +318,7 @@ describe("handlers/pre.ts", () => {
 				"name: invoked-empty-prompt",
 				"description: Invoked skill with empty prompt",
 				"---",
-				"/curtain invoked-empty-prompt",
+				"Workflow description",
 			].join("\n"),
 		);
 		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
@@ -464,7 +432,7 @@ describe("handlers/pre.ts", () => {
 				"name: curtain-test",
 				"description: Follow instructions",
 				"---",
-				"/curtain curtain-test",
+				"Workflow description",
 			].join("\n"),
 		);
 		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
@@ -500,7 +468,7 @@ describe("handlers/pre.ts", () => {
 				"name: link-skill",
 				"description: Skill invoked by link name",
 				"---",
-				"/curtain link-skill",
+				"Workflow description",
 			].join("\n"),
 		);
 		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
@@ -526,7 +494,10 @@ describe("handlers/pre.ts", () => {
 	});
 
 	it("executes purely without filesystem access via evaluatePreIntent", () => {
-		const intent = { type: "run" as const, path: "nonexistent.md" };
+		const intent = {
+			type: "skill" as const,
+			skill: { name: "pure-skill" },
+		};
 		const resolved: ResolvedScriptResult = {
 			type: "resolved",
 			script: {

@@ -3,23 +3,6 @@ import * as path from "node:path";
 import { getHarness, HARNESSES } from "../harnesses/index.ts";
 import type { HarnessType } from "../harnesses/types.ts";
 import { logDebug } from "../lib/logDebug.ts";
-import { CALLOUT_ANNOTATION_REGEX } from "../parser/index.ts";
-
-/**
- * Checks whether a markdown file contains at least one Curtain delimiter annotation.
- */
-export function hasCurtainAnnotations(filePath: string): boolean {
-	try {
-		const content = fs.readFileSync(filePath, "utf-8");
-		return CALLOUT_ANNOTATION_REGEX.test(content);
-	} catch (err) {
-		const isEnoent = (err as NodeJS.ErrnoException).code === "ENOENT";
-		if (!isEnoent) {
-			logDebug(`Failed to read file for annotations at ${filePath}`, err);
-		}
-		return false;
-	}
-}
 
 function findSkillInBaseDir(
 	baseDir: string,

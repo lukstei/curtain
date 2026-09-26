@@ -83,7 +83,8 @@ Update schema docs in `docs/db.md`.
 ## 4. Execution Lifecycle
 
 ### Step 0: Ingestion
-- Ingested via `/curtain <file.md>` (or `$curtain:start <file.md>` in Codex, or `curtain <file.md>` in CLI).
+- Ingested when the developer invokes a skill via `/<skill-name>` (or `$<skill-name>` in Codex).
+- The runner resolves `<skill-dir>/PLAYBOOK.md` behind curtains.
 - Segments file content into an array of sequential Acts (`Step[]`).
 - State is initialized at `currentStep: 0` (`status: "running"`).
 - Act 1 instructions are injected into the agent's context.
@@ -120,7 +121,8 @@ Update schema docs in `docs/db.md`.
 
 ## 5. Command Reference
 
-| Command (Claude / AGY) | Command (Codex CLI) | CLI Terminal | Description |
-| :--- | :--- | :--- | :--- |
-| `/curtain <file.md>` | `$curtain:start <file.md>` | `curtain <file.md>` | Start execution of a multi-act script. |
-| `/next` | `$curtain:next` | `curtain next` | Advance to the next Act when paused at an intermission. |
+| Command (Claude / AGY) | Command (Codex CLI) | Description |
+| :--- | :--- | :--- |
+| `/<skill-name>` | `$<skill-name>` | Start execution of a multi-act skill. |
+| `/next` | `$curtain:next` | Advance to the next Act when paused at an intermission. |
+

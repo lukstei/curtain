@@ -59,12 +59,20 @@ codex plugin add curtain@curtain
 
 ## Quickstart
 
-### 1. Annotate your current skills
+### 1. Create a skill directory
 
-Take an existing `SKILL.md` (or any markdown playbook) and drop in curtain delimiters to separate your acts:
+Organize your workflow inside a skill directory with `SKILL.md` for metadata and `PLAYBOOK.md` for instructions:
+
+```
+.agents/skills/db-migrate/  (or .claude/skills/db-migrate/)
+├── SKILL.md       # Public skill manifest
+└── PLAYBOOK.md    # Backstage multi-act script
+```
+
+In `PLAYBOOK.md`, separate your acts using GitHub-style callouts:
 
 ```markdown
-# Database Migration (`SKILL.md`)
+# Database Migration
 
 ## Act 1: Schema Audit & Draft Migration
 Audit existing tables in `src/db/schema.ts`. Write a non-destructive migration script in `migrations/002_user_prefs.sql`.
@@ -84,7 +92,11 @@ Update the ORM models and export types. Update schema docs in `docs/db.md`.
 
 ### 2. Run in chat
 
-Start execution with `/curtain path/to/SKILL.md` or any markdown playbook (Codex: `$curtain:start path/to/SKILL.md`).
+Invoke the skill directly via its natural command:
+- **Claude Code & AGY:** `/db-migrate`
+- **Codex:** `$db-migrate`
+
+When paused at an intermission, resume with `/next` (Codex: `$curtain:next`).
 
 ## Syntax & Delimiters
 
@@ -103,7 +115,7 @@ Delimiters support optional instructions:
 
 | Command (Claude / AGY) | Command (Codex CLI) | Description |
 | :--- | :--- | :--- |
-| `/curtain <file.md>` | `$curtain:start <file.md>` | Start execution of a multi-act script. |
+| `/<skill-name>` | `$<skill-name>` | Start execution of a multi-act skill. |
 | `/next` | `$curtain:next` | Advance to the next Act when paused at an intermission. |
 
 ## Development

@@ -2,11 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
 	ANGLE_BRACKET_ENCLOSURE_REGEX,
 	BARE_SKILL_COMMAND_REGEX,
-	COMMAND_REGEX,
-	cleanFilePathArgument,
-	FILE_AT_REGEX,
-	FILE_BRACKET_REGEX,
-	FILE_QUOTE_REGEX,
 	parseCommand,
 	SKILL_LINK_WITH_OPTIONAL_PATH_REGEX,
 	WHITESPACE_SPLIT_REGEX,
@@ -21,42 +16,28 @@ describe("parseCommand.ts", () => {
 		expect(parseCommand("/curtain:next")).toEqual({ type: "next" });
 	});
 
-	it("returns error for bare /curtain or missing path", () => {
-		expect(parseCommand("/curtain")).toEqual({
+	it("returns error directing to skill invocation when /curtain is called", () => {
+		const expectedErr = {
 			type: "error",
-			error: "Missing required script path argument.",
-		});
-		expect(parseCommand("$curtain")).toEqual({
-			type: "error",
-			error: "Missing required script path argument.",
-		});
-		expect(parseCommand("/curtain:curtain")).toEqual({
-			type: "error",
-			error: "Missing required script path argument.",
-		});
-	});
-
-	it("parses script file runs with file mentions", () => {
-		expect(parseCommand("/curtain task.md")).toEqual({
-			type: "run",
-			path: "task.md",
-		});
-		expect(parseCommand("$curtain task.md")).toEqual({
-			type: "run",
-			path: "task.md",
-		});
-		expect(parseCommand("/curtain:curtain task.md")).toEqual({
-			type: "run",
-			path: "task.md",
-		});
-		expect(parseCommand("/curtain @[path/to/script.md]")).toEqual({
-			type: "run",
-			path: "path/to/script.md",
-		});
+			error:
+				"Curtain is an instruction runner. Start a workflow by invoking its skill directly (e.g. /<skill-name>).",
+		};
+		expect(parseCommand("/curtain")).toEqual(expectedErr);
+		expect(parseCommand("$curtain")).toEqual(expectedErr);
+		expect(parseCommand("/curtain:curtain")).toEqual(expectedErr);
+		expect(parseCommand("/curtain task.md")).toEqual(expectedErr);
+		expect(parseCommand("$curtain task.md")).toEqual(expectedErr);
+		expect(parseCommand("/curtain:curtain task.md")).toEqual(expectedErr);
 	});
 
 	it("parses bare skill commands and non-curtain messages", () => {
 		expect(parseCommand("Hello agent, please fix this bug")).toEqual({
+			type: "none",
+		});
+		expect(parseCommand("[TODO] Fix auth bug")).toEqual({
+			type: "none",
+		});
+		expect(parseCommand("[WIP] Refactor parser")).toEqual({
 			type: "none",
 		});
 		expect(parseCommand("/curtain-")).toEqual({
@@ -67,23 +48,21 @@ describe("parseCommand.ts", () => {
 			type: "skill",
 			skill: { name: "curtain-custom" },
 		});
-		expect(parseCommand("/curtain-run task.md")).toEqual({
-			type: "none",
+		expect(parseCommand("/deploy")).toEqual({
+			type: "skill",
+			skill: { name: "deploy" },
 		});
-		expect(parseCommand("$curtain-start task.md")).toEqual({
-			type: "none",
+		expect(parseCommand("/deploy staging")).toEqual({
+			type: "skill",
+			skill: { name: "deploy" },
+		});
+		expect(parseCommand("$deploy")).toEqual({
+			type: "skill",
+			skill: { name: "deploy" },
 		});
 	});
 
-	it("parses Markdown link mentions with target path and trailing arguments", () => {
-		expect(
-			parseCommand(
-				"[$curtain](skills/curtain/SKILL.md) @[path/to/playbook.md]",
-			),
-		).toEqual({
-			type: "run",
-			path: "path/to/playbook.md",
-		});
+	it("parses Markdown link mentions with target path", () => {
 		expect(parseCommand("[$curtain](skills/curtain/SKILL.md) next")).toEqual({
 			type: "next",
 		});
@@ -100,14 +79,6 @@ describe("parseCommand.ts", () => {
 	});
 
 	it("parses namespaced skill link mentions", () => {
-		expect(
-			parseCommand(
-				"[$curtain:curtain](skills/curtain/SKILL.md) @[path/to/playbook.md]",
-			),
-		).toEqual({
-			type: "run",
-			path: "path/to/playbook.md",
-		});
 		expect(parseCommand("[$curtain:next](skills/next/SKILL.md)")).toEqual({
 			type: "next",
 		});
@@ -125,12 +96,6 @@ describe("parseCommand.ts", () => {
 			type: "next",
 		});
 		expect(
-			parseCommand("curtain-test", "/plugins/curtain/skills/curtain/SKILL.md"),
-		).toEqual({
-			type: "run",
-			path: "curtain-test",
-		});
-		expect(
 			parseCommand(undefined, "/plugins/other/skills/custom/SKILL.md"),
 		).toEqual({
 			type: "skill",
@@ -139,131 +104,7 @@ describe("parseCommand.ts", () => {
 		});
 	});
 
-	describe("cleanFilePathArgument", () => {
-		it("cleans bracket, quote, at-sign, and plain file path arguments", () => {
-			expect(cleanFilePathArgument("@[path/to/script.md]")).toBe(
-				"path/to/script.md",
-			);
-			expect(cleanFilePathArgument('"path/to/script.md"')).toBe(
-				"path/to/script.md",
-			);
-			expect(cleanFilePathArgument("'path/to/script.md'")).toBe(
-				"path/to/script.md",
-			);
-			expect(cleanFilePathArgument("@path/to/script.md")).toBe(
-				"path/to/script.md",
-			);
-			expect(cleanFilePathArgument("path/to/script.md extra")).toBe(
-				"path/to/script.md",
-			);
-			expect(cleanFilePathArgument("")).toBeNull();
-			expect(cleanFilePathArgument("   ")).toBeNull();
-		});
-	});
-
 	describe("Command Regular Expressions", () => {
-		it("matches runner commands and captures groups", () => {
-			const inputs = [
-				"/next",
-				"$next",
-				"/curtain next",
-				"$curtain:next",
-				"/curtain",
-				"$curtain",
-				"/curtain task.md",
-				"/curtain run task.md",
-				"$curtain:start task.md",
-				"/curtain-run task.md",
-				"/other-command",
-			];
-
-			expect(
-				inputs.map((input) => {
-					const match = input.match(COMMAND_REGEX);
-					return match
-						? {
-								prefix: match[1] ?? null,
-								name: match[2] ?? null,
-								rest: match[3] ?? null,
-							}
-						: null;
-				}),
-			).toMatchInlineSnapshot(`
-				[
-				  {
-				    "name": "next",
-				    "prefix": "/",
-				    "rest": null,
-				  },
-				  {
-				    "name": "next",
-				    "prefix": "$",
-				    "rest": null,
-				  },
-				  {
-				    "name": "next",
-				    "prefix": "/curtain ",
-				    "rest": null,
-				  },
-				  {
-				    "name": "next",
-				    "prefix": "$curtain:",
-				    "rest": null,
-				  },
-				  {
-				    "name": "curtain",
-				    "prefix": "/",
-				    "rest": null,
-				  },
-				  {
-				    "name": "curtain",
-				    "prefix": "$",
-				    "rest": null,
-				  },
-				  {
-				    "name": "task.md",
-				    "prefix": "/curtain ",
-				    "rest": null,
-				  },
-				  {
-				    "name": "run",
-				    "prefix": "/curtain ",
-				    "rest": "task.md",
-				  },
-				  {
-				    "name": "start",
-				    "prefix": "$curtain:",
-				    "rest": "task.md",
-				  },
-				  {
-				    "name": "curtain-run",
-				    "prefix": "/",
-				    "rest": "task.md",
-				  },
-				  {
-				    "name": "other-command",
-				    "prefix": "/",
-				    "rest": null,
-				  },
-				]
-			`);
-		});
-
-		it("extracts bracketed, quoted, and at file arguments", () => {
-			expect("@[path/to/playbook.md]".match(FILE_BRACKET_REGEX)?.[1]).toBe(
-				"path/to/playbook.md",
-			);
-			expect('"path/to/playbook.md"'.match(FILE_QUOTE_REGEX)?.[1]).toBe(
-				"path/to/playbook.md",
-			);
-			expect("'path/to/playbook.md'".match(FILE_QUOTE_REGEX)?.[1]).toBe(
-				"path/to/playbook.md",
-			);
-			expect("@path/to/playbook.md".match(FILE_AT_REGEX)?.[1]).toBe(
-				"path/to/playbook.md",
-			);
-		});
-
 		it("matches skill links with optional path", () => {
 			const inputs = [
 				"[$curtain-test](skills/curtain-test/SKILL.md)",

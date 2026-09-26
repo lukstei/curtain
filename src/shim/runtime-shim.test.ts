@@ -53,7 +53,7 @@ describe("runShim End-to-End Simulation", () => {
 		const parsed = JSON.parse(egress.stdout ?? "{}");
 		expect(parsed.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
 		expect(parsed.hookSpecificOutput.additionalContext).toBe(
-			"Missing required script path argument.",
+			"Curtain is an instruction runner. Start a workflow by invoking its skill directly (e.g. /<skill-name>).",
 		);
 	});
 

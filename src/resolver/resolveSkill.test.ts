@@ -2,11 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-	hasCurtainAnnotations,
-	resolvePlaybookPath,
-	resolveSkillPath,
-} from "./resolveSkill.ts";
+import { resolvePlaybookPath, resolveSkillPath } from "./resolveSkill.ts";
 
 describe("lib/resolveSkill.ts", () => {
 	let testDir: string;
@@ -18,60 +14,6 @@ describe("lib/resolveSkill.ts", () => {
 
 	afterEach(() => {
 		fs.rmSync(testDir, { recursive: true, force: true });
-	});
-
-	describe("hasCurtainAnnotations", () => {
-		it("detects > [!CURTAIN] callouts", () => {
-			const filePath = path.join(testDir, "annotated.md");
-			fs.writeFileSync(
-				filePath,
-				"# Title\nStep 1\n> [!CURTAIN]\nStep 2\n",
-				"utf-8",
-			);
-			expect(hasCurtainAnnotations(filePath)).toBe(true);
-		});
-
-		it("detects > [!INTERMISSION] callouts", () => {
-			const filePath = path.join(testDir, "intermission.md");
-			fs.writeFileSync(
-				filePath,
-				"# Title\nStep 1\n> [!INTERMISSION] Review\nStep 2\n",
-				"utf-8",
-			);
-			expect(hasCurtainAnnotations(filePath)).toBe(true);
-		});
-
-		it("detects callouts at the very start of the file", () => {
-			const filePath = path.join(testDir, "start.md");
-			fs.writeFileSync(filePath, "> [!CURTAIN]\nStep 2\n", "utf-8");
-			expect(hasCurtainAnnotations(filePath)).toBe(true);
-		});
-
-		it("detects callouts with arbitrary whitespace around >", () => {
-			const filePath = path.join(testDir, "spaces.md");
-			fs.writeFileSync(
-				filePath,
-				"# Title\nStep 1\n   >   [!CURTAIN]\nStep 2\n",
-				"utf-8",
-			);
-			expect(hasCurtainAnnotations(filePath)).toBe(true);
-		});
-
-		it("returns false for plain markdown without curtain annotations", () => {
-			const filePath = path.join(testDir, "plain.md");
-			fs.writeFileSync(
-				filePath,
-				"# Title\nThis is just a normal doc.\n## Steps\n1. Do this\n",
-				"utf-8",
-			);
-			expect(hasCurtainAnnotations(filePath)).toBe(false);
-		});
-
-		it("returns false for non-existent files", () => {
-			expect(hasCurtainAnnotations(path.join(testDir, "missing.md"))).toBe(
-				false,
-			);
-		});
 	});
 
 	describe("resolveSkillPath", () => {

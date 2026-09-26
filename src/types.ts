@@ -15,7 +15,6 @@ export interface ToolCall {
 
 export type ResolvedScriptResult =
 	| { type: "resolved"; script: Script; skillName?: string }
-	| { type: "error"; error: string }
 	| { type: "none" };
 
 type BaseHookInfo = {

@@ -39,7 +39,7 @@ function resolvePreScript(
 	info: Extract<HookInfo, { type: "pre" }>,
 	state: RunnerState | null,
 ): ResolvedScriptResult | undefined {
-	if (intent.type === "run" || (intent.type === "skill" && !state)) {
+	if (intent.type === "skill" && !state) {
 		return resolveIntentScript(
 			intent,
 			info.workspacePath,
@@ -79,32 +79,13 @@ export function evaluatePreIntent(
 			};
 		}
 
-		case "run": {
-			if (!resolved || resolved.type === "none") {
-				return {
-					state,
-					response: {
-						action: "inject",
-						message: `Script file not found: "${intent.path}"`,
-					},
-				};
-			}
-			if (resolved.type === "error") {
-				return {
-					state,
-					response: { action: "inject", message: resolved.error },
-				};
-			}
-			return startScript(resolved.script);
-		}
-
 		case "skill": {
 			if (state) break;
 
 			if (resolved?.type === "resolved") {
 				return startScript(
 					resolved.script,
-					resolved.skillName ?? intent.skill?.name,
+					resolved.skillName ?? intent.skill.name,
 				);
 			}
 			break;

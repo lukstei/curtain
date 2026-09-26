@@ -1,9 +1,5 @@
 import { parseArgs } from "node:util";
-import { resolveConversationIdFromHarnesses } from "./harnesses/index.ts";
-import { loadScript } from "./resolver/index.ts";
 import { runShim } from "./shim/runtime-shim.ts";
-import { deleteState, loadState, saveState } from "./state.ts";
-import { executeResume, executeStart } from "./transitions.ts";
 import { getVersion } from "./version.ts";
 
 export interface ParsedCli {
@@ -22,10 +18,7 @@ export function getCliHelp(): string {
 		"curtain - Minimal Multi-Act Instruction Runner for AI Agents",
 		"",
 		"Usage:",
-		"  curtain <file.md>        Start execution of a multi-act script",
-		"  curtain start <file.md>  Start execution of a multi-act script",
-		"  curtain next             Advance to next step when paused at an intermission",
-		"  curtain hook <event>     Execute harness lifecycle hook (pre, stop)",
+		"  curtain hook <event>     Execute harness lifecycle hook (pre, tool, stop)",
 		"  curtain help             Show this help reference",
 		"",
 		"Options:",
@@ -73,16 +66,16 @@ export async function runCli(
 	const parsed = parseCliArgs(args);
 	const { writeOut, writeErr } = io;
 
-	if (parsed.options.help || parsed.command === "help") {
-		const helpText = getCliHelp();
-		writeOut(helpText);
-		return { exitCode: 0, output: helpText };
-	}
-
 	if (parsed.options.version || parsed.command === "version") {
 		const version = getVersion();
 		writeOut(version);
 		return { exitCode: 0, output: version };
+	}
+
+	if (parsed.options.help || parsed.command === "help" || !parsed.command) {
+		const helpText = getCliHelp();
+		writeOut(helpText);
+		return { exitCode: 0, output: helpText };
 	}
 
 	if (parsed.command === "hook") {
@@ -93,58 +86,9 @@ export async function runCli(
 		return { exitCode: egress.exitCode, output: egress.stdout };
 	}
 
-	const conversationId = resolveConversationIdFromHarnesses(env) ?? "default";
-	const cwd = env.PWD || process.cwd();
-
-	if (parsed.command === "next") {
-		const state = loadState(conversationId, env);
-		if (!state) {
-			const err =
-				"No script is currently loaded. Start with 'curtain <script.md>'.";
-			writeErr(err);
-			return { exitCode: 1, output: err };
-		}
-
-		const res = executeResume(state);
-		if (res.action === "error") {
-			writeErr(res.message);
-			return { exitCode: 1, output: res.message };
-		}
-
-		if (res.action === "finish") {
-			deleteState(conversationId, env);
-			writeOut(res.message);
-			return { exitCode: 0, output: res.message };
-		}
-
-		saveState(conversationId, res.nextState, env);
-		writeOut(res.message);
-		return { exitCode: 0, output: res.message };
-	}
-
-	// Check for start / run or direct file argument
-	const isStartCommand = parsed.command === "start" || parsed.command === "run";
-	const filePathCandidate = isStartCommand ? parsed.args[0] : parsed.command;
-
-	if (filePathCandidate) {
-		const loaded = loadScript(filePathCandidate, [cwd]);
-		if (!loaded || "error" in loaded) {
-			const err = !loaded
-				? `Script file not found: "${filePathCandidate}"`
-				: loaded.error;
-			writeErr(err);
-			return { exitCode: 1, output: err };
-		}
-
-		const res = executeStart(loaded.script);
-		saveState(conversationId, res.nextState, env);
-		writeOut(res.message);
-		return { exitCode: 0, output: res.message };
-	}
-
-	const helpText = getCliHelp();
-	writeOut(helpText);
-	return { exitCode: 0, output: helpText };
+	const err = `Unknown command "${parsed.command}". Curtain is an agent lifecycle hook plugin. In chat, start a workflow with /<skill-name> and advance with /next.`;
+	writeErr(err);
+	return { exitCode: 1, output: err };
 }
 
 const isDirectExecution =
