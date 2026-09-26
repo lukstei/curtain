@@ -1,6 +1,8 @@
 import * as fs from "node:fs";
 import esbuild from "esbuild";
 
+const isDev = process.argv.includes("--dev");
+
 await esbuild.build({
 	entryPoints: ["src/cli.ts"],
 	bundle: true,
@@ -9,6 +11,7 @@ await esbuild.build({
 	format: "esm",
 	outfile: "dist/curtain.mjs",
 	banner: { js: "#!/usr/bin/env node" },
+	define: isDev ? { "process.env.CURTAIN_DEBUG": '"1"' } : {},
 	logLevel: "info",
 });
 

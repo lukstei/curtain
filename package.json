@@ -37,6 +37,7 @@
 	},
 	"scripts": {
 		"build": "node esbuild.config.js",
+		"build:dev": "node esbuild.config.js --dev",
 		"typecheck": "tsc --noEmit",
 		"check": "biome check --write",
 		"test": "vitest run --reporter=minimal",
@@ -44,9 +45,9 @@
 		"test:update": "vitest run -u",
 		"verify": "npm run typecheck && npm run check && npm run test",
 		"check:clean": "test -z \"$(git status --porcelain)\" || (echo \"Error: Git working directory is not clean\" && exit 1)",
-		"dev:install:agy": "npm run build && node scripts/dev-install.js ~/.gemini/config/plugins/curtain",
-		"dev:install:claude": "npm run build && node scripts/dev-install.js ~/.claude/plugins/cache/curtain-marketplace/curtain",
-		"dev:install:codex": "npm run build && node scripts/dev-install.js ~/.codex/plugins/cache/curtain/curtain",
+		"dev:install:agy": "npm run build:dev && node scripts/dev-install.js ~/.gemini/config/plugins/curtain",
+		"dev:install:claude": "npm run build:dev && node scripts/dev-install.js ~/.claude/plugins/cache/curtain-marketplace/curtain",
+		"dev:install:codex": "npm run build:dev && node scripts/dev-install.js ~/.codex/plugins/cache/curtain/curtain",
 		"release:patch": "node scripts/release.js patch",
 		"release:minor": "node scripts/release.js minor",
 		"release:major": "node scripts/release.js major"

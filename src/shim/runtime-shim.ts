@@ -1,4 +1,3 @@
-import { loadCurtainConfig } from "../config.ts";
 import { handle } from "../handlers/index.ts";
 import { detectHarness, getHarness } from "../harnesses/index.ts";
 import type { EgressOutput } from "../harnesses/types.ts";
@@ -72,8 +71,8 @@ export function executeHook(
 
 	const egress = adapter.formatEgress(event, response);
 
-	const config = loadCurtainConfig(event.workspacePath);
-	if (config.debug) {
+	const isDebug = Boolean(env.CURTAIN_DEBUG ?? process.env.CURTAIN_DEBUG);
+	if (isDebug) {
 		const latestMessage = "latestMessage" in event ? event.latestMessage : null;
 		logHookInvocation(
 			event.conversationId,
@@ -83,7 +82,7 @@ export function executeHook(
 				input: rawInput,
 				output: egress.stdout ?? "{}",
 				...(latestMessage ? { latestMessage } : {}),
-				state: nextState,
+				state: {...nextState||{}, ...{steps: undefined}},
 			},
 			env,
 		);

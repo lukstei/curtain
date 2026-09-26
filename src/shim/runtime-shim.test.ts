@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -180,5 +181,40 @@ describe("runShim End-to-End Simulation", () => {
 		const egress = await runShimForTest("stop", rawInput, env);
 		expect(egress.exitCode).toBe(0);
 		expect(loadState(sessionId, env)).toBeNull();
+	});
+
+	it("logs hook invocation when CURTAIN_DEBUG is set", async () => {
+		const conversationId = "test-log-debug-on";
+		const env = {
+			AGY_HOOK_ACTIVE: "1",
+			AGY_PLUGIN_DATA: tmpDir,
+			CURTAIN_DEBUG: "1",
+		};
+		const rawInput = JSON.stringify({
+			conversationId,
+			workspacePaths: ["/test"],
+		});
+
+		await runShimForTest("pre", rawInput, env);
+		const hookLogPath = path.join(tmpDir, conversationId, "hooks.jsonl");
+		expect(fs.existsSync(hookLogPath)).toBe(true);
+		const content = fs.readFileSync(hookLogPath, "utf-8");
+		expect(content).toContain('"hook":"pre"');
+	});
+
+	it("does not log hook invocation when CURTAIN_DEBUG is unset", async () => {
+		const conversationId = "test-log-debug-off";
+		const env = {
+			AGY_HOOK_ACTIVE: "1",
+			AGY_PLUGIN_DATA: tmpDir,
+		};
+		const rawInput = JSON.stringify({
+			conversationId,
+			workspacePaths: ["/test"],
+		});
+
+		await runShimForTest("pre", rawInput, env);
+		const hookLogPath = path.join(tmpDir, conversationId, "hooks.jsonl");
+		expect(fs.existsSync(hookLogPath)).toBe(false);
 	});
 });
