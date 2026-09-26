@@ -25,28 +25,22 @@ describe("resolver.ts", () => {
 	describe("resolvePlaybookPath", () => {
 		it("resolves direct PLAYBOOK.md and directories containing PLAYBOOK.md", () => {
 			expect(
-				resolvePlaybookPath(
-					{ name: "sample", path: scriptPath },
-					"agy",
+				resolvePlaybookPath({ name: "sample", path: scriptPath }, "agy", [
 					tmpDir,
-				),
+				]),
 			).toBe(scriptPath);
 			expect(
-				resolvePlaybookPath({ name: "sample", path: tmpDir }, "agy", tmpDir),
+				resolvePlaybookPath({ name: "sample", path: tmpDir }, "agy", [tmpDir]),
 			).toBe(scriptPath);
 			expect(
-				resolvePlaybookPath(
-					{ name: "sample", path: "PLAYBOOK.md" },
-					"agy",
+				resolvePlaybookPath({ name: "sample", path: "PLAYBOOK.md" }, "agy", [
 					tmpDir,
-				),
+				]),
 			).toBe(scriptPath);
 			expect(
-				resolvePlaybookPath(
-					{ name: "sample", path: "nonexistent.md" },
-					"agy",
+				resolvePlaybookPath({ name: "sample", path: "nonexistent.md" }, "agy", [
 					tmpDir,
-				),
+				]),
 			).toBeNull();
 		});
 	});
@@ -66,7 +60,7 @@ describe("resolver.ts", () => {
 
 			const scriptFromDir = loadSkillScript(
 				{ name: "my-annotated-skill", path: skillDir },
-				tmpDir,
+				[tmpDir],
 				"agy",
 			);
 			expect(scriptFromDir).not.toBeNull();
@@ -74,7 +68,7 @@ describe("resolver.ts", () => {
 
 			const scriptFromSkillMd = loadSkillScript(
 				{ name: "my-annotated-skill", path: path.join(skillDir, "SKILL.md") },
-				tmpDir,
+				[tmpDir],
 				"agy",
 			);
 			expect(scriptFromSkillMd).not.toBeNull();
@@ -92,7 +86,7 @@ describe("resolver.ts", () => {
 			expect(
 				loadSkillScript(
 					{ name: "unannotated", path: unannotatedDir },
-					tmpDir,
+					[tmpDir],
 					"agy",
 				),
 			).toBeNull();
@@ -100,7 +94,7 @@ describe("resolver.ts", () => {
 
 		it("returns null for nonexistent skill target", () => {
 			expect(
-				loadSkillScript({ name: "nonexistent-skill-target" }, tmpDir, "agy"),
+				loadSkillScript({ name: "nonexistent-skill-target" }, [tmpDir], "agy"),
 			).toBeNull();
 		});
 	});
@@ -128,7 +122,7 @@ describe("resolver.ts", () => {
 					type: "skill",
 					skill: { name: "test-intent-skill" },
 				},
-				tmpDir,
+				[tmpDir],
 				"agy",
 			);
 			expect(res.type).toBe("resolved");
@@ -139,10 +133,10 @@ describe("resolver.ts", () => {
 		});
 
 		it("returns none for other intent types", () => {
-			expect(resolveIntentScript({ type: "next" }, tmpDir, "agy")).toEqual({
+			expect(resolveIntentScript({ type: "next" }, [tmpDir], "agy")).toEqual({
 				type: "none",
 			});
-			expect(resolveIntentScript({ type: "none" }, tmpDir, "agy")).toEqual({
+			expect(resolveIntentScript({ type: "none" }, [tmpDir], "agy")).toEqual({
 				type: "none",
 			});
 		});

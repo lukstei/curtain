@@ -38,15 +38,14 @@ export const codexHarness: HarnessAdapter = {
 		};
 	},
 
-	getSkillDirs(
-		workspacePath: string,
-		env: NodeJS.ProcessEnv = process.env,
-	): string[] {
-		const home = env.HOME || os.homedir();
+	getSkillDirs(workspacePaths: readonly string[]): string[] {
+		const home = os.homedir();
 		return [
-			...getGenericSkillDirs(workspacePath),
-			path.join(workspacePath, ".codex/skills"),
-			path.join(workspacePath, ".codex/plugins"),
+			...getGenericSkillDirs(workspacePaths),
+			...workspacePaths.flatMap((wp) => [
+				path.join(wp, ".codex/skills"),
+				path.join(wp, ".codex/plugins"),
+			]),
 			path.join(home, ".codex/skills"),
 			path.join(home, ".codex/plugins/cache"),
 			path.join(home, ".codex/plugins/marketplaces"),

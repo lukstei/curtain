@@ -75,23 +75,17 @@ describe("detectHarness", () => {
 			expect(detectHarness({}, { ANTIGRAVITY: "1" })).toBe("agy");
 		});
 
-		it("detects AGY from artifactDirectoryPath in payload", () => {
-			const harness = detectHarness(
-				{ artifactDirectoryPath: "/tmp/brain/uuid" },
-				{},
-			);
-			expect(harness).toBe("agy");
-		});
-
-		it("detects AGY from transcriptPath ending with .system_generated/logs/transcript.jsonl", () => {
-			const harness = detectHarness(
-				{
-					transcriptPath:
-						"/Users/test/.gemini/antigravity/brain/uuid/.system_generated/logs/transcript.jsonl",
-				},
-				{},
-			);
-			expect(harness).toBe("agy");
+		it("does not detect AGY from payload-only fields without environment", () => {
+			expect(
+				detectHarness(
+					{
+						artifactDirectoryPath: "/tmp/brain/uuid",
+						transcriptPath:
+							"/Users/test/.gemini/antigravity/brain/uuid/.system_generated/logs/transcript.jsonl",
+					},
+					{},
+				),
+			).toBeNull();
 		});
 
 		it("detects Claude Code from hook_event_name", () => {

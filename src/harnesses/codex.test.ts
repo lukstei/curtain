@@ -1,3 +1,5 @@
+import * as os from "node:os";
+import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { codexHarness } from "./codex.ts";
 
@@ -43,7 +45,10 @@ describe("codexHarness", () => {
 
 		it("resolves from env CODEX_SESSION_ID", () => {
 			expect(
-				codexHarness.resolveConversationId({}, { CODEX_SESSION_ID: "env-codex" }),
+				codexHarness.resolveConversationId(
+					{},
+					{ CODEX_SESSION_ID: "env-codex" },
+				),
 			).toBe("env-codex");
 		});
 
@@ -54,12 +59,15 @@ describe("codexHarness", () => {
 
 	describe("handle stub", () => {
 		it("returns empty egress and untouched state", () => {
-			const res = codexHarness.handle({}, {
-				conversationId: "c1",
-				state: null,
-				mode: "pre",
-				env: {},
-			});
+			const res = codexHarness.handle(
+				{},
+				{
+					conversationId: "c1",
+					state: null,
+					mode: "pre",
+					env: {},
+				},
+			);
 			expect(res.egress).toEqual({ exitCode: 0, stdout: "{}" });
 			expect(res.nextState).toBeNull();
 		});
@@ -67,17 +75,16 @@ describe("codexHarness", () => {
 
 	describe("getSkillDirs", () => {
 		it("returns Codex skill directories", () => {
-			const dirs = codexHarness.getSkillDirs("/workspace", {
-				HOME: "/home/user",
-			});
+			const home = os.homedir();
+			const dirs = codexHarness.getSkillDirs(["/workspace"]);
 			expect(dirs).toEqual([
 				"/workspace/.agents/skills",
 				"/workspace/skills",
 				"/workspace/.codex/skills",
 				"/workspace/.codex/plugins",
-				"/home/user/.codex/skills",
-				"/home/user/.codex/plugins/cache",
-				"/home/user/.codex/plugins/marketplaces",
+				path.join(home, ".codex/skills"),
+				path.join(home, ".codex/plugins/cache"),
+				path.join(home, ".codex/plugins/marketplaces"),
 			]);
 		});
 	});

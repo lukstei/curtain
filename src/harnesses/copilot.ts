@@ -40,15 +40,14 @@ export const copilotHarness: HarnessAdapter = {
 		};
 	},
 
-	getSkillDirs(
-		workspacePath: string,
-		env: NodeJS.ProcessEnv = process.env,
-	): string[] {
-		const home = env.HOME || os.homedir();
+	getSkillDirs(workspacePaths: readonly string[]): string[] {
+		const home = os.homedir();
 		return [
-			...getGenericSkillDirs(workspacePath),
-			path.join(workspacePath, ".github/skills"),
-			path.join(workspacePath, ".claude/skills"),
+			...getGenericSkillDirs(workspacePaths),
+			...workspacePaths.flatMap((wp) => [
+				path.join(wp, ".github/skills"),
+				path.join(wp, ".claude/skills"),
+			]),
 			path.join(home, ".copilot/skills"),
 			path.join(home, ".claude/skills"),
 			path.join(home, ".agents/skills"),

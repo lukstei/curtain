@@ -1,12 +1,14 @@
+import * as os from "node:os";
+import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { copilotHarness } from "./copilot.ts";
 
 describe("copilotHarness", () => {
 	describe("detect", () => {
 		it("detects COPILOT_PLUGIN_DATA in environment", () => {
-			expect(
-				copilotHarness.detect({}, { COPILOT_PLUGIN_DATA: "/path" }),
-			).toBe(true);
+			expect(copilotHarness.detect({}, { COPILOT_PLUGIN_DATA: "/path" })).toBe(
+				true,
+			);
 		});
 
 		it("detects COPILOT_SESSION_ID in environment", () => {
@@ -53,13 +55,19 @@ describe("copilotHarness", () => {
 
 		it("resolves from conversationId", () => {
 			expect(
-				copilotHarness.resolveConversationId({ conversationId: "copilot-3" }, {}),
+				copilotHarness.resolveConversationId(
+					{ conversationId: "copilot-3" },
+					{},
+				),
 			).toBe("copilot-3");
 		});
 
 		it("resolves from env COPILOT_SESSION_ID", () => {
 			expect(
-				copilotHarness.resolveConversationId({}, { COPILOT_SESSION_ID: "env-copilot" }),
+				copilotHarness.resolveConversationId(
+					{},
+					{ COPILOT_SESSION_ID: "env-copilot" },
+				),
 			).toBe("env-copilot");
 		});
 
@@ -70,12 +78,15 @@ describe("copilotHarness", () => {
 
 	describe("handle stub", () => {
 		it("returns empty egress and untouched state", () => {
-			const res = copilotHarness.handle({}, {
-				conversationId: "c1",
-				state: null,
-				mode: "pre",
-				env: {},
-			});
+			const res = copilotHarness.handle(
+				{},
+				{
+					conversationId: "c1",
+					state: null,
+					mode: "pre",
+					env: {},
+				},
+			);
 			expect(res.egress).toEqual({ exitCode: 0, stdout: "{}" });
 			expect(res.nextState).toBeNull();
 		});
@@ -83,17 +94,16 @@ describe("copilotHarness", () => {
 
 	describe("getSkillDirs", () => {
 		it("returns Copilot skill directories", () => {
-			const dirs = copilotHarness.getSkillDirs("/workspace", {
-				HOME: "/home/user",
-			});
+			const home = os.homedir();
+			const dirs = copilotHarness.getSkillDirs(["/workspace"]);
 			expect(dirs).toEqual([
 				"/workspace/.agents/skills",
 				"/workspace/skills",
 				"/workspace/.github/skills",
 				"/workspace/.claude/skills",
-				"/home/user/.copilot/skills",
-				"/home/user/.claude/skills",
-				"/home/user/.agents/skills",
+				path.join(home, ".copilot/skills"),
+				path.join(home, ".claude/skills"),
+				path.join(home, ".agents/skills"),
 			]);
 		});
 	});

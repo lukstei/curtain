@@ -1,3 +1,5 @@
+import * as os from "node:os";
+import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { claudeHarness } from "./claude.ts";
 
@@ -22,13 +24,19 @@ describe("claudeHarness", () => {
 	describe("resolveConversationId", () => {
 		it("resolves from payload session_id", () => {
 			expect(
-				claudeHarness.resolveConversationId({ session_id: "claude-session-1" }, {}),
+				claudeHarness.resolveConversationId(
+					{ session_id: "claude-session-1" },
+					{},
+				),
 			).toBe("claude-session-1");
 		});
 
 		it("resolves from env CLAUDE_CODE_SESSION_ID", () => {
 			expect(
-				claudeHarness.resolveConversationId({}, { CLAUDE_CODE_SESSION_ID: "env-session" }),
+				claudeHarness.resolveConversationId(
+					{},
+					{ CLAUDE_CODE_SESSION_ID: "env-session" },
+				),
 			).toBe("env-session");
 		});
 
@@ -39,12 +47,15 @@ describe("claudeHarness", () => {
 
 	describe("handle stub", () => {
 		it("returns empty egress and untouched state", () => {
-			const res = claudeHarness.handle({}, {
-				conversationId: "c1",
-				state: null,
-				mode: "pre",
-				env: {},
-			});
+			const res = claudeHarness.handle(
+				{},
+				{
+					conversationId: "c1",
+					state: null,
+					mode: "pre",
+					env: {},
+				},
+			);
 			expect(res.egress).toEqual({ exitCode: 0, stdout: "{}" });
 			expect(res.nextState).toBeNull();
 		});
@@ -52,19 +63,16 @@ describe("claudeHarness", () => {
 
 	describe("getSkillDirs", () => {
 		it("returns generic and Claude skill directories", () => {
-			const dirs = claudeHarness.getSkillDirs("/workspace", {
-				HOME: "/home/user",
-				CLAUDE_PLUGIN_ROOT: "/opt/curtain",
-			});
+			const home = os.homedir();
+			const dirs = claudeHarness.getSkillDirs(["/workspace"]);
 			expect(dirs).toEqual([
 				"/workspace/.agents/skills",
 				"/workspace/skills",
 				"/workspace/.claude/skills",
 				"/workspace/.claude/plugins",
-				"/home/user/.claude/skills",
-				"/home/user/.claude/plugins/marketplaces",
-				"/home/user/.claude/plugins/cache",
-				"/opt/curtain/skills",
+				path.join(home, ".claude/skills"),
+				path.join(home, ".claude/plugins/marketplaces"),
+				path.join(home, ".claude/plugins/cache"),
 			]);
 		});
 	});

@@ -1,12 +1,15 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { normalizeSkillName } from "../resolver/index.ts";
 import type { ToolCall } from "../types.ts";
 
-export function getGenericSkillDirs(workspacePath: string): string[] {
-	return [
-		path.join(workspacePath, ".agents/skills"),
-		path.join(workspacePath, "skills"),
-	];
+export function getGenericSkillDirs(
+	workspacePaths: readonly string[],
+): string[] {
+	return workspacePaths.flatMap((wp) => [
+		path.join(wp, ".agents/skills"),
+		path.join(wp, "skills"),
+	]);
 }
 
 export function extractToolCall(
@@ -49,11 +52,19 @@ export function extractToolCall(
 
 export function resolveToolReadPath(
 	rawPath: unknown,
-	workspacePath: string,
-): string | null {
-	if (typeof rawPath !== "string" || !rawPath.trim()) return null;
-	const target = rawPath.trim();
-	return path.isAbsolute(target) ? target : path.resolve(workspacePath, target);
+	workspacePaths: readonly string[],
+): string {
+	const target = typeof rawPath === "string" ? rawPath.trim() : "";
+	if (path.isAbsolute(target)) {
+		return target;
+	}
+	for (const wp of workspacePaths) {
+		const resolved = path.resolve(wp, target);
+		if (fs.existsSync(resolved)) {
+			return resolved;
+		}
+	}
+	return path.resolve(workspacePaths[0] ?? ".", target);
 }
 
 export function defaultExtractSkillTarget(toolCall: ToolCall): string | null {
@@ -68,5 +79,3 @@ export function defaultExtractSkillTarget(toolCall: ToolCall): string | null {
 	}
 	return null;
 }
-
-

@@ -5,7 +5,10 @@ import {
 	guardBackstageRead,
 	guardSkillInvocation,
 	resolveUserPrompt,
+	resumePlaybook,
+	startPlaybook,
 } from "./actions.ts";
+import type { Script } from "./parser/index.ts";
 import type { RunnerState } from "./state.ts";
 
 describe("actions", () => {
@@ -25,7 +28,12 @@ describe("actions", () => {
 		status: "paused",
 		currentStep: 0,
 		steps: [
-			{ index: 0, type: "pause", content: "Step 1", instruction: "Check tests" },
+			{
+				index: 0,
+				type: "pause",
+				content: "Step 1",
+				instruction: "Check tests",
+			},
 			{ index: 1, type: "auto", content: "Step 2" },
 		],
 	};
@@ -68,17 +76,72 @@ describe("actions", () => {
 		});
 	});
 
+	describe("resumePlaybook", () => {
+		it("errors when state is null", () => {
+			const res = resumePlaybook(null);
+			expect(res).toEqual({
+				action: "error",
+				message: "BLOCKED BY CURTAIN: No script is currently loaded.",
+				nextState: null,
+			});
+		});
+
+		it("errors when state is not paused", () => {
+			const res = resumePlaybook(runningState);
+			expect(res.action).toBe("error");
+			if (res.action === "error") {
+				expect(res.message).toContain("Only the user can advance execution");
+				expect(res.nextState).toBe(runningState);
+			}
+		});
+
+		it("resumes when state is paused", () => {
+			const res = resumePlaybook(pausedState);
+			expect(res.action).toBe("resumed");
+			if (res.action === "resumed") {
+				expect(res.nextState?.status).toBe("running");
+				expect(res.nextState?.currentStep).toBe(1);
+			}
+		});
+	});
+
+	describe("startPlaybook", () => {
+		const sampleScript: Script = {
+			filePath: "skills/test.md",
+			steps: [
+				{ index: 0, type: "auto", content: "Step 1" },
+				{ index: 1, type: "auto", content: "Step 2" },
+			],
+		};
+
+		it("returns already_running if state already exists", () => {
+			const res = startPlaybook(sampleScript, "my-skill", runningState);
+			expect(res).toEqual({
+				action: "already_running",
+				nextState: runningState,
+			});
+		});
+
+		it("starts playbook when idle", () => {
+			const res = startPlaybook(sampleScript, "my-skill", null);
+			expect(res.action).toBe("started");
+			expect(res.nextState.skillName).toBe("my-skill");
+			expect(res.nextState.status).toBe("running");
+			expect(res.nextState.currentStep).toBe(0);
+		});
+	});
+
 	describe("resolveUserPrompt", () => {
 		it("errors on /next when no script is loaded", () => {
 			const res = resolveUserPrompt({
 				prompt: "/next",
 				state: null,
-				workspacePath: "/workspace",
+				workspacePaths: ["/workspace"],
 				harness: "claude",
 			});
 			expect(res).toEqual({
 				action: "error",
-				message: "No script is currently loaded.",
+				message: "BLOCKED BY CURTAIN: No script is currently loaded.",
 				nextState: null,
 			});
 		});
@@ -87,7 +150,7 @@ describe("actions", () => {
 			const res = resolveUserPrompt({
 				prompt: "/next",
 				state: pausedState,
-				workspacePath: "/workspace",
+				workspacePaths: ["/workspace"],
 				harness: "claude",
 			});
 			expect(res.action).toBe("resume");
@@ -95,14 +158,13 @@ describe("actions", () => {
 				expect(res.nextState?.status).toBe("running");
 				expect(res.nextState?.currentStep).toBe(1);
 			}
-
 		});
 
 		it("passes on /skill if another playbook is already active", () => {
 			const res = resolveUserPrompt({
 				prompt: "/other-skill",
 				state: runningState,
-				workspacePath: "/workspace",
+				workspacePaths: ["/workspace"],
 				harness: "claude",
 			});
 			expect(res).toEqual({ action: "pass", nextState: runningState });
@@ -112,7 +174,7 @@ describe("actions", () => {
 			const res = resolveUserPrompt({
 				prompt: "what should I do?",
 				state: pausedState,
-				workspacePath: "/workspace",
+				workspacePaths: ["/workspace"],
 				harness: "claude",
 			});
 			expect(res.action).toBe("intermission_nudge");
@@ -125,7 +187,7 @@ describe("actions", () => {
 			const res = resolveUserPrompt({
 				prompt: "regular text",
 				state: runningState,
-				workspacePath: "/workspace",
+				workspacePaths: ["/workspace"],
 				harness: "claude",
 			});
 			expect(res).toEqual({ action: "pass", nextState: runningState });
@@ -133,12 +195,12 @@ describe("actions", () => {
 	});
 
 	describe("guardBackstageRead", () => {
-		it("allows when state or readPath is null", () => {
+		it("allows when state is null or readPath is empty", () => {
 			expect(
 				guardBackstageRead({
-					readPath: null,
+					readPath: "",
 					state: runningState,
-					workspacePath: "/workspace",
+					workspacePaths: ["/workspace"],
 				}),
 			).toEqual({ blocked: false });
 
@@ -146,7 +208,7 @@ describe("actions", () => {
 				guardBackstageRead({
 					readPath: "/workspace/skills/test.md",
 					state: null,
-					workspacePath: "/workspace",
+					workspacePaths: ["/workspace"],
 				}),
 			).toEqual({ blocked: false });
 		});
@@ -156,7 +218,7 @@ describe("actions", () => {
 			const res = guardBackstageRead({
 				readPath: scriptPath,
 				state: runningState,
-				workspacePath: "/workspace",
+				workspacePaths: ["/workspace"],
 			});
 			expect(res.blocked).toBe(true);
 			if (res.blocked) {
@@ -168,7 +230,7 @@ describe("actions", () => {
 			const res = guardBackstageRead({
 				readPath: "/workspace/src/index.ts",
 				state: runningState,
-				workspacePath: "/workspace",
+				workspacePaths: ["/workspace"],
 			});
 			expect(res).toEqual({ blocked: false });
 		});

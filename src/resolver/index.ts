@@ -20,10 +20,10 @@ export * from "./resolveSkill.ts";
  */
 export function loadSkillScript(
 	skill: ParsedSkill,
-	workspacePath: string,
+	workspacePaths: readonly string[],
 	harness: HarnessType,
 ): Script | null {
-	const playbookPath = resolvePlaybookPath(skill, harness, workspacePath);
+	const playbookPath = resolvePlaybookPath(skill, harness, workspacePaths);
 	if (!playbookPath) {
 		return null;
 	}
@@ -44,11 +44,11 @@ export function loadSkillScript(
  */
 export function resolveIntentScript(
 	intent: UserIntent,
-	workspacePath: string,
+	workspacePaths: readonly string[],
 	harness: HarnessType,
 ): ResolvedScriptResult {
 	if (intent.type === "skill") {
-		const script = loadSkillScript(intent.skill, workspacePath, harness);
+		const script = loadSkillScript(intent.skill, workspacePaths, harness);
 		if (script) {
 			return { type: "resolved", script, skillName: intent.skill.name };
 		}

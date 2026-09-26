@@ -29,6 +29,5 @@ export interface HarnessAdapter {
 		env: NodeJS.ProcessEnv,
 	): string;
 	handle(payload: Record<string, unknown>, ctx: HarnessContext): HarnessResult;
-	getSkillDirs(workspacePath: string, env?: NodeJS.ProcessEnv): string[];
+	getSkillDirs(workspacePaths: readonly string[]): string[];
 }
-

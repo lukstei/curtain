@@ -37,3 +37,10 @@ As implemented in [`src/harnesses/agy.ts`](../../src/harnesses/agy.ts#L210), AGY
 | **Context Injection** | `PreInvocation`: `{"injectSteps": [{"ephemeralMessage": "..."}]}` |
 | **Autonomous Loop Continuation** | `Stop`: `{"decision": "continue", "reason": "..."}` |
 | **Harness Detection** | `process.env.GEMINI_CLI === "1"` or `process.env.ANTIGRAVITY === "1"` or `raw.conversation_id` present with `artifactDirectoryPath` / `cwd` |
+
+---
+
+## Known Limitations
+
+- **Skill Inspection vs. Invocation**: Antigravity has no discrete skill execution tool or event; agents invoke skills by reading `SKILL.md` via `view_file`. Curtain intercepts any `view_file` call targeting a `SKILL.md` backed by a multi-act `PLAYBOOK.md` to begin Act 1. As a result, agents cannot inspect or read `SKILL.md` for editing without triggering playbook interception.
+

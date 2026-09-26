@@ -21,7 +21,9 @@ export const claudeHarness: HarnessAdapter = {
 		payload: Record<string, unknown>,
 		env: NodeJS.ProcessEnv,
 	): string {
-		return String(payload.session_id ?? env.CLAUDE_CODE_SESSION_ID ?? "default");
+		return String(
+			payload.session_id ?? env.CLAUDE_CODE_SESSION_ID ?? "default",
+		);
 	},
 
 	handle(
@@ -34,21 +36,20 @@ export const claudeHarness: HarnessAdapter = {
 		};
 	},
 
-	getSkillDirs(
-		workspacePath: string,
-		env: NodeJS.ProcessEnv = process.env,
-	): string[] {
-		const home = env.HOME || os.homedir();
+	getSkillDirs(workspacePaths: readonly string[]): string[] {
+		const home = os.homedir();
 		const dirs = [
-			...getGenericSkillDirs(workspacePath),
-			path.join(workspacePath, ".claude/skills"),
-			path.join(workspacePath, ".claude/plugins"),
+			...getGenericSkillDirs(workspacePaths),
+			...workspacePaths.flatMap((wp) => [
+				path.join(wp, ".claude/skills"),
+				path.join(wp, ".claude/plugins"),
+			]),
 			path.join(home, ".claude/skills"),
 			path.join(home, ".claude/plugins/marketplaces"),
 			path.join(home, ".claude/plugins/cache"),
 		];
-		if (env.CLAUDE_PLUGIN_ROOT) {
-			dirs.push(path.join(env.CLAUDE_PLUGIN_ROOT, "skills"));
+		if (process.env.CLAUDE_PLUGIN_ROOT) {
+			dirs.push(path.join(process.env.CLAUDE_PLUGIN_ROOT, "skills"));
 		}
 		return dirs;
 	},

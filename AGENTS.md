@@ -4,11 +4,12 @@
 - For each edge case (a branch that goes against intuition or against what the function is supposed to do), add a concise comment: if the cause is internal (i.e. how we structure our code) use `// smell: <reason>`, otherwise `// edge case: <reason>`
 - Never add any backwards compatibility regarding the code, there is no external consumer of the code
 - Ignore dist/curtain.mjs and .agents/plugins/curtain/dist/curtain.mjs, these are automatically built from the source code
-- Only ever add optional or nulled types when it is really required, do not add them just to be defensive, because it leads to really ugly code
+- Only ever add optional or nulled types when it is really required, do not add them just to be defensive, because it leads to really ugly code. If you want to add an optional/nulled type, take a step back and think if you are handling separate exclusive states, where a discrimanted union is needed.
 - Reference implementations for cross-agent integrations:
   - Universal packaging & shims: `ponytail` (`~/.gemini/config/plugins/ponytail/`, analyzed in `docs/PACKAGING.md`)
   - Loop interception (`Stop` hook): `ralph-loop` (`~/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop/`)
   - Skill discovery: `superpowers` (`~/.claude/plugins/cache/claude-plugins-official/superpowers/4.3.0/`)
+  - Tool docs: Convert coding-agent session transcripts between harness formats: https://docs.rs/crate/txcript/latest/source/docs/formats/README.md
 
 ## Source File Map (`src/`)
 

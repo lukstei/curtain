@@ -3,6 +3,7 @@ import * as path from "node:path";
 import type { HarnessType } from "./harnesses/types.ts";
 import { assertNever } from "./lib/assertNever.ts";
 import { parseCommand } from "./lib/parseCommand.ts";
+import type { Script } from "./parser/index.ts";
 import {
 	formatSkill,
 	parseSkill,
@@ -33,7 +34,11 @@ function isSameFile(p1: string, p2: string): boolean {
 }
 
 export type AdvanceTurnResult =
-	| { readonly action: "continue"; readonly message: string; readonly nextState: RunnerState }
+	| {
+			readonly action: "continue";
+			readonly message: string;
+			readonly nextState: RunnerState;
+	  }
 	| { readonly action: "allow"; readonly nextState: RunnerState | null };
 
 export function advanceTurn(params: {
@@ -75,18 +80,98 @@ export function advanceTurn(params: {
 	};
 }
 
-export type UserPromptResult =
-	| { readonly action: "start"; readonly message: string; readonly nextState: RunnerState }
-	| { readonly action: "resume"; readonly message: string; readonly nextState: RunnerState | null }
-	| { readonly action: "intermission_nudge"; readonly message: string; readonly nextState: RunnerState }
-	| { readonly action: "error"; readonly message: string; readonly nextState: RunnerState | null }
-	| { readonly action: "pass"; readonly nextState: RunnerState | null };
+export type ResumePlaybookResult =
+	| {
+			readonly action: "resumed";
+			readonly message: string;
+			readonly nextState: RunnerState | null;
+	  }
+	| {
+			readonly action: "error";
+			readonly message: string;
+			readonly nextState: RunnerState | null;
+	  };
 
+export function resumePlaybook(
+	state: RunnerState | null,
+): ResumePlaybookResult {
+	if (!state) {
+		return {
+			action: "error",
+			message: "BLOCKED BY CURTAIN: No script is currently loaded.",
+			nextState: null,
+		};
+	}
+
+	if (state.status !== "paused") {
+		return {
+			action: "error",
+			message:
+				"BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
+			nextState: state,
+		};
+	}
+
+	const res = executeResume(state);
+	return {
+		action: "resumed",
+		message: res.message,
+		nextState: res.nextState,
+	};
+}
+
+export type StartPlaybookResult =
+	| {
+			readonly action: "started";
+			readonly message: string;
+			readonly nextState: RunnerState;
+	  }
+	| { readonly action: "already_running"; readonly nextState: RunnerState };
+
+export function startPlaybook(
+	script: Script,
+	skillName: string,
+	state: RunnerState | null,
+): StartPlaybookResult {
+	if (state) {
+		return { action: "already_running", nextState: state };
+	}
+
+	const res = executeStart(script, skillName);
+	return {
+		action: "started",
+		message: res.message,
+		nextState: res.nextState,
+	};
+}
+
+export type UserPromptResult =
+	| {
+			readonly action: "start";
+			readonly message: string;
+			readonly nextState: RunnerState;
+	  }
+	| {
+			readonly action: "resume";
+			readonly message: string;
+			readonly nextState: RunnerState | null;
+	  }
+	| {
+			readonly action: "intermission_nudge";
+			readonly message: string;
+			readonly nextState: RunnerState;
+	  }
+	| {
+			readonly action: "error";
+			readonly message: string;
+			readonly nextState: RunnerState | null;
+	  }
+	| { readonly action: "pass"; readonly nextState: RunnerState | null };
 
 export function resolveUserPrompt(params: {
 	prompt: string;
 	state: RunnerState | null;
-	workspacePath: string;
+	workspacePaths: readonly string[];
 	harness: HarnessType;
 	skillInvocationPath?: string | null;
 }): UserPromptResult {
@@ -97,16 +182,14 @@ export function resolveUserPrompt(params: {
 
 	switch (intent.type) {
 		case "next": {
-			// edge case: user typed /next without any active or paused playbook execution
-			if (!params.state) {
+			const res = resumePlaybook(params.state);
+			if (res.action === "error") {
 				return {
 					action: "error",
-					message: "No script is currently loaded.",
-					nextState: null,
+					message: res.message,
+					nextState: res.nextState,
 				};
 			}
-
-			const res = executeResume(params.state);
 			return {
 				action: "resume",
 				message: res.message,
@@ -115,26 +198,29 @@ export function resolveUserPrompt(params: {
 		}
 
 		case "skill": {
-			// edge case: user invoked a playbook skill command while another playbook is already running
 			if (params.state) {
 				return { action: "pass", nextState: params.state };
 			}
 
 			const resolved = resolveIntentScript(
 				intent,
-				params.workspacePath,
+				params.workspacePaths,
 				params.harness,
 			);
 			if (resolved.type === "resolved") {
-				const res = executeStart(
+				const res = startPlaybook(
 					resolved.script,
 					resolved.skillName ?? intent.skill.name,
+					params.state,
 				);
-				return {
-					action: "start",
-					message: res.message,
-					nextState: res.nextState,
-				};
+				if (res.action === "started") {
+					return {
+						action: "start",
+						message: res.message,
+						nextState: res.nextState,
+					};
+				}
+				return { action: "pass", nextState: params.state };
 			}
 			return { action: "pass", nextState: null };
 		}
@@ -164,25 +250,32 @@ export type GuardResult =
 	| { readonly blocked: false };
 
 export function guardBackstageRead(params: {
-	readPath: string | null;
+	readPath: string;
 	state: RunnerState | null;
-	workspacePath: string;
+	workspacePaths: readonly string[];
 }): GuardResult {
 	if (!params.state || !params.readPath) {
 		return { blocked: false };
 	}
 
-	// edge case: models attempt to inspect the backstage script file to see downstream steps ahead of time
-	if (
-		isSameFile(
-			params.readPath,
-			path.resolve(params.workspacePath, params.state.script),
-		)
-	) {
-		return {
-			blocked: true,
-			reason: `BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect ${path.basename(params.state.script)}.`,
-		};
+	const script = params.state.script;
+	if (path.isAbsolute(script)) {
+		if (isSameFile(params.readPath, script)) {
+			return {
+				blocked: true,
+				reason: `BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect ${path.basename(script)}.`,
+			};
+		}
+	}
+
+	for (const wp of params.workspacePaths) {
+		// edge case: models attempt to inspect the backstage script file to see downstream steps ahead of time
+		if (isSameFile(params.readPath, path.resolve(wp, script))) {
+			return {
+				blocked: true,
+				reason: `BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect ${path.basename(script)}.`,
+			};
+		}
 	}
 
 	return { blocked: false };
@@ -222,7 +315,6 @@ export function guardSkillInvocation(params: {
 			};
 		}
 	}
-
 
 	return { blocked: false };
 }

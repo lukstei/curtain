@@ -37,8 +37,12 @@ describe("runShim End-to-End Simulation", () => {
 		expect(JSON.parse(egress.stdout ?? "{}")).toEqual({ decision: "allow" });
 	});
 
-	it("processes Claude Code user prompt submission for /next when paused", async () => {
-		const sessionId = "claude-session-1";
+	it("processes AGY tool invocation for next skill when paused", async () => {
+		const sessionId = "agy-session-1";
+		const env = {
+			AGY_HOOK_ACTIVE: "1",
+			AGY_PLUGIN_DATA: tmpDir,
+		};
 		saveState(
 			sessionId,
 			{
@@ -50,32 +54,33 @@ describe("runShim End-to-End Simulation", () => {
 					{ index: 1, type: "auto", content: "Step 2" },
 				],
 			},
-			{ CLAUDE_PLUGIN_DATA: tmpDir },
+			env,
 		);
 
 		const rawInput = JSON.stringify({
-			hook_event_name: "UserPromptSubmit",
-			session_id: sessionId,
-			cwd: "/test",
-			prompt: "/next",
+			conversationId: sessionId,
+			workspacePaths: ["/test"],
+			toolCall: {
+				name: "view_file",
+				args: { AbsolutePath: "/test/skills/next/SKILL.md" },
+			},
 		});
 
-		const egress = await runShimForTest("pre", rawInput, {
-			CLAUDE_PLUGIN_ROOT: "/plugin",
-			CLAUDE_PLUGIN_DATA: tmpDir,
-		});
+		const egress = await runShimForTest("tool", rawInput, env);
 
 		expect(egress.exitCode).toBe(0);
 		const parsed = JSON.parse(egress.stdout ?? "{}");
-		expect(parsed.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
-		expect(parsed.hookSpecificOutput.additionalContext).toContain(
-			"[STEP 2 OF 2]",
-		);
+		expect(parsed.decision).toBe("deny");
+		expect(parsed.reason).toContain("[STEP 2 OF 2]");
+		expect(loadState(sessionId, env)?.status).toBe("running");
 	});
 
-	it("processes Codex stop hook with auto-advancing step", async () => {
-		const sessionId = "codex-active-1";
-		const env = { PLUGIN_DATA: tmpDir };
+	it("processes AGY stop hook with auto-advancing step", async () => {
+		const sessionId = "agy-active-1";
+		const env = {
+			AGY_HOOK_ACTIVE: "1",
+			AGY_PLUGIN_DATA: tmpDir,
+		};
 
 		saveState(
 			sessionId,
@@ -92,41 +97,26 @@ describe("runShim End-to-End Simulation", () => {
 		);
 
 		const rawInput = JSON.stringify({
-			hookEventName: "Stop",
-			session_id: sessionId,
-			cwd: "/test",
+			conversationId: sessionId,
+			workspacePaths: ["/test"],
+			terminationReason: "model_stop",
 		});
 
 		const egress = await runShimForTest("stop", rawInput, env);
 		expect(egress.exitCode).toBe(0);
 
-		expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-			{
-			  "decision": "block",
-			  "reason": "[STEP 2 OF 2]
-
-			<curtain-info>
-			Curtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.
-			</curtain-info>
-
-			<act-instructions>
-			Step 2 content
-			</act-instructions>
-
-			<rules>
-			- Perform ONLY the instructions in <act-instructions>.
-			- Conclude when complete.
-			- Do NOT anticipate or execute any future steps.
-			</rules>",
-			  "suppressOutput": true,
-			}
-		`);
+		const parsed = JSON.parse(egress.stdout ?? "{}");
+		expect(parsed.decision).toBe("continue");
+		expect(parsed.reason).toContain("[STEP 2 OF 2]");
 		expect(loadState(sessionId, env)?.currentStep).toBe(1);
 	});
 
-	it("processes Claude stop hook with pause step (allows stop)", async () => {
-		const sessionId = "claude-active-pause-1";
-		const env = { CLAUDE_PLUGIN_DATA: tmpDir };
+	it("processes AGY stop hook with pause step (allows stop)", async () => {
+		const sessionId = "agy-active-pause-1";
+		const env = {
+			AGY_HOOK_ACTIVE: "1",
+			AGY_PLUGIN_DATA: tmpDir,
+		};
 
 		saveState(
 			sessionId,
@@ -143,20 +133,23 @@ describe("runShim End-to-End Simulation", () => {
 		);
 
 		const rawInput = JSON.stringify({
-			hook_event_name: "Stop",
-			session_id: sessionId,
-			cwd: "/test",
+			conversationId: sessionId,
+			workspacePaths: ["/test"],
+			terminationReason: "model_stop",
 		});
 
 		const egress = await runShimForTest("stop", rawInput, env);
 		expect(egress.exitCode).toBe(0);
-		expect(egress.stdout).toBe("{}");
+		expect(JSON.parse(egress.stdout ?? "{}")).toEqual({ decision: "allow" });
 		expect(loadState(sessionId, env)?.status).toBe("paused");
 	});
 
 	it("deletes state when stop hook finishes final step", async () => {
-		const sessionId = "codex-finish-1";
-		const env = { PLUGIN_DATA: tmpDir };
+		const sessionId = "agy-finish-1";
+		const env = {
+			AGY_HOOK_ACTIVE: "1",
+			AGY_PLUGIN_DATA: tmpDir,
+		};
 
 		saveState(
 			sessionId,
@@ -173,13 +166,14 @@ describe("runShim End-to-End Simulation", () => {
 		);
 
 		const rawInput = JSON.stringify({
-			hookEventName: "Stop",
-			session_id: sessionId,
-			cwd: "/test",
+			conversationId: sessionId,
+			workspacePaths: ["/test"],
+			terminationReason: "model_stop",
 		});
 
 		const egress = await runShimForTest("stop", rawInput, env);
 		expect(egress.exitCode).toBe(0);
+		expect(JSON.parse(egress.stdout ?? "{}")).toEqual({ decision: "allow" });
 		expect(loadState(sessionId, env)).toBeNull();
 	});
 

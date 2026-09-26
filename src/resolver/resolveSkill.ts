@@ -68,7 +68,7 @@ function findSkillInBaseDir(
 export function resolveSkillPath(
 	skill: ParsedSkill,
 	harness: HarnessType,
-	workspacePath = ".",
+	workspacePaths: readonly string[] = ["."],
 	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
 	const skillName = skill.name.trim();
@@ -77,7 +77,7 @@ export function resolveSkillPath(
 	const adapter = getHarness(harness);
 	if (!adapter.getSkillDirs) return null;
 
-	const uniqueDirs = [...new Set(adapter.getSkillDirs(workspacePath, env))];
+	const uniqueDirs = [...new Set(adapter.getSkillDirs(workspacePaths))];
 	for (const dir of uniqueDirs) {
 		const found = findSkillInBaseDir(dir, skillName);
 		if (found) {
@@ -88,46 +88,55 @@ export function resolveSkillPath(
 	return null;
 }
 
+function checkPlaybookPath(resolvedPath: string): string | null {
+	if (fs.existsSync(resolvedPath)) {
+		const stat = fs.statSync(resolvedPath);
+		if (stat.isDirectory()) {
+			const directPlaybook = path.join(resolvedPath, "PLAYBOOK.md");
+			if (
+				fs.existsSync(directPlaybook) &&
+				fs.statSync(directPlaybook).isFile()
+			) {
+				return directPlaybook;
+			}
+		} else if (stat.isFile()) {
+			if (path.basename(resolvedPath).toUpperCase() === "PLAYBOOK.MD") {
+				return resolvedPath;
+			}
+			// edge case: when given a SKILL.md file path, resolve to the sibling PLAYBOOK.md playbook file
+			if (path.basename(resolvedPath).toUpperCase() === "SKILL.MD") {
+				const sibling = path.join(path.dirname(resolvedPath), "PLAYBOOK.md");
+				if (fs.existsSync(sibling) && fs.statSync(sibling).isFile()) {
+					return sibling;
+				}
+			}
+		}
+	}
+	return null;
+}
+
 /**
  * Resolves the PLAYBOOK.md file associated with a parsed skill.
  */
 export function resolvePlaybookPath(
 	skill: ParsedSkill,
 	harness: HarnessType,
-	workspacePath = ".",
+	workspacePaths: readonly string[] = ["."],
 	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
 	if (skill.path) {
-		const resolvedPath = path.isAbsolute(skill.path)
-			? skill.path
-			: path.resolve(workspacePath, skill.path);
-		if (fs.existsSync(resolvedPath)) {
-			const stat = fs.statSync(resolvedPath);
-			if (stat.isDirectory()) {
-				const directPlaybook = path.join(resolvedPath, "PLAYBOOK.md");
-				if (
-					fs.existsSync(directPlaybook) &&
-					fs.statSync(directPlaybook).isFile()
-				) {
-					return directPlaybook;
-				}
-			} else if (stat.isFile()) {
-				if (path.basename(resolvedPath).toUpperCase() === "PLAYBOOK.MD") {
-					return resolvedPath;
-				}
-				// edge case: when given a SKILL.md file path, resolve to the sibling PLAYBOOK.md playbook file
-				if (path.basename(resolvedPath).toUpperCase() === "SKILL.MD") {
-					const sibling = path.join(path.dirname(resolvedPath), "PLAYBOOK.md");
-					if (fs.existsSync(sibling) && fs.statSync(sibling).isFile()) {
-						return sibling;
-					}
-				}
-			}
+		if (path.isAbsolute(skill.path)) {
+			return checkPlaybookPath(skill.path);
+		}
+		for (const wp of workspacePaths) {
+			const resolvedPath = path.resolve(wp, skill.path);
+			const found = checkPlaybookPath(resolvedPath);
+			if (found) return found;
 		}
 		return null;
 	}
 
-	const skillPath = resolveSkillPath(skill, harness, workspacePath, env);
+	const skillPath = resolveSkillPath(skill, harness, workspacePaths, env);
 	if (skillPath) {
 		const skillDir = path.dirname(skillPath);
 		const playbook = path.join(skillDir, "PLAYBOOK.md");

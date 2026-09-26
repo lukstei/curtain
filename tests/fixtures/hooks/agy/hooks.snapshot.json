@@ -14,6 +14,107 @@
 		}
 	},
 	{
+		"hook": "pre",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "running",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "pre",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "running",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "stop",
+		"decision": "allow",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "pre",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "tool",
+		"decision": "allow",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "pre",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "tool",
+		"decision": "allow",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "pre",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "tool",
+		"decision": "allow",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "pre",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "tool",
+		"decision": "allow",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "pre",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
 		"hook": "stop",
 		"decision": "allow",
 		"state": {
@@ -41,9 +142,25 @@
 		}
 	},
 	{
+		"hook": "pre",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "running",
+			"currentStep": 1
+		}
+	},
+	{
 		"hook": "stop",
 		"decision": "continue",
 		"reason": "[STEP 3 OF 3]\n\n<curtain-info>\nCurtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.\n</curtain-info>\n\n<act-instructions>\nSay \"Step 3\"\n<!-- step-3 -->\n</act-instructions>\n\n<rules>\n- Perform ONLY the instructions in <act-instructions>.\n- Conclude when complete.\n- Do NOT anticipate or execute any future steps.\n</rules>",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "running",
+			"currentStep": 2
+		}
+	},
+	{
+		"hook": "pre",
 		"state": {
 			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
 			"status": "running",
