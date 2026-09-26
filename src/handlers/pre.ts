@@ -1,4 +1,3 @@
-import type { HarnessType } from "../harnesses/types.ts";
 import { assertNever } from "../lib/assertNever.ts";
 import { parseCommand, type UserIntent } from "../lib/parseCommand.ts";
 import type { Script } from "../parser/index.ts";
@@ -40,11 +39,7 @@ function resolvePreScript(
 	state: RunnerState | null,
 ): ResolvedScriptResult | undefined {
 	if (intent.type === "skill" && !state) {
-		return resolveIntentScript(
-			intent,
-			info.workspacePath,
-			info.harness as HarnessType | undefined,
-		);
+		return resolveIntentScript(intent, info.workspacePath, info.harness);
 	}
 	return undefined;
 }
@@ -62,6 +57,7 @@ export function evaluatePreIntent(
 			return { state, response: { action: "inject", message: intent.error } };
 
 		case "next": {
+			// edge case: user typed /next without any active or paused playbook execution
 			if (!state) {
 				return {
 					state: null,
@@ -80,6 +76,7 @@ export function evaluatePreIntent(
 		}
 
 		case "skill": {
+			// edge case: user invoked a playbook skill command while another playbook is already running
 			if (state) break;
 
 			if (resolved?.type === "resolved") {
@@ -98,6 +95,7 @@ export function evaluatePreIntent(
 			assertNever(intent);
 	}
 
+	// edge case: user sent regular conversational input during an intermission review instead of /next
 	if (state?.status === "paused") {
 		const currentStep = state.steps[state.currentStep];
 		return {

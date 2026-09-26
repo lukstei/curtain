@@ -61,6 +61,7 @@ export function parseScript(content: string, filePath: string): Script {
 	assert(trimmed.length > 0, `Script file "${filePath}" contains no content.`);
 
 	const ast = parse(content);
+	// edge case: single-block documents parse as a direct AST node rather than a fragment
 	const topLevelBlocks = ast.type === "fragment" ? ast.children : [ast];
 
 	const steps: Step[] = [];
@@ -93,6 +94,7 @@ export function parseScript(content: string, filePath: string): Script {
 		}
 	}
 
+	// edge case: trailing content after the last delimiter forms the final step
 	if (currentBlocks.length > 0) {
 		const chunk = currentBlocks
 			.map((b) => b.source)

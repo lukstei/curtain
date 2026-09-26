@@ -44,6 +44,7 @@ export function resumeExecution(state: RunnerState): ResumeResult {
 	}
 
 	const nextStepIndex = state.currentStep + 1;
+	// edge case: resuming from the final step completes execution rather than advancing to a step
 	if (nextStepIndex >= state.steps.length) {
 		return { action: "finish" };
 	}
@@ -79,6 +80,7 @@ export function advanceExecution(state: RunnerState): AdvanceResult {
 	}
 
 	const nextStepIndex = state.currentStep + 1;
+	// edge case: completing the final step finishes execution rather than advancing
 	if (nextStepIndex >= state.steps.length) {
 		return { action: "finish" };
 	}

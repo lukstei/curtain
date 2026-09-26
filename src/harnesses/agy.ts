@@ -140,6 +140,13 @@ export const agyHarness: HarnessAdapter = {
 			rawPayload: payload,
 		});
 
+		// edge case: AGY PreInvocation payloads omit prompt, so user prompt must be read from transcript
+		const derivedPrompt =
+			prompt ??
+			(latestMessage?.type === "USER_INPUT"
+				? latestMessage.content
+				: undefined);
+
 		const skillInvocationPath =
 			latestMessage?.skillInvocationPath ??
 			(typeof payload.prompt === "string"
@@ -157,7 +164,7 @@ export const agyHarness: HarnessAdapter = {
 			readTargetFilePath,
 			skillTarget,
 			latestMessage,
-			prompt,
+			prompt: derivedPrompt,
 			skillInvocationPath,
 			isInterrupted,
 			terminationReason,
@@ -180,6 +187,7 @@ export const agyHarness: HarnessAdapter = {
 			const skill = toolCall.args.skill;
 			return typeof skill === "string" ? normalizeSkillName(skill) : null;
 		}
+		// edge case: AGY can invoke skills via invoke_subagent with skill name in TypeName or Role
 		if (toolCall.name === "invoke_subagent") {
 			const subagents = toolCall.args.Subagents;
 			if (Array.isArray(subagents) && subagents.length > 0) {
@@ -196,10 +204,18 @@ export const agyHarness: HarnessAdapter = {
 		prompt?: string;
 		rawPayload: Record<string, unknown>;
 	}): LatestMessage | null {
+		if (
+			event.rawPayload.latestMessage &&
+			typeof event.rawPayload.latestMessage === "object"
+		) {
+			return event.rawPayload.latestMessage as LatestMessage;
+		}
+
 		const invocationNum =
 			typeof event.rawPayload.invocationNum === "number"
 				? event.rawPayload.invocationNum
 				: undefined;
+		// edge case: AGY fires PreInvocation on intermediate sub-steps (invocationNum > 0) which should not re-trigger on turn-0 prompt
 		if (
 			event.type === "pre" &&
 			invocationNum !== undefined &&

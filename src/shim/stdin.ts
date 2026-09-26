@@ -2,6 +2,7 @@ import { logDebug } from "../lib/logDebug.ts";
 /** Strips leading UTF-8 Byte Order Mark (BOM) from stdin input. */
 export const UTF8_BOM_REGEX = /^\uFEFF/;
 
+// edge case: Windows or PowerShell stdin may prepend a UTF-8 Byte Order Mark (\uFEFF)
 export function stripBom(text: string): string {
 	return text.replace(UTF8_BOM_REGEX, "");
 }

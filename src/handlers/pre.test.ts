@@ -29,6 +29,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1",
 			workspacePath: "/test",
+			harness: "agy",
 			prompt: "/next",
 		};
 
@@ -52,6 +53,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1-codex",
 			workspacePath: "/test",
+			harness: "codex",
 			prompt: "[$next](/path/to/skills/next/SKILL.md) \n",
 			skillInvocationPath: "/path/to/skills/next/SKILL.md",
 		};
@@ -76,6 +78,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1-bare-link",
 			workspacePath: "/test",
+			harness: "agy",
 			prompt: "[$next]",
 		};
 
@@ -89,6 +92,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1-plain-next",
 			workspacePath: "/test",
+			harness: "agy",
 			prompt: "next",
 		};
 
@@ -118,6 +122,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1-final",
 			workspacePath: "/test",
+			harness: "agy",
 			prompt: "/next",
 		};
 
@@ -136,6 +141,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c4-review",
 			workspacePath: "/test",
+			harness: "agy",
 			prompt: "I have added the missing migration column",
 		};
 
@@ -175,6 +181,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c4-no-inst",
 			workspacePath: "/test",
+			harness: "agy",
 			prompt: "Please check this specific edge case first",
 		};
 
@@ -198,23 +205,6 @@ describe("handlers/pre.ts", () => {
 			- Remind the user that execution remains paused at this intermission and only typing /next will advance to the next playbook step.",
 			}
 		`);
-	});
-
-	it("returns informative error when user invokes /curtain <file>", () => {
-		const info: HookInfo = {
-			type: "pre",
-			conversationId: "test-c5",
-			workspacePath: tmpDir,
-			prompt: "/curtain task.md",
-		};
-
-		const { state, response } = handlePre(info, null);
-		expect(state).toBeNull();
-		expect(response).toEqual({
-			action: "inject",
-			message:
-				"Curtain is an instruction runner. Start a workflow by invoking its skill directly (e.g. /<skill-name>).",
-		});
 	});
 
 	it("implicitly starts execution when user invokes an annotated skill via slash command", () => {

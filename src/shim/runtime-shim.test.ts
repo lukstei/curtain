@@ -2,7 +2,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadState, saveState } from "../state.ts";
-import { runShim } from "./runtime-shim.ts";
+import { runShimForTest } from "./runtime-shim.ts";
 
 describe("runShim End-to-End Simulation", () => {
 	const tmpDir = path.join(os.tmpdir(), `curtain-shim-test-${Date.now()}`);
@@ -13,7 +13,7 @@ describe("runShim End-to-End Simulation", () => {
 			workspacePaths: ["/test"],
 		});
 
-		const egress = await runShim("pre", rawInput, {
+		const egress = await runShimForTest("pre", rawInput, {
 			AGY_HOOK_ACTIVE: "1",
 			AGY_PLUGIN_DATA: tmpDir,
 		});
@@ -28,7 +28,7 @@ describe("runShim End-to-End Simulation", () => {
 			terminationReason: "model_stop",
 		});
 
-		const egress = await runShim("stop", rawInput, {
+		const egress = await runShimForTest("stop", rawInput, {
 			AGY_HOOK_ACTIVE: "1",
 			AGY_PLUGIN_DATA: tmpDir,
 		});
@@ -36,15 +36,30 @@ describe("runShim End-to-End Simulation", () => {
 		expect(JSON.parse(egress.stdout ?? "{}")).toEqual({ decision: "allow" });
 	});
 
-	it("processes Claude Code user prompt submission for bare /curtain", async () => {
+	it("processes Claude Code user prompt submission for /next when paused", async () => {
+		const sessionId = "claude-session-1";
+		saveState(
+			sessionId,
+			{
+				script: "sample.md",
+				status: "paused",
+				currentStep: 0,
+				steps: [
+					{ index: 0, type: "pause", content: "Step 1" },
+					{ index: 1, type: "auto", content: "Step 2" },
+				],
+			},
+			{ CLAUDE_PLUGIN_DATA: tmpDir },
+		);
+
 		const rawInput = JSON.stringify({
 			hook_event_name: "UserPromptSubmit",
-			session_id: "claude-session-1",
+			session_id: sessionId,
 			cwd: "/test",
-			prompt: "/curtain",
+			prompt: "/next",
 		});
 
-		const egress = await runShim("pre", rawInput, {
+		const egress = await runShimForTest("pre", rawInput, {
 			CLAUDE_PLUGIN_ROOT: "/plugin",
 			CLAUDE_PLUGIN_DATA: tmpDir,
 		});
@@ -52,8 +67,8 @@ describe("runShim End-to-End Simulation", () => {
 		expect(egress.exitCode).toBe(0);
 		const parsed = JSON.parse(egress.stdout ?? "{}");
 		expect(parsed.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
-		expect(parsed.hookSpecificOutput.additionalContext).toBe(
-			"Curtain is an instruction runner. Start a workflow by invoking its skill directly (e.g. /<skill-name>).",
+		expect(parsed.hookSpecificOutput.additionalContext).toContain(
+			"[STEP 2 OF 2]",
 		);
 	});
 
@@ -81,7 +96,7 @@ describe("runShim End-to-End Simulation", () => {
 			cwd: "/test",
 		});
 
-		const egress = await runShim("stop", rawInput, env);
+		const egress = await runShimForTest("stop", rawInput, env);
 		expect(egress.exitCode).toBe(0);
 
 		expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
@@ -122,7 +137,7 @@ describe("runShim End-to-End Simulation", () => {
 			cwd: "/test",
 		});
 
-		const egress = await runShim("stop", rawInput, env);
+		const egress = await runShimForTest("stop", rawInput, env);
 		expect(egress.exitCode).toBe(0);
 		expect(egress.stdout).toBe("{}");
 		expect(loadState(sessionId, env)?.status).toBe("paused");
@@ -152,7 +167,7 @@ describe("runShim End-to-End Simulation", () => {
 			cwd: "/test",
 		});
 
-		const egress = await runShim("stop", rawInput, env);
+		const egress = await runShimForTest("stop", rawInput, env);
 		expect(egress.exitCode).toBe(0);
 		expect(loadState(sessionId, env)).toBeNull();
 	});

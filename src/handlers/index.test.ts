@@ -8,6 +8,7 @@ describe("handlers index dispatch", () => {
 			type: "pre",
 			conversationId: "curtain-test-pre",
 			workspacePath: "/test",
+			harness: "agy",
 			prompt: "",
 		};
 		const res = handle(info, null);
@@ -19,6 +20,7 @@ describe("handlers index dispatch", () => {
 			type: "stop",
 			conversationId: "curtain-test-stop",
 			workspacePath: "/test",
+			harness: "agy",
 		};
 		const res = handle(info, null);
 		expect(res).toEqual({ state: null, response: { action: "allow" } });
@@ -29,6 +31,7 @@ describe("handlers index dispatch", () => {
 			type: "tool",
 			conversationId: "curtain-test-tool",
 			workspacePath: "/test",
+			harness: "agy",
 			toolCall: { name: "view_file", args: { AbsolutePath: "/test/file.md" } },
 		};
 		const res = handle(info, null);
@@ -40,6 +43,7 @@ describe("handlers index dispatch", () => {
 			type: "unknown",
 			conversationId: "curtain-test-err",
 			workspacePath: "/test",
+			harness: "agy",
 		} as unknown as HookInfo;
 
 		expect(() => handle(info, null)).toThrow("Never assertion failed");

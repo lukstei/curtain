@@ -399,9 +399,9 @@ describe("codexHarness", () => {
 			expect(
 				codexHarness.extractSkillTarget?.({
 					name: "invoke_skill",
-					args: { name: "curtain-test" },
+					args: { name: "test-plugin:curtain-test" },
 				}),
-			).toBe("curtain-test");
+			).toBe("test-plugin:curtain-test");
 		});
 
 		it("returns null for non-skill tool calls", () => {

@@ -7,24 +7,23 @@ import {
 	type Script,
 } from "../parser/index.ts";
 import type { ResolvedScriptResult } from "../types.ts";
+import type { ParsedSkill } from "./parseSkill.ts";
 import { resolvePlaybookPath } from "./resolveSkill.ts";
 
 export * from "./parseSkill.ts";
 export * from "./resolveSkill.ts";
 
 /**
- * Loads a multi-step Curtain script associated with a skill or target path.
+ * Loads a multi-step Curtain script associated with a skill.
  * Verifies that the resolved playbook exists, contains curtain callout annotations,
  * and contains more than one step.
  */
 export function loadSkillScript(
-	target?: string | null,
-	workspacePath = ".",
-	harness?: HarnessType,
+	skill: ParsedSkill,
+	workspacePath: string,
+	harness: HarnessType,
 ): Script | null {
-	if (!target?.trim()) return null;
-
-	const playbookPath = resolvePlaybookPath(target, harness, workspacePath);
+	const playbookPath = resolvePlaybookPath(skill, harness, workspacePath);
 	if (!playbookPath) {
 		return null;
 	}
@@ -45,11 +44,10 @@ export function loadSkillScript(
 export function resolveIntentScript(
 	intent: UserIntent,
 	workspacePath: string,
-	harness?: HarnessType,
+	harness: HarnessType,
 ): ResolvedScriptResult {
 	if (intent.type === "skill") {
-		const target = intent.targetPath ?? intent.skill.name;
-		const script = loadSkillScript(target, workspacePath, harness);
+		const script = loadSkillScript(intent.skill, workspacePath, harness);
 		if (script) {
 			return { type: "resolved", script, skillName: intent.skill.name };
 		}

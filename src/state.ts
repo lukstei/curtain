@@ -44,6 +44,14 @@ export function getDebugLogPath(
 		: path.join(base, "debug.log");
 }
 
+export function getHookLogPath(
+	conversationId: string,
+	env: NodeJS.ProcessEnv = process.env,
+): string {
+	assert(conversationId.trim().length > 0, "conversationId must not be empty");
+	return path.join(getStorageBaseDir(env), conversationId, "hooks.jsonl");
+}
+
 function isValidStep(step: unknown): boolean {
 	if (!step || typeof step !== "object") return false;
 	const s = step as Record<string, unknown>;

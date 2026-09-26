@@ -251,9 +251,9 @@ describe("claudeHarness", () => {
 			expect(
 				claudeHarness.extractSkillTarget?.({
 					name: "Skill",
-					args: { skill: "curtain-test" },
+					args: { skill: "test-plugin:curtain-test" },
 				}),
-			).toBe("curtain-test");
+			).toBe("test-plugin:curtain-test");
 		});
 
 		it("returns null for non-Skill tool calls", () => {

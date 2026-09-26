@@ -1,6 +1,7 @@
 - Prefer snapshot testing instead of a list of assertions
 - Always place runner state transitions and status mutations in `src/transitions.ts`
 - Run `npm run verify` when completing a task (not after every intermediate edit)
+- For each edge case (a branch that goes against intuition or against what the function is supposed to do), add a concise comment: `// edge case: <reason why we need to handle that>`
 - Never add any backwards compatibility regarding the code, there is no external consumer of the code
 - Ignore dist/curtain.cjs and .agents/plugins/curtain/dist/curtain.cjs, these are automatically built from the source code
 - Reference implementations for cross-agent integrations:

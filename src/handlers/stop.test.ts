@@ -9,6 +9,7 @@ describe("handlers/stop.ts", () => {
 			type: "stop",
 			conversationId: "c1",
 			workspacePath: "/test",
+			harness: "agy",
 		};
 		const { state, response } = handleStop(info, null);
 		expect(state).toBeNull();
@@ -20,6 +21,7 @@ describe("handlers/stop.ts", () => {
 			type: "stop",
 			conversationId: "c2",
 			workspacePath: "/test",
+			harness: "agy",
 		};
 		const pausedState: RunnerState = {
 			script: "sample.md",
@@ -40,6 +42,7 @@ describe("handlers/stop.ts", () => {
 			type: "stop",
 			conversationId: "c3",
 			workspacePath: "/test",
+			harness: "agy",
 		};
 		const runningState: RunnerState = {
 			script: "sample.md",
@@ -60,6 +63,7 @@ describe("handlers/stop.ts", () => {
 			type: "stop",
 			conversationId: "c4",
 			workspacePath: "/test",
+			harness: "agy",
 		};
 		const runningState: RunnerState = {
 			script: "sample.md",
@@ -90,6 +94,7 @@ describe("handlers/stop.ts", () => {
 			type: "stop",
 			conversationId: "c5",
 			workspacePath: "/test",
+			harness: "agy",
 		};
 		const runningState: RunnerState = {
 			script: "sample.md",
@@ -110,6 +115,7 @@ describe("handlers/stop.ts", () => {
 			type: "stop",
 			conversationId: "c6",
 			workspacePath: "/test",
+			harness: "agy",
 			terminationReason: "User cancelled the operation",
 		};
 		const runningState: RunnerState = {

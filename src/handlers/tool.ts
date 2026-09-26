@@ -11,6 +11,7 @@ function isSameFile(p1: string, p2: string): boolean {
 	const r2 = path.resolve(p2);
 	if (r1 === r2) return true;
 	try {
+		// edge case: symlinks or non-existent target files during path resolution
 		return fs.realpathSync(r1) === fs.realpathSync(r2);
 	} catch {
 		return false;
@@ -36,26 +37,20 @@ export function handlePreTool(
 
 	if (info.skillTarget) {
 		const parsed = parseSkill(info.skillTarget);
-		const isCurtain = parsed?.namespace === "curtain";
 
-		// Block self-advancement at intermissions
-		if (isCurtain && parsed.name === "next") {
+		// edge case: models attempt to advance past an intermission by invoking the next skill directly via tools
+		if (parsed?.namespace === "curtain" && parsed.name === "next") {
 			return deny(
 				"BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
 			);
 		}
 
-		// Block redundant curtain or active skill re-invocation
-		if (state) {
-			const active = state.skillName?.toLowerCase();
-			if (
-				(isCurtain && parsed.name === "curtain") ||
-				(active &&
-					parsed &&
-					(parsed.name === active || formatSkill(parsed) === active))
-			) {
+		// edge case: models attempt to re-invoke the active playbook skill via tools instead of executing the active step directly
+		if (state?.skillName && parsed) {
+			const active = state.skillName.toLowerCase();
+			if (parsed.name === active || formatSkill(parsed) === active) {
 				return deny(
-					"BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
+					"BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke the active skill via the Skill tool. Execute the active step instructions directly.",
 				);
 			}
 		}
@@ -63,7 +58,7 @@ export function handlePreTool(
 		return allow;
 	}
 
-	// Block reading the active playbook script
+	// edge case: models attempt to inspect the backstage script file to see downstream steps ahead of time
 	if (
 		state &&
 		info.readTargetFilePath &&

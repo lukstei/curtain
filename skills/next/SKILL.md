@@ -4,7 +4,7 @@ description: Advance to the next step when execution is paused at an intermissio
 disable-model-invocation: true
 ---
 
-# Next (`/next` or `/curtain next`)
+# Next (`/next`)
 
 Advance to the next step when execution is paused at an intermission.
 

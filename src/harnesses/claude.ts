@@ -18,6 +18,7 @@ export const CLAUDE_COMMAND_NAME_REGEX =
 
 export function extractClaudePrompt(rawPrompt?: string): string | undefined {
 	if (!rawPrompt) return undefined;
+	// edge case: Claude Code wraps slash command invocations in <command-name> XML tags
 	const match = rawPrompt.match(CLAUDE_COMMAND_NAME_REGEX);
 	return match ? match[1].trim() : rawPrompt;
 }

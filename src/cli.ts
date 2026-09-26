@@ -80,7 +80,7 @@ export async function runCli(
 
 	if (parsed.command === "hook") {
 		const modeArg = parsed.subcommand ?? "stop";
-		const egress = await runShim(modeArg, undefined, env);
+		const egress = await runShim(modeArg, env);
 		if (egress.stdout) writeOut(egress.stdout);
 		if (egress.stderr) writeErr(egress.stderr);
 		return { exitCode: egress.exitCode, output: egress.stdout };

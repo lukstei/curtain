@@ -47,6 +47,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			harness: "agy",
 			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: scriptFile,
 		};
@@ -75,6 +76,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			harness: "agy",
 			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: customFile,
 		};
@@ -95,6 +97,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			harness: "agy",
 			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: skillFile,
 		};
@@ -108,6 +111,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			harness: "agy",
 			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: otherFile,
 		};
@@ -126,6 +130,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			harness: "agy",
 			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: unrelatedPlaybook,
 		};
@@ -139,6 +144,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			harness: "agy",
 			toolCall: {
 				name: "run_command",
 				args: { CommandLine: "echo test" },
@@ -154,6 +160,7 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			harness: "agy",
 			toolCall: { name: "view_file", args: {} },
 			readTargetFilePath: scriptFile,
 		};
@@ -162,11 +169,12 @@ describe("handlers/tool.ts", () => {
 		expect(result.response.action).toBe("allow");
 	});
 
-	it("strictly denies skillTarget next or curtain:next", () => {
+	it("strictly denies skillTarget curtain:next", () => {
 		const infoNext: HookInfo = {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			harness: "agy",
 			toolCall: { name: "Skill", args: { skill: "curtain:next" } },
 			skillTarget: "curtain:next",
 			readTargetFilePath: null,
@@ -179,49 +187,20 @@ describe("handlers/tool.ts", () => {
 			  "reason": "BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
 			}
 		`);
-
-		const infoBareNext: HookInfo = {
-			type: "tool",
-			conversationId: "c1",
-			workspacePath: testDir,
-			toolCall: { name: "Skill", args: { skill: "next" } },
-			skillTarget: "next",
-			readTargetFilePath: null,
-		};
-		expect(handlePreTool(infoBareNext, null).response).toMatchInlineSnapshot(`
-			{
-			  "action": "deny",
-			  "reason": "BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review.",
-			}
-		`);
 	});
 
-	it("denies redundant curtain:curtain or active skill re-invocation when active", () => {
-		const infoCurtain: HookInfo = {
-			type: "tool",
-			conversationId: "c1",
-			workspacePath: testDir,
-			toolCall: { name: "Skill", args: { skill: "curtain:curtain" } },
-			skillTarget: "curtain:curtain",
-			readTargetFilePath: null,
-		};
-
-		expect(
-			handlePreTool(infoCurtain, activeState).response,
-		).toMatchInlineSnapshot(`
-			{
-			  "action": "deny",
-			  "reason": "BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
-			}
-		`);
-
+	it("denies redundant active skill re-invocation when active", () => {
 		const activeSkillName = path.basename(testDir);
 		const infoActiveSkill: HookInfo = {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
-			toolCall: { name: "Skill", args: { skill: activeSkillName } },
-			skillTarget: activeSkillName,
+			harness: "agy",
+			toolCall: {
+				name: "Skill",
+				args: { skill: `test-plugin:${activeSkillName}` },
+			},
+			skillTarget: `test-plugin:${activeSkillName}`,
 			readTargetFilePath: null,
 		};
 
@@ -230,23 +209,9 @@ describe("handlers/tool.ts", () => {
 		).toMatchInlineSnapshot(`
 			{
 			  "action": "deny",
-			  "reason": "BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke Curtain or the active skill via the Skill tool. Execute the active step instructions directly.",
+			  "reason": "BLOCKED BY CURTAIN: Playbook execution is already active. Do not invoke the active skill via the Skill tool. Execute the active step instructions directly.",
 			}
 		`);
-	});
-
-	it("allows curtain:curtain when runner state is null", () => {
-		const info: HookInfo = {
-			type: "tool",
-			conversationId: "c1",
-			workspacePath: testDir,
-			toolCall: { name: "Skill", args: { skill: "curtain:curtain" } },
-			skillTarget: "curtain:curtain",
-			readTargetFilePath: null,
-		};
-
-		const result = handlePreTool(info, null);
-		expect(result.response.action).toBe("allow");
 	});
 
 	it("allows unrelated skill invocation even when active", () => {
@@ -254,8 +219,12 @@ describe("handlers/tool.ts", () => {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
-			toolCall: { name: "Skill", args: { skill: "unrelated-tool" } },
-			skillTarget: "unrelated-tool",
+			harness: "agy",
+			toolCall: {
+				name: "Skill",
+				args: { skill: "other-plugin:unrelated-tool" },
+			},
+			skillTarget: "other-plugin:unrelated-tool",
 			readTargetFilePath: null,
 		};
 
@@ -263,28 +232,17 @@ describe("handlers/tool.ts", () => {
 		expect(result.response.action).toBe("allow");
 	});
 
-	it("allows foreign namespaced next or curtain skills without collision", () => {
+	it("allows foreign namespaced next skill without collision", () => {
 		const infoForeignNext: HookInfo = {
 			type: "tool",
 			conversationId: "c1",
 			workspacePath: testDir,
+			harness: "agy",
 			toolCall: { name: "Skill", args: { skill: "other-plugin:next" } },
 			skillTarget: "other-plugin:next",
 			readTargetFilePath: null,
 		};
 		expect(handlePreTool(infoForeignNext, activeState).response.action).toBe(
-			"allow",
-		);
-
-		const infoForeignCurtain: HookInfo = {
-			type: "tool",
-			conversationId: "c1",
-			workspacePath: testDir,
-			toolCall: { name: "Skill", args: { skill: "other-plugin:curtain" } },
-			skillTarget: "other-plugin:curtain",
-			readTargetFilePath: null,
-		};
-		expect(handlePreTool(infoForeignCurtain, activeState).response.action).toBe(
 			"allow",
 		);
 	});

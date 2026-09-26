@@ -45,5 +45,9 @@ for (const destDir of targetDirs) {
 			fs.cpSync(item, dest, { recursive: true, force: true });
 		}
 	}
-	console.log(`✓ Synced curtain plugin to: ${destDir}`);
+	fs.writeFileSync(
+		path.join(destDir, "curtain.json"),
+		`${JSON.stringify({ debug: true }, null, "\t")}\n`,
+	);
+	console.log(`✓ Synced curtain plugin (debug enabled) to: ${destDir}`);
 }

@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { getDebugLogPath } from "../state.ts";
 
 export function logDebug(message: string, data?: unknown) {
+	// smell: suppress debug log file creation during test suites unless explicitly requested
 	if (process.env.VITEST && !process.env.CURTAIN_DEBUG) {
 		return;
 	}

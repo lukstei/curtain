@@ -1,3 +1,4 @@
+import type { HarnessType } from "./harnesses/types.ts";
 import type { Script } from "./parser/index.ts";
 
 export interface LatestMessage {
@@ -20,7 +21,7 @@ export type ResolvedScriptResult =
 type BaseHookInfo = {
 	conversationId: string;
 	workspacePath: string;
-	harness?: string;
+	harness: HarnessType;
 };
 
 export type HookInfo = BaseHookInfo &

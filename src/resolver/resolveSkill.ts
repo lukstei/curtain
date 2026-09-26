@@ -1,8 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getHarness, HARNESSES } from "../harnesses/index.ts";
+import { getHarness } from "../harnesses/index.ts";
 import type { HarnessType } from "../harnesses/types.ts";
 import { logDebug } from "../lib/logDebug.ts";
+import type { ParsedSkill } from "./parseSkill.ts";
 
 function findSkillInBaseDir(
 	baseDir: string,
@@ -65,36 +66,20 @@ function findSkillInBaseDir(
  * Resolves the absolute path to a skill's SKILL.md file, scoped to the active harness.
  */
 export function resolveSkillPath(
-	skillName: string,
-	harness?: HarnessType,
+	skill: ParsedSkill,
+	harness: HarnessType,
 	workspacePath = ".",
 	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
-	const trimmedName = skillName.trim();
-	if (!trimmedName) return null;
+	const skillName = skill.name.trim();
+	if (!skillName) return null;
 
-	// Handle namespaced skills: e.g. "plugin:skill" -> skill is "skill"
-	const normalizedName = trimmedName.split(":").pop() ?? trimmedName;
+	const adapter = getHarness(harness);
+	if (!adapter.getSkillDirs) return null;
 
-	const skillDirs: string[] = [];
-
-	if (harness) {
-		const adapter = getHarness(harness);
-		if (adapter.getSkillDirs) {
-			skillDirs.push(...adapter.getSkillDirs(workspacePath, env));
-		}
-	} else {
-		for (const h of HARNESSES) {
-			if (h.getSkillDirs) {
-				skillDirs.push(...h.getSkillDirs(workspacePath, env));
-			}
-		}
-	}
-
-	const uniqueDirs = [...new Set(skillDirs)];
-
+	const uniqueDirs = [...new Set(adapter.getSkillDirs(workspacePath, env))];
 	for (const dir of uniqueDirs) {
-		const found = findSkillInBaseDir(dir, normalizedName);
+		const found = findSkillInBaseDir(dir, skillName);
 		if (found) {
 			return found;
 		}
@@ -104,51 +89,45 @@ export function resolveSkillPath(
 }
 
 /**
- * Resolves the PLAYBOOK.md file associated with a skill name, directory, or path.
+ * Resolves the PLAYBOOK.md file associated with a parsed skill.
  */
 export function resolvePlaybookPath(
-	skillNameOrPath: string,
-	harness?: HarnessType,
+	skill: ParsedSkill,
+	harness: HarnessType,
 	workspacePath = ".",
 	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
-	const trimmed = skillNameOrPath.trim();
-	if (!trimmed) return null;
-
-	// 1. Direct check if path is already PLAYBOOK.md
-	if (path.basename(trimmed).toUpperCase() === "PLAYBOOK.MD") {
-		const directCandidate = path.isAbsolute(trimmed)
-			? trimmed
-			: path.resolve(workspacePath, trimmed);
-		if (
-			fs.existsSync(directCandidate) &&
-			fs.statSync(directCandidate).isFile()
-		) {
-			return directCandidate;
+	if (skill.path) {
+		const resolvedPath = path.isAbsolute(skill.path)
+			? skill.path
+			: path.resolve(workspacePath, skill.path);
+		if (fs.existsSync(resolvedPath)) {
+			const stat = fs.statSync(resolvedPath);
+			if (stat.isDirectory()) {
+				const directPlaybook = path.join(resolvedPath, "PLAYBOOK.md");
+				if (
+					fs.existsSync(directPlaybook) &&
+					fs.statSync(directPlaybook).isFile()
+				) {
+					return directPlaybook;
+				}
+			} else if (stat.isFile()) {
+				if (path.basename(resolvedPath).toUpperCase() === "PLAYBOOK.MD") {
+					return resolvedPath;
+				}
+				// edge case: when given a SKILL.md file path, resolve to the sibling PLAYBOOK.md playbook file
+				if (path.basename(resolvedPath).toUpperCase() === "SKILL.MD") {
+					const sibling = path.join(path.dirname(resolvedPath), "PLAYBOOK.md");
+					if (fs.existsSync(sibling) && fs.statSync(sibling).isFile()) {
+						return sibling;
+					}
+				}
+			}
 		}
+		return null;
 	}
 
-	// 2. Direct check if path is a directory containing PLAYBOOK.md
-	const dirCandidate = path.isAbsolute(trimmed)
-		? trimmed
-		: path.resolve(workspacePath, trimmed);
-	if (fs.existsSync(dirCandidate) && fs.statSync(dirCandidate).isDirectory()) {
-		const directPlaybook = path.join(dirCandidate, "PLAYBOOK.md");
-		if (fs.existsSync(directPlaybook) && fs.statSync(directPlaybook).isFile()) {
-			return directPlaybook;
-		}
-	}
-
-	// 3. If trimmed is a file path ending in SKILL.md, check sibling PLAYBOOK.md
-	if (path.basename(trimmed).toUpperCase() === "SKILL.MD") {
-		const sibling = path.join(path.dirname(dirCandidate), "PLAYBOOK.md");
-		if (fs.existsSync(sibling) && fs.statSync(sibling).isFile()) {
-			return sibling;
-		}
-	}
-
-	// 4. Try resolving as a skill name
-	const skillPath = resolveSkillPath(trimmed, harness, workspacePath, env);
+	const skillPath = resolveSkillPath(skill, harness, workspacePath, env);
 	if (skillPath) {
 		const skillDir = path.dirname(skillPath);
 		const playbook = path.join(skillDir, "PLAYBOOK.md");

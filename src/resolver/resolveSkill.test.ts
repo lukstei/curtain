@@ -23,7 +23,7 @@ describe("lib/resolveSkill.ts", () => {
 			const skillFile = path.join(skillDir, "SKILL.md");
 			fs.writeFileSync(skillFile, "# Deploy Skill\n");
 
-			const resolved = resolveSkillPath("deploy", "agy", testDir);
+			const resolved = resolveSkillPath({ name: "deploy" }, "agy", testDir);
 			expect(resolved).toBe(skillFile);
 		});
 
@@ -33,7 +33,7 @@ describe("lib/resolveSkill.ts", () => {
 			const skillFile = path.join(skillDir, "SKILL.md");
 			fs.writeFileSync(skillFile, "# Migrate Skill\n");
 
-			const resolved = resolveSkillPath("migrate", "claude", testDir);
+			const resolved = resolveSkillPath({ name: "migrate" }, "claude", testDir);
 			expect(resolved).toBe(skillFile);
 		});
 
@@ -44,10 +44,12 @@ describe("lib/resolveSkill.ts", () => {
 			fs.writeFileSync(claudeSkill, "# Claude Review\n");
 
 			// Claude finds it
-			expect(resolveSkillPath("review", "claude", testDir)).toBe(claudeSkill);
+			expect(resolveSkillPath({ name: "review" }, "claude", testDir)).toBe(
+				claudeSkill,
+			);
 
 			// Codex does NOT find it (isolation)
-			expect(resolveSkillPath("review", "codex", testDir)).toBeNull();
+			expect(resolveSkillPath({ name: "review" }, "codex", testDir)).toBeNull();
 		});
 
 		it("resolves harness-specific workspace skills for codex in .codex/skills", () => {
@@ -57,10 +59,14 @@ describe("lib/resolveSkill.ts", () => {
 			fs.writeFileSync(codexSkill, "# Codex Format\n");
 
 			// Codex finds it
-			expect(resolveSkillPath("format", "codex", testDir)).toBe(codexSkill);
+			expect(resolveSkillPath({ name: "format" }, "codex", testDir)).toBe(
+				codexSkill,
+			);
 
 			// Claude does NOT find it (isolation)
-			expect(resolveSkillPath("format", "claude", testDir)).toBeNull();
+			expect(
+				resolveSkillPath({ name: "format" }, "claude", testDir),
+			).toBeNull();
 		});
 
 		it("handles namespaced skills like plugin:skill-name", () => {
@@ -69,43 +75,61 @@ describe("lib/resolveSkill.ts", () => {
 			const skillFile = path.join(skillDir, "SKILL.md");
 			fs.writeFileSync(skillFile, "# Test Skill\n");
 
-			expect(resolveSkillPath("my-plugin:test-skill", "agy", testDir)).toBe(
-				skillFile,
-			);
+			expect(
+				resolveSkillPath(
+					{ namespace: "my-plugin", name: "test-skill" },
+					"agy",
+					testDir,
+				),
+			).toBe(skillFile);
 		});
 	});
 
 	describe("resolvePlaybookPath", () => {
-		it("resolves direct PLAYBOOK.md path", () => {
+		it("resolves direct PLAYBOOK.md path via skill.path", () => {
 			const pb = path.join(testDir, "PLAYBOOK.md");
 			fs.writeFileSync(pb, "# Playbook\n");
-			expect(resolvePlaybookPath(pb, undefined, testDir)).toBe(pb);
-			expect(resolvePlaybookPath("PLAYBOOK.md", undefined, testDir)).toBe(pb);
+			expect(
+				resolvePlaybookPath({ name: "pb", path: pb }, "agy", testDir),
+			).toBe(pb);
 		});
 
-		it("resolves directory containing PLAYBOOK.md", () => {
+		it("resolves directory containing PLAYBOOK.md via skill.path", () => {
 			const dir = path.join(testDir, "my-dir");
 			fs.mkdirSync(dir);
 			const pb = path.join(dir, "PLAYBOOK.md");
 			fs.writeFileSync(pb, "# Playbook\n");
-			expect(resolvePlaybookPath(dir, undefined, testDir)).toBe(pb);
-			expect(resolvePlaybookPath("my-dir", undefined, testDir)).toBe(pb);
+			expect(
+				resolvePlaybookPath({ name: "my-dir", path: dir }, "agy", testDir),
+			).toBe(pb);
 		});
 
-		it("resolves skill name to adjacent PLAYBOOK.md", () => {
+		it("resolves ParsedSkill to adjacent PLAYBOOK.md", () => {
 			const skillDir = path.join(testDir, ".agents/skills/deploy");
 			fs.mkdirSync(skillDir, { recursive: true });
 			fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# Deploy\n");
 			const pb = path.join(skillDir, "PLAYBOOK.md");
 			fs.writeFileSync(pb, "# Playbook\n");
 
-			expect(resolvePlaybookPath("deploy", "agy", testDir)).toBe(pb);
+			expect(resolvePlaybookPath({ name: "deploy" }, "agy", testDir)).toBe(pb);
+			expect(
+				resolvePlaybookPath(
+					{ name: "deploy", path: path.join(skillDir, "SKILL.md") },
+					"agy",
+					testDir,
+				),
+			).toBe(pb);
 		});
 
-		it("returns null for non-PLAYBOOK.md files", () => {
+		it("returns null for non-PLAYBOOK.md files or nonexistent skills", () => {
 			const other = path.join(testDir, "other.md");
 			fs.writeFileSync(other, "# Other\n");
-			expect(resolvePlaybookPath(other, undefined, testDir)).toBeNull();
+			expect(
+				resolvePlaybookPath({ name: "other", path: other }, "agy", testDir),
+			).toBeNull();
+			expect(
+				resolvePlaybookPath({ name: "nonexistent" }, "agy", testDir),
+			).toBeNull();
 		});
 	});
 });

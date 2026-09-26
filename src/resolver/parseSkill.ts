@@ -1,6 +1,7 @@
 export interface ParsedSkill {
 	namespace?: string;
 	name: string;
+	path?: string;
 }
 
 /**
@@ -11,54 +12,46 @@ export function formatSkill(skill: ParsedSkill): string {
 	return skill.namespace ? `${skill.namespace}:${skill.name}` : skill.name;
 }
 
-/**
- * Parses any skill string, Markdown link, or command mention into a structured ParsedSkill.
- *
- * Rules:
- * 1. Strips Markdown link wrappers ([$name](url) -> name, [$name] -> name, [name] -> name).
- * 2. Strips leading command sigils (/ or $).
- * 3. Splits on ":".
- *    - If namespace is "curtain", validates against known skills ("next" | "curtain").
- *      Removed subcommands ("start", "run") return null.
- *    - If no namespace is present but skill is "next" or "curtain", assumes "curtain" namespace.
- *    - Other namespaces and custom skills are preserved as-is.
- */
-export function parseSkill(raw: string): ParsedSkill | null {
+/** 1. Markdown with $ sigil: [$name] or [$name](path) */
+const MD_SIGIL_REGEX = /^\[\$([a-zA-Z0-9_.:-]+)\](?:\([^)]*\))?$/;
+
+/** 2. Command with sigil: /name, $name, /ns:name, $ns:name */
+const SIGIL_CMD_REGEX = /^[/$]([a-zA-Z0-9_.:-]+)$/;
+
+/** 3. Namespaced identifier: ns:name */
+const NAMESPACED_REGEX = /^([a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+)$/;
+
+function extractRawSkill(raw: string): string | null {
 	const trimmed = raw.trim();
-	if (trimmed.startsWith("[")) {
-		const isSigil = trimmed.startsWith("[$");
-		const hasPath = /\]\([^)]+\)/.test(trimmed);
-		const name = trimmed
-			.replace(/^\[\$?([^\]]+)\].*$/, "$1")
-			.trim()
-			.toLowerCase();
-		const isCurtain = name === "next" || name === "curtain";
-		if (!isSigil && !hasPath && !isCurtain) {
-			return null;
-		}
-	}
 
-	const cleaned = trimmed
-		.replace(/^\[\$?([^\]]+)\](?:\([^)]*\))?.*$/, "$1")
-		.replace(/^[/$]+/, "")
-		.trim()
-		.toLowerCase();
-	if (!cleaned) return null;
+	const md = trimmed.match(MD_SIGIL_REGEX);
+	if (md) return md[1];
 
-	const parts = cleaned.split(":");
+	const sigil = trimmed.match(SIGIL_CMD_REGEX);
+	if (sigil) return sigil[1];
+
+	const ns = trimmed.match(NAMESPACED_REGEX);
+	if (ns) return ns[1];
+
+	return null;
+}
+
+export function parseSkill(raw: string): ParsedSkill | null {
+	const rawSkill = extractRawSkill(raw);
+	if (!rawSkill) return null;
+
+	const parts = rawSkill.toLowerCase().split(":");
 	if (parts.length > 2) return null;
 
-	const ns = parts.length === 2 ? parts[0] : undefined;
-	const skill = parts.at(-1);
-	if (!skill || (ns !== undefined && !ns)) return null;
-
-	if (ns === "curtain" || (!ns && (skill === "next" || skill === "curtain"))) {
-		return skill === "next" || skill === "curtain"
-			? { namespace: "curtain", name: skill }
-			: null;
+	if (parts.length === 2) {
+		const [namespace, name] = parts;
+		if (!namespace || !name) return null;
+		return { namespace, name };
 	}
 
-	return ns ? { namespace: ns, name: skill } : { name: skill };
+	const [name] = parts;
+	// edge case: unqualified 'next' command implicitly resolves to curtain:next runner control
+	return name === "next" ? { namespace: "curtain", name } : { name };
 }
 
 export function normalizeSkillName(raw: string): string {

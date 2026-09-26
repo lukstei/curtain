@@ -53,3 +53,8 @@
 - **Current State:** Curtain is designed to eliminate context leakage and premature task execution by withholding downstream instructions behind step boundaries, but has no empirical benchmark comparing single monolithic prompts to curtain-gated execution.
 - **Objective:** Run a controlled case study measuring token usage, instruction adherence, premature downstream actions, and error rates between pasting a complete multi-step prompt upfront versus executing it step-by-step with Curtain.
 - **Agent Triage:** Pick a representative multi-phase task (e.g. multi-file refactor + verification). Track concrete failure modes: skipped constraints, out-of-order execution, and token waste from early backtracking.
+
+### [ ] 10. Re-Enable Debug Logging
+- **Current State:** `logDebug` in `src/lib/logDebug.ts` writes to `debug.log`, but calls are confined to isolated filesystem and parsing errors in `src/state.ts`, `src/shim/stdin.ts`, and `src/resolver/resolveSkill.ts`. Core lifecycle execution—harness detection, hook payloads, state transitions, and egress output in `runtime-shim.ts` and `handlers/`—is untraced.
+- **Objective:** Instrument runtime hook invocations, state transitions, and egress payloads with structured debug logging, activated via `CURTAIN_DEBUG` or runner flags, to trace live agent execution.
+- **Agent Triage:** Ensure file logging remains silent on stdout/stderr to prevent corrupting harness JSON contracts. Trace ingress events, state diffs, and egress responses per conversation.

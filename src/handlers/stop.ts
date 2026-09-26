@@ -14,10 +14,12 @@ export function handleStop(
 		return { state: null, response: { action: "allow" } };
 	}
 
+	// edge case: stop hook triggered while already waiting for human review at an intermission
 	if (state.status === "paused") {
 		return { state, response: { action: "allow" } };
 	}
 
+	// edge case: user or system aborted or cancelled turn, so do not auto-advance execution
 	if (
 		info.terminationReason &&
 		TERMINATION_CANCEL_REGEX.test(info.terminationReason)

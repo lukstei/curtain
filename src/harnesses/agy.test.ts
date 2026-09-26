@@ -358,10 +358,12 @@ describe("agyHarness", () => {
 				agyHarness.extractSkillTarget?.({
 					name: "invoke_subagent",
 					args: {
-						Subagents: [{ TypeName: "curtain-subagent", Role: "Runner" }],
+						Subagents: [
+							{ TypeName: "curtain-plugin:curtain-subagent", Role: "Runner" },
+						],
 					},
 				}),
-			).toBe("curtain-subagent");
+			).toBe("curtain-plugin:curtain-subagent");
 		});
 
 		it("extracts target from Skill tool call", () => {

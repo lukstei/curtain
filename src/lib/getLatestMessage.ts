@@ -9,6 +9,7 @@ export function defaultTranscriptParser(
 	item: Record<string, unknown>,
 ): LatestMessage | null {
 	const isUser = item.type === "USER_INPUT" || item.source === "USER_EXPLICIT";
+	// edge case: AGY logs internal system status updates with source 'MODEL' but type 'GENERIC', which are not assistant responses
 	const isModel =
 		(item.type === "PLANNER_RESPONSE" || item.source === "MODEL") &&
 		item.type !== "GENERIC";

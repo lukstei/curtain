@@ -4,11 +4,11 @@ import { formatSkill, normalizeSkillName, parseSkill } from "./parseSkill.ts";
 describe("parseSkill", () => {
 	it("parses curtain:next in various representations", () => {
 		const expected = { namespace: "curtain", name: "next" };
-		expect(parseSkill("next")).toEqual(expected);
+		expect(parseSkill("next")).toBeNull();
 		expect(parseSkill("/next")).toEqual(expected);
 		expect(parseSkill("$next")).toEqual(expected);
 		expect(parseSkill("[$next]")).toEqual(expected);
-		expect(parseSkill("[next]")).toEqual(expected);
+		expect(parseSkill("[next]")).toBeNull();
 		expect(parseSkill("[$next](skills/next/SKILL.md)")).toEqual(expected);
 		expect(parseSkill("curtain:next")).toEqual(expected);
 		expect(parseSkill("/curtain:next")).toEqual(expected);
@@ -17,32 +17,7 @@ describe("parseSkill", () => {
 		expect(parseSkill("[$curtain:next](skills/next/SKILL.md)")).toEqual(
 			expected,
 		);
-		expect(parseSkill("  NEXT  ")).toEqual(expected);
-	});
-
-	it("parses curtain:curtain in various representations", () => {
-		const expected = { namespace: "curtain", name: "curtain" };
-		expect(parseSkill("curtain")).toEqual(expected);
-		expect(parseSkill("/curtain")).toEqual(expected);
-		expect(parseSkill("$curtain")).toEqual(expected);
-		expect(parseSkill("[$curtain]")).toEqual(expected);
-		expect(parseSkill("[curtain]")).toEqual(expected);
-		expect(parseSkill("[$curtain](skills/curtain/SKILL.md)")).toEqual(expected);
-		expect(parseSkill("curtain:curtain")).toEqual(expected);
-		expect(parseSkill("/curtain:curtain")).toEqual(expected);
-		expect(parseSkill("$curtain:curtain")).toEqual(expected);
-		expect(parseSkill("[$curtain:curtain]")).toEqual(expected);
-		expect(parseSkill("  CURTAIN  ")).toEqual(expected);
-	});
-
-	it("returns null for removed or invalid curtain commands", () => {
-		expect(parseSkill("curtain:start")).toBeNull();
-		expect(parseSkill("$curtain:start")).toBeNull();
-		expect(parseSkill("/curtain:start")).toBeNull();
-		expect(parseSkill("curtain:run")).toBeNull();
-		expect(parseSkill("$curtain:run")).toBeNull();
-		expect(parseSkill("/curtain:run")).toBeNull();
-		expect(parseSkill("curtain:unknown")).toBeNull();
+		expect(parseSkill("  NEXT  ")).toBeNull();
 	});
 
 	it("parses foreign plugins and namespaced skills", () => {
@@ -64,8 +39,8 @@ describe("parseSkill", () => {
 		});
 	});
 
-	it("parses bare custom skills", () => {
-		expect(parseSkill("my-skill")).toEqual({ name: "my-skill" });
+	it("parses custom skills with sigil or markdown", () => {
+		expect(parseSkill("my-skill")).toBeNull();
 		expect(parseSkill("/my-skill")).toEqual({ name: "my-skill" });
 		expect(parseSkill("$my-skill")).toEqual({ name: "my-skill" });
 		expect(parseSkill("[$my-skill]")).toEqual({ name: "my-skill" });
@@ -91,9 +66,6 @@ describe("formatSkill", () => {
 		expect(formatSkill({ namespace: "curtain", name: "next" })).toBe(
 			"curtain:next",
 		);
-		expect(formatSkill({ namespace: "curtain", name: "curtain" })).toBe(
-			"curtain:curtain",
-		);
 		expect(formatSkill({ namespace: "other", name: "custom" })).toBe(
 			"other:custom",
 		);
@@ -107,33 +79,16 @@ describe("formatSkill", () => {
 
 describe("normalizeSkillName", () => {
 	it("normalizes next variations to curtain:next", () => {
-		expect(normalizeSkillName("next")).toBe("curtain:next");
+		expect(normalizeSkillName("next")).toBe("");
 		expect(normalizeSkillName("/next")).toBe("curtain:next");
 		expect(normalizeSkillName("$next")).toBe("curtain:next");
 		expect(normalizeSkillName("[$next]")).toBe("curtain:next");
-		expect(normalizeSkillName("[next]")).toBe("curtain:next");
+		expect(normalizeSkillName("[next]")).toBe("");
 		expect(normalizeSkillName("curtain:next")).toBe("curtain:next");
 		expect(normalizeSkillName("/curtain:next")).toBe("curtain:next");
 		expect(normalizeSkillName("$curtain:next")).toBe("curtain:next");
 		expect(normalizeSkillName("[$curtain:next]")).toBe("curtain:next");
-		expect(normalizeSkillName("  NEXT  ")).toBe("curtain:next");
-	});
-
-	it("normalizes curtain variations to curtain:curtain", () => {
-		expect(normalizeSkillName("curtain")).toBe("curtain:curtain");
-		expect(normalizeSkillName("/curtain")).toBe("curtain:curtain");
-		expect(normalizeSkillName("$curtain")).toBe("curtain:curtain");
-		expect(normalizeSkillName("[$curtain]")).toBe("curtain:curtain");
-		expect(normalizeSkillName("curtain:curtain")).toBe("curtain:curtain");
-		expect(normalizeSkillName("/curtain:curtain")).toBe("curtain:curtain");
-		expect(normalizeSkillName("$curtain:curtain")).toBe("curtain:curtain");
-	});
-
-	it("returns empty string for dropped or invalid curtain runner commands", () => {
-		expect(normalizeSkillName("$curtain:start")).toBe("");
-		expect(normalizeSkillName("curtain:start")).toBe("");
-		expect(normalizeSkillName("$curtain:run")).toBe("");
-		expect(normalizeSkillName("curtain:run")).toBe("");
+		expect(normalizeSkillName("  NEXT  ")).toBe("");
 	});
 
 	it("preserves foreign namespaces without collision", () => {
@@ -147,11 +102,15 @@ describe("normalizeSkillName", () => {
 		);
 	});
 
-	it("preserves custom bare skill names", () => {
-		expect(normalizeSkillName("curtain-test")).toBe("curtain-test");
+	it("preserves custom skill names with sigils or markdown", () => {
 		expect(normalizeSkillName("/curtain-test")).toBe("curtain-test");
 		expect(normalizeSkillName("$curtain-test")).toBe("curtain-test");
-		expect(normalizeSkillName("my-skill")).toBe("my-skill");
+		expect(normalizeSkillName("[$my-skill]")).toBe("my-skill");
+	});
+
+	it("returns empty string for bare identifiers without sigil or namespace", () => {
+		expect(normalizeSkillName("curtain-test")).toBe("");
+		expect(normalizeSkillName("my-skill")).toBe("");
 	});
 
 	it("handles empty or whitespace strings", () => {
