@@ -103,30 +103,7 @@ async function replayHookLog(harness: HarnessType, filePath: string) {
 				workspacePath,
 			);
 
-			const fixtureLatest = (
-				entry as {
-					latestMessage?: {
-						content?: string;
-						skillInvocationPath?: string;
-					};
-				}
-			).latestMessage;
-			const testOptions = fixtureLatest
-				? {
-						prompt: fixtureLatest.content,
-						skillInvocationPath: fixtureLatest.skillInvocationPath?.replaceAll(
-							"{{workspace}}",
-							workspacePath,
-						),
-					}
-				: undefined;
-
-			const egress = await runShimForTest(
-				entry.hook,
-				replacedInput,
-				env,
-				testOptions,
-			);
+			const egress = await runShimForTest(entry.hook, replacedInput, env);
 
 			const out = egress.stdout ? JSON.parse(egress.stdout) : {};
 			const expectedOut = entry.output ? JSON.parse(entry.output) : {};
@@ -179,12 +156,19 @@ const fixtures = findHookFixtures();
 
 describe("Hook Log Replay Integration", () => {
 	it.each(fixtures)(
-		"replays $harness $fixtureName hook log against exact output and shared snapshot",
-		async ({ harness, filePath }) => {
+		"replays $harness $fixtureName hook log against exact output and snapshot",
+		async ({ harness, filePath, fixtureName }) => {
 			const trace = await replayHookLog(harness, filePath);
+			const harnessSnapshotPath = path.resolve(
+				import.meta.dirname,
+				`fixtures/hooks/${harness}/${fixtureName}.snapshot.json`,
+			);
+			const snapshotTarget = fs.existsSync(harnessSnapshotPath)
+				? harnessSnapshotPath
+				: sharedSnapshotPath;
 			await expect(
 				`${JSON.stringify(trace, null, "\t")}\n`,
-			).toMatchFileSnapshot(sharedSnapshotPath);
+			).toMatchFileSnapshot(snapshotTarget);
 		},
 	);
 });

@@ -1,0 +1,58 @@
+[
+	{
+		"hook": "pre",
+		"state": null
+	},
+	{
+		"hook": "tool",
+		"decision": "deny",
+		"reason": "[STEP 1 OF 3]\n\n<curtain-info>\nCurtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.\n</curtain-info>\n\n<act-instructions>\nThis is a test skill to see if the the plugin works, follow instructions exactly.\n\nSay \"Step 1\"\n<!-- step-1 -->\n</act-instructions>\n\n<rules>\n- Perform ONLY the instructions in <act-instructions>.\n- Conclude when complete.\n- Do NOT anticipate or execute any future steps.\n- When concluding your turn, summarize your work in the review sidebar/artifact (if available).\n- Inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step.\n- Do NOT invoke runner tools or /next yourself.\n</rules>",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "running",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "stop",
+		"decision": "allow",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "pre",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "paused",
+			"currentStep": 0
+		}
+	},
+	{
+		"hook": "tool",
+		"decision": "deny",
+		"reason": "[STEP 2 OF 3]\n\n<curtain-info>\nCurtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.\n</curtain-info>\n\n<act-instructions>\nSay \"Step 2\"\n<!-- step-2 -->\n</act-instructions>\n\n<rules>\n- Perform ONLY the instructions in <act-instructions>.\n- Conclude when complete.\n- Do NOT anticipate or execute any future steps.\n</rules>",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "running",
+			"currentStep": 1
+		}
+	},
+	{
+		"hook": "stop",
+		"decision": "continue",
+		"reason": "[STEP 3 OF 3]\n\n<curtain-info>\nCurtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.\n</curtain-info>\n\n<act-instructions>\nSay \"Step 3\"\n<!-- step-3 -->\n</act-instructions>\n\n<rules>\n- Perform ONLY the instructions in <act-instructions>.\n- Conclude when complete.\n- Do NOT anticipate or execute any future steps.\n</rules>",
+		"state": {
+			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
+			"status": "running",
+			"currentStep": 2
+		}
+	},
+	{
+		"hook": "stop",
+		"decision": "allow",
+		"state": null
+	}
+]
