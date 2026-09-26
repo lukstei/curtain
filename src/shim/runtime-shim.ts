@@ -1,10 +1,9 @@
-import { handle } from "../handlers/index.ts";
 import { detectHarness, getHarness } from "../harnesses/index.ts";
 import type { EgressOutput } from "../harnesses/types.ts";
 import { logDebug } from "../lib/logDebug.ts";
 import { logHookInvocation } from "../lib/logHook.ts";
 import { deleteState, loadState, saveState } from "../state.ts";
-import type { HookInfo } from "../types.ts";
+import type { HookMode } from "../types.ts";
 import { parseJsonSafe, readStdin } from "./stdin.ts";
 
 export interface ShimTestOptions {
@@ -13,7 +12,7 @@ export interface ShimTestOptions {
 }
 
 export function executeHook(
-	modeArg: string,
+	mode: HookMode,
 	payload: Record<string, unknown>,
 	rawInput: string,
 	env = process.env,
@@ -25,52 +24,25 @@ export function executeHook(
 	}
 
 	const adapter = getHarness(harnessId);
-	const event = adapter.normalize(payload, modeArg, env);
+	const conversationId = adapter.resolveConversationId(payload, env);
 
-	logDebug.conversationId = event.conversationId;
+	logDebug.conversationId = conversationId;
 
-	const base = {
-		conversationId: event.conversationId,
-		workspacePath: event.workspacePath,
-		harness: event.harness,
-	};
-
-	const hookInfo: HookInfo =
-		event.type === "pre"
-			? {
-					...base,
-					type: "pre",
-					prompt: event.prompt,
-					...(event.skillInvocationPath
-						? { skillInvocationPath: event.skillInvocationPath }
-						: {}),
-				}
-			: event.type === "stop"
-				? {
-						...base,
-						type: "stop",
-						terminationReason: event.terminationReason,
-					}
-				: {
-						...base,
-						type: "tool",
-						toolCall: event.toolCall,
-						readTargetFilePath: event.readTargetFilePath,
-						skillTarget: event.skillTarget,
-					};
-
-	const state = loadState(event.conversationId, env);
-	const { state: nextState, response } = handle(hookInfo, state);
+	const state = loadState(conversationId, env);
+	const { egress, nextState } = adapter.handle(payload, {
+		conversationId,
+		state,
+		mode,
+		env,
+	});
 
 	if (nextState === null) {
 		if (state !== null) {
-			deleteState(event.conversationId, env);
+			deleteState(conversationId, env);
 		}
 	} else if (nextState !== state) {
-		saveState(event.conversationId, nextState, env);
+		saveState(conversationId, nextState, env);
 	}
-
-	const egress = adapter.formatEgress(event, response);
 
 	const isDebug = Boolean(env.CURTAIN_DEBUG ?? process.env.CURTAIN_DEBUG);
 	if (isDebug) {
@@ -78,10 +50,10 @@ export function executeHook(
 			? (({ steps, ...rest }) => rest)(nextState)
 			: null;
 		logHookInvocation(
-			event.conversationId,
+			conversationId,
 			{
 				timestamp: new Date().toISOString(),
-				hook: modeArg,
+				hook: mode,
 				input: rawInput,
 				output: egress.stdout ?? "{}",
 				state: loggedState,
@@ -94,16 +66,16 @@ export function executeHook(
 }
 
 export async function runShim(
-	modeArg: string,
+	mode: HookMode,
 	env = process.env,
 ): Promise<EgressOutput> {
 	const input = await readStdin();
 	const payload = parseJsonSafe(input);
-	return executeHook(modeArg, payload, input, env);
+	return executeHook(mode, payload, input, env);
 }
 
 export async function runShimForTest(
-	modeArg: string,
+	mode: HookMode,
 	rawInput: string,
 	env = process.env,
 	options?: ShimTestOptions,
@@ -115,5 +87,5 @@ export async function runShimForTest(
 	if (options?.skillInvocationPath !== undefined) {
 		payload.skillInvocationPath = options.skillInvocationPath;
 	}
-	return executeHook(modeArg, payload, rawInput, env);
+	return executeHook(mode, payload, rawInput, env);
 }

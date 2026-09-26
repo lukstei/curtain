@@ -7,6 +7,7 @@ import type { HarnessType } from "../src/harnesses/types.ts";
 import type { HookLogEntry } from "../src/lib/logHook.ts";
 import { runShimForTest } from "../src/shim/runtime-shim.ts";
 import { loadState, type RunnerState } from "../src/state.ts";
+import type { HookMode } from "../src/types.ts";
 import { stripAbsolutePath } from "./test-utils.ts";
 
 const sanitizeState = (s: RunnerState | null) =>
@@ -103,7 +104,11 @@ async function replayHookLog(harness: HarnessType, filePath: string) {
 				workspacePath,
 			);
 
-			const egress = await runShimForTest(entry.hook, replacedInput, env);
+			const egress = await runShimForTest(
+				entry.hook as HookMode,
+				replacedInput,
+				env,
+			);
 
 			const out = egress.stdout ? JSON.parse(egress.stdout) : {};
 			const expectedOut = entry.output ? JSON.parse(entry.output) : {};

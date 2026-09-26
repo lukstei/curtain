@@ -4,6 +4,7 @@
 - For each edge case (a branch that goes against intuition or against what the function is supposed to do), add a concise comment: if the cause is internal (i.e. how we structure our code) use `// smell: <reason>`, otherwise `// edge case: <reason>`
 - Never add any backwards compatibility regarding the code, there is no external consumer of the code
 - Ignore dist/curtain.mjs and .agents/plugins/curtain/dist/curtain.mjs, these are automatically built from the source code
+- Only ever add optional or nulled types when it is really required, do not add them just to be defensive, because it leads to really ugly code
 - Reference implementations for cross-agent integrations:
   - Universal packaging & shims: `ponytail` (`~/.gemini/config/plugins/ponytail/`, analyzed in `docs/PACKAGING.md`)
   - Loop interception (`Stop` hook): `ralph-loop` (`~/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop/`)

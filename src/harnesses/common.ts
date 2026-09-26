@@ -1,8 +1,6 @@
-import assert from "node:assert/strict";
 import * as path from "node:path";
 import { normalizeSkillName } from "../resolver/index.ts";
-import type { HookType, ToolCall } from "../types.ts";
-import type { HarnessType, NormalizedEvent } from "./types.ts";
+import type { ToolCall } from "../types.ts";
 
 export function getGenericSkillDirs(workspacePath: string): string[] {
 	return [
@@ -71,58 +69,4 @@ export function defaultExtractSkillTarget(toolCall: ToolCall): string | null {
 	return null;
 }
 
-export function createNormalizedEvent(params: {
-	harness: HarnessType;
-	conversationId: string;
-	workspacePath: string;
-	type: HookType;
-	rawPayload: Record<string, unknown>;
-	stopHookActive: boolean;
-	toolCall?: ToolCall | null;
-	readTargetFilePath?: string | null;
-	skillTarget?: string | null;
-	prompt?: string;
-	skillInvocationPath?: string;
-	isInterrupted?: boolean;
-	terminationReason?: string;
-}): NormalizedEvent {
-	if (params.type === "tool") {
-		assert(params.toolCall, "toolCall must be present for tool event");
-		return {
-			type: "tool",
-			harness: params.harness,
-			conversationId: params.conversationId,
-			workspacePath: params.workspacePath,
-			rawPayload: params.rawPayload,
-			toolCall: params.toolCall,
-			readTargetFilePath: params.readTargetFilePath ?? null,
-			skillTarget: params.skillTarget ?? null,
-		};
-	}
 
-	if (params.type === "stop") {
-		return {
-			type: "stop",
-			harness: params.harness,
-			conversationId: params.conversationId,
-			workspacePath: params.workspacePath,
-			rawPayload: params.rawPayload,
-			isStop: true,
-			stopHookActive: params.stopHookActive,
-			isInterrupted: params.isInterrupted ?? false,
-			terminationReason: params.terminationReason,
-		};
-	}
-
-	return {
-		type: "pre",
-		harness: params.harness,
-		conversationId: params.conversationId,
-		workspacePath: params.workspacePath,
-		rawPayload: params.rawPayload,
-		prompt: params.prompt ?? "",
-		...(params.skillInvocationPath
-			? { skillInvocationPath: params.skillInvocationPath }
-			: {}),
-	};
-}

@@ -1,43 +1,8 @@
 // see reference docs: docs/harnesses/codex.md
 import * as os from "node:os";
 import * as path from "node:path";
-import type { HookResponse, ToolCall } from "../types.ts";
-import {
-	createNormalizedEvent,
-	defaultExtractSkillTarget,
-	extractToolCall,
-	getGenericSkillDirs,
-	resolveToolReadPath,
-} from "./common.ts";
-import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
-
-/** Extracts skill name and target file path from an embedded Markdown link mention. */
-export const SKILL_LINK_PATH_CAPTURE_REGEX =
-	/\[\$?([a-zA-Z0-9_.:-]+)\]\(([^)]+)\)/;
-
-/** Extracts the skill file path from a `<skill><path>...</path></skill>` XML block. */
-export const XML_SKILL_PATH_REGEX =
-	/<skill>[\s\S]*?<path>([^<]+)<\/path>[\s\S]*?<\/skill>/i;
-
-/** Strips enclosing `<` and `>` angle brackets from paths in Markdown links. */
-export const ANGLE_BRACKET_ENCLOSURE_REGEX = /^<|>$/g;
-
-export function extractCodexSkillPath(
-	text: string,
-	workspacePath: string,
-): string | undefined {
-	const linkMatch = text.match(SKILL_LINK_PATH_CAPTURE_REGEX);
-	if (linkMatch?.[2]) {
-		const raw = linkMatch[2].replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "").trim();
-		return resolveToolReadPath(raw, workspacePath) ?? undefined;
-	}
-	const xmlMatch = text.match(XML_SKILL_PATH_REGEX);
-	if (xmlMatch?.[1]) {
-		const raw = xmlMatch[1].replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "").trim();
-		return resolveToolReadPath(raw, workspacePath) ?? undefined;
-	}
-	return undefined;
-}
+import { getGenericSkillDirs } from "./common.ts";
+import type { HarnessAdapter, HarnessContext, HarnessResult } from "./types.ts";
 
 export const codexHarness: HarnessAdapter = {
 	id: "codex",
@@ -51,152 +16,26 @@ export const codexHarness: HarnessAdapter = {
 		);
 	},
 
-	normalize(
+	resolveConversationId(
 		payload: Record<string, unknown>,
-		modeArg?: string,
-		env: NodeJS.ProcessEnv = process.env,
-	): NormalizedEvent {
-		const conversationId = String(
-			payload.session_id ?? payload.sessionId ?? "default",
-		);
-		const workspacePath = String(payload.cwd ?? env.PWD ?? ".");
-		const eventName = payload.hook_event_name ?? payload.hookEventName;
-
-		const isTool = modeArg === "tool" || eventName === "PreToolUse";
-		const isStop =
-			!isTool &&
-			(modeArg === "stop" ||
-				eventName === "Stop" ||
-				payload.stop_hook_active !== undefined ||
-				payload.stopHookActive !== undefined);
-
-		const type: "pre" | "stop" | "tool" = isTool
-			? "tool"
-			: isStop
-				? "stop"
-				: "pre";
-
-		const prompt =
-			typeof payload.prompt === "string" ? payload.prompt : undefined;
-		const stopHookActive = Boolean(
-			payload.stop_hook_active ?? payload.stopHookActive,
-		);
-		const toolCall = type === "tool" ? extractToolCall(payload) : null;
-		const readTargetFilePath = toolCall
-			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
-			: null;
-		const skillTarget = toolCall
-			? (this.extractSkillTarget?.(toolCall) ?? null)
-			: null;
-		const skillInvocationPath = prompt
-			? extractCodexSkillPath(prompt, workspacePath)
-			: undefined;
-
-		return createNormalizedEvent({
-			harness: "codex",
-			conversationId,
-			workspacePath,
-			type,
-			rawPayload: payload,
-			stopHookActive,
-			toolCall,
-			readTargetFilePath,
-			skillTarget,
-			prompt,
-			skillInvocationPath,
-		});
-	},
-
-	extractFileReadTarget(
-		toolCall: ToolCall,
-		workspacePath: string,
-	): string | null {
-		const isReadTool =
-			toolCall.name === "read_file" ||
-			toolCall.name === "view_file" ||
-			toolCall.name === "Read" ||
-			toolCall.name === "View" ||
-			toolCall.name === "mcp__filesystem__read_file" ||
-			toolCall.name.endsWith("__read_file") ||
-			toolCall.name.endsWith("__view_file");
-		if (!isReadTool) {
-			return null;
-		}
-		return resolveToolReadPath(
-			toolCall.args.path ??
-				toolCall.args.file_path ??
-				toolCall.args.filePath ??
-				toolCall.args.AbsolutePath,
-			workspacePath,
+		env: NodeJS.ProcessEnv,
+	): string {
+		return String(
+			payload.session_id ??
+				payload.sessionId ??
+				env.CODEX_SESSION_ID ??
+				"default",
 		);
 	},
 
-	extractSkillTarget: defaultExtractSkillTarget,
-
-	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput {
-		if (event.type === "stop") {
-			if (response.action === "continue") {
-				// edge case: Codex Stop hook requires decision: 'block' to prevent agent stop and inject continuation prompt
-				return {
-					exitCode: 0,
-					stdout: JSON.stringify({
-						decision: "block",
-						reason: response.reason,
-						suppressOutput: true,
-					}),
-				};
-			}
-			return { exitCode: 0, stdout: "{}" };
-		}
-
-		if (event.type === "tool") {
-			if (response.action === "deny") {
-				return {
-					exitCode: 0,
-					stdout: JSON.stringify({
-						hookSpecificOutput: {
-							hookEventName: "PreToolUse",
-							permissionDecision: "deny",
-							permissionDecisionReason: response.reason,
-						},
-					}),
-				};
-			}
-			return { exitCode: 0, stdout: "{}" };
-		}
-
-		if (event.type === "pre") {
-			if (response.action === "inject") {
-				const hookEventName =
-					typeof event.rawPayload.hook_event_name === "string"
-						? event.rawPayload.hook_event_name
-						: typeof event.rawPayload.hookEventName === "string"
-							? event.rawPayload.hookEventName
-							: "UserPromptSubmit";
-				return {
-					exitCode: 0,
-					stdout: JSON.stringify({
-						systemMessage: "[CURTAIN]",
-						hookSpecificOutput: {
-							hookEventName,
-							additionalContext: response.message,
-						},
-						suppressOutput: true,
-					}),
-				};
-			}
-			return { exitCode: 0, stdout: "{}" };
-		}
-
-		return { exitCode: 0, stdout: "{}" };
-	},
-
-	resolveConversationId(env: NodeJS.ProcessEnv): string | null {
-		return env.CODEX_SESSION_ID || null;
-	},
-
-	resolveStorageDir(env: NodeJS.ProcessEnv): string | null {
-		return env.PLUGIN_DATA || null;
+	handle(
+		_payload: Record<string, unknown>,
+		ctx: HarnessContext,
+	): HarnessResult {
+		return {
+			egress: { exitCode: 0, stdout: "{}" },
+			nextState: ctx.state,
+		};
 	},
 
 	getSkillDirs(

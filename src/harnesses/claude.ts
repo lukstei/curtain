@@ -1,26 +1,8 @@
 // see reference docs: docs/harnesses/claude.md
 import * as os from "node:os";
 import * as path from "node:path";
-import { normalizeSkillName } from "../resolver/index.ts";
-import type { HookResponse, ToolCall } from "../types.ts";
-import {
-	createNormalizedEvent,
-	extractToolCall,
-	getGenericSkillDirs,
-	resolveToolReadPath,
-} from "./common.ts";
-import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
-
-/** Extracts the command from Claude Code's `<command-name>` tag. */
-export const CLAUDE_COMMAND_NAME_REGEX =
-	/<command-name>([\s\S]*?)<\/command-name>/i;
-
-export function extractClaudePrompt(rawPrompt?: string): string | undefined {
-	if (!rawPrompt) return undefined;
-	// edge case: Claude Code wraps slash command invocations in <command-name> XML tags
-	const match = rawPrompt.match(CLAUDE_COMMAND_NAME_REGEX);
-	return match ? match[1].trim() : rawPrompt;
-}
+import { getGenericSkillDirs } from "./common.ts";
+import type { HarnessAdapter, HarnessContext, HarnessResult } from "./types.ts";
 
 export const claudeHarness: HarnessAdapter = {
 	id: "claude",
@@ -35,135 +17,21 @@ export const claudeHarness: HarnessAdapter = {
 		);
 	},
 
-	normalize(
+	resolveConversationId(
 		payload: Record<string, unknown>,
-		modeArg?: string,
-		env: NodeJS.ProcessEnv = process.env,
-	): NormalizedEvent {
-		const conversationId = String(payload.session_id ?? "default");
-		const workspacePath = String(payload.cwd ?? env.PWD ?? ".");
-		const eventName = payload.hook_event_name;
-
-		const isTool = modeArg === "tool" || eventName === "PreToolUse";
-		const isStop =
-			!isTool &&
-			(modeArg === "stop" ||
-				eventName === "Stop" ||
-				payload.stop_hook_active !== undefined);
-
-		const type: "pre" | "stop" | "tool" = isTool
-			? "tool"
-			: isStop
-				? "stop"
-				: "pre";
-
-		const prompt = extractClaudePrompt(
-			typeof payload.prompt === "string" ? payload.prompt : undefined,
-		);
-		const stopHookActive = Boolean(payload.stop_hook_active);
-		const toolCall = type === "tool" ? extractToolCall(payload) : null;
-		const readTargetFilePath = toolCall
-			? (this.extractFileReadTarget?.(toolCall, workspacePath) ?? null)
-			: null;
-		const skillTarget = toolCall
-			? (this.extractSkillTarget?.(toolCall) ?? null)
-			: null;
-
-		return createNormalizedEvent({
-			harness: "claude",
-			conversationId,
-			workspacePath,
-			type,
-			rawPayload: payload,
-			stopHookActive,
-			toolCall,
-			readTargetFilePath,
-			skillTarget,
-			prompt,
-		});
+		env: NodeJS.ProcessEnv,
+	): string {
+		return String(payload.session_id ?? env.CLAUDE_CODE_SESSION_ID ?? "default");
 	},
 
-	extractFileReadTarget(
-		toolCall: ToolCall,
-		workspacePath: string,
-	): string | null {
-		const isReadTool =
-			toolCall.name === "Read" ||
-			toolCall.name === "View" ||
-			toolCall.name === "read_file" ||
-			toolCall.name === "mcp__filesystem__read_file";
-		if (!isReadTool) {
-			return null;
-		}
-		return resolveToolReadPath(
-			toolCall.args.file_path ?? toolCall.args.path,
-			workspacePath,
-		);
-	},
-
-	extractSkillTarget(toolCall: ToolCall): string | null {
-		if (toolCall.name !== "Skill") {
-			return null;
-		}
-		const skill = toolCall.args.skill;
-		return typeof skill === "string" ? normalizeSkillName(skill) : null;
-	},
-
-	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput {
-		if (event.type === "stop") {
-			if (response.action === "continue") {
-				return {
-					exitCode: 0,
-					stdout: JSON.stringify({
-						hookSpecificOutput: {
-							hookEventName: "Stop",
-							additionalContext: response.reason,
-						},
-					}),
-				};
-			}
-			return { exitCode: 0, stdout: "{}" };
-		}
-
-		if (event.type === "tool") {
-			// edge case: Claude PreToolUse requires exit code 2 and stderr to deny tool execution
-			if (response.action === "deny") {
-				return {
-					exitCode: 2,
-					stderr: response.reason,
-				};
-			}
-			return { exitCode: 0, stdout: "{}" };
-		}
-
-		if (event.type === "pre") {
-			if (response.action === "inject") {
-				const hookEventName =
-					typeof event.rawPayload.hook_event_name === "string"
-						? event.rawPayload.hook_event_name
-						: "UserPromptSubmit";
-				return {
-					exitCode: 0,
-					stdout: JSON.stringify({
-						hookSpecificOutput: {
-							hookEventName,
-							additionalContext: response.message,
-						},
-					}),
-				};
-			}
-			return { exitCode: 0, stdout: "{}" };
-		}
-
-		return { exitCode: 0, stdout: "{}" };
-	},
-
-	resolveConversationId(env: NodeJS.ProcessEnv): string | null {
-		return env.CLAUDE_CODE_SESSION_ID || null;
-	},
-
-	resolveStorageDir(env: NodeJS.ProcessEnv): string | null {
-		return env.CLAUDE_PLUGIN_DATA || null;
+	handle(
+		_payload: Record<string, unknown>,
+		ctx: HarnessContext,
+	): HarnessResult {
+		return {
+			egress: { exitCode: 0, stdout: "{}" },
+			nextState: ctx.state,
+		};
 	},
 
 	getSkillDirs(

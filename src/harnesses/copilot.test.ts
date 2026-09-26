@@ -1,206 +1,89 @@
-import assert from "node:assert/strict";
 import { describe, expect, it } from "vitest";
 import { copilotHarness } from "./copilot.ts";
-import type { NormalizedEvent } from "./types.ts";
-
-function createMockEvent(
-	overrides: Partial<NormalizedEvent> = {},
-): NormalizedEvent {
-	return {
-		type: "pre",
-		harness: "copilot",
-		conversationId: "test-copilot-conv",
-		workspacePath: "/test/project",
-		prompt: "",
-		rawPayload: {},
-		...overrides,
-	} as NormalizedEvent;
-}
 
 describe("copilotHarness", () => {
 	describe("detect", () => {
-		it("detects COPILOT_PLUGIN_DATA", () => {
+		it("detects COPILOT_PLUGIN_DATA in environment", () => {
 			expect(
-				copilotHarness.detect({}, { COPILOT_PLUGIN_DATA: "/tmp/copilot" }),
+				copilotHarness.detect({}, { COPILOT_PLUGIN_DATA: "/path" }),
 			).toBe(true);
 		});
 
-		it("detects COPILOT_SESSION_ID", () => {
+		it("detects COPILOT_SESSION_ID in environment", () => {
 			expect(
-				copilotHarness.detect({}, { COPILOT_SESSION_ID: "session-123" }),
+				copilotHarness.detect({}, { COPILOT_SESSION_ID: "session-1" }),
 			).toBe(true);
 		});
 
-		it("detects timestamp in payload", () => {
+		it("detects timestamp and hook_event_name in payload", () => {
 			expect(
 				copilotHarness.detect(
-					{
-						timestamp: "2026-09-23T22:00:00Z",
-						hook_event_name: "PreToolUse",
-					},
+					{ timestamp: 123456, hook_event_name: "PreToolUse" },
 					{},
 				),
 			).toBe(true);
 		});
 
-		it("returns false without COPILOT_PLUGIN_DATA, COPILOT_SESSION_ID, or timestamp", () => {
+		it("detects timestamp and hookEventName in payload", () => {
+			expect(
+				copilotHarness.detect(
+					{ timestamp: 123456, hookEventName: "preToolUse" },
+					{},
+				),
+			).toBe(true);
+		});
+
+		it("returns false for non-matching input", () => {
 			expect(copilotHarness.detect({}, {})).toBe(false);
 		});
 	});
 
-	describe("normalize", () => {
-		it("normalizes pre event with prompt", () => {
-			const event = copilotHarness.normalize({
-				conversationId: "copilot-c1",
-				cwd: "/copilot/workspace",
-				prompt: "/next",
-			});
-			expect(event).toMatchInlineSnapshot(`
-				{
-				  "conversationId": "copilot-c1",
-				  "harness": "copilot",
-				  "prompt": "/next",
-				  "rawPayload": {
-				    "conversationId": "copilot-c1",
-				    "cwd": "/copilot/workspace",
-				    "prompt": "/next",
-				  },
-				  "type": "pre",
-				  "workspacePath": "/copilot/workspace",
-				}
-			`);
+	describe("resolveConversationId", () => {
+		it("resolves from sessionId", () => {
+			expect(
+				copilotHarness.resolveConversationId({ sessionId: "copilot-1" }, {}),
+			).toBe("copilot-1");
 		});
 
-		it("normalizes stop event", () => {
-			const event = copilotHarness.normalize({
-				conversationId: "copilot-c1",
-				cwd: "/copilot/workspace",
-				hook_event_name: "Stop",
-			});
-			assert(event.type === "stop");
-			expect(event.isStop).toBe(true);
+		it("resolves from session_id", () => {
+			expect(
+				copilotHarness.resolveConversationId({ session_id: "copilot-2" }, {}),
+			).toBe("copilot-2");
 		});
 
-		it("normalizes tool event and extracts readTargetFilePath", () => {
-			const event = copilotHarness.normalize({
-				conversationId: "copilot-c1",
-				cwd: "/copilot/workspace",
-				hook_event_name: "preToolUse",
-				tool_name: "read_file",
-				tool_input: { path: "/copilot/workspace/SKILL.md" },
-			});
-			assert(event.type === "tool");
-			expect(event.readTargetFilePath).toBe("/copilot/workspace/SKILL.md");
+		it("resolves from conversationId", () => {
+			expect(
+				copilotHarness.resolveConversationId({ conversationId: "copilot-3" }, {}),
+			).toBe("copilot-3");
+		});
+
+		it("resolves from env COPILOT_SESSION_ID", () => {
+			expect(
+				copilotHarness.resolveConversationId({}, { COPILOT_SESSION_ID: "env-copilot" }),
+			).toBe("env-copilot");
+		});
+
+		it("falls back to default", () => {
+			expect(copilotHarness.resolveConversationId({}, {})).toBe("default");
 		});
 	});
 
-	describe("extractFileReadTarget", () => {
-		it("extracts path for read_file", () => {
-			const target = copilotHarness.extractFileReadTarget?.(
-				{ name: "read_file", args: { path: "/path/to/SKILL.md" } },
-				"/workspace",
-			);
-			expect(target).toBe("/path/to/SKILL.md");
-		});
-
-		it("resolves relative path for view_file", () => {
-			const target = copilotHarness.extractFileReadTarget?.(
-				{ name: "view_file", args: { file_path: "SKILL.md" } },
-				"/workspace",
-			);
-			expect(target).toBe("/workspace/SKILL.md");
-		});
-
-		it("returns null for non-reading tools", () => {
-			const target = copilotHarness.extractFileReadTarget?.(
-				{ name: "Bash", args: { command: "ls" } },
-				"/workspace",
-			);
-			expect(target).toBeNull();
-		});
-	});
-
-	describe("formatEgress", () => {
-		it("formats Stop continue decision as block", () => {
-			const event = createMockEvent({ type: "stop", isStop: true });
-			const egress = copilotHarness.formatEgress(event, {
-				action: "continue",
-				reason: "Step 2",
+	describe("handle stub", () => {
+		it("returns empty egress and untouched state", () => {
+			const res = copilotHarness.handle({}, {
+				conversationId: "c1",
+				state: null,
+				mode: "pre",
+				env: {},
 			});
-			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-				{
-				  "decision": "block",
-				  "hookSpecificOutput": {
-				    "decision": "block",
-				    "hookEventName": "Stop",
-				    "reason": "Step 2",
-				  },
-				  "reason": "Step 2",
-				}
-			`);
-		});
-
-		it("formats Stop allow decision as empty JSON", () => {
-			const event = createMockEvent({ type: "stop", isStop: true });
-			const egress = copilotHarness.formatEgress(event, { action: "allow" });
-			expect(egress.exitCode).toBe(0);
-			expect(egress.stdout).toBe("{}");
-		});
-
-		it("formats PreToolUse deny decision", () => {
-			const event = createMockEvent({ type: "tool" });
-			const egress = copilotHarness.formatEgress(event, {
-				action: "deny",
-				reason: "Blocked by Curtain",
-			});
-			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-				{
-				  "hookSpecificOutput": {
-				    "hookEventName": "PreToolUse",
-				    "permissionDecision": "deny",
-				    "permissionDecisionReason": "Blocked by Curtain",
-				  },
-				  "permissionDecision": "deny",
-				  "permissionDecisionReason": "Blocked by Curtain",
-				}
-			`);
-		});
-
-		it("formats PreToolUse allow decision", () => {
-			const event = createMockEvent({ type: "tool" });
-			const egress = copilotHarness.formatEgress(event, { action: "allow" });
-			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-				{
-				  "hookSpecificOutput": {
-				    "hookEventName": "PreToolUse",
-				    "permissionDecision": "allow",
-				  },
-				  "permissionDecision": "allow",
-				}
-			`);
-		});
-
-		it("formats PreInvocation with additionalContext", () => {
-			const event = createMockEvent({ type: "pre" });
-			const egress = copilotHarness.formatEgress(event, {
-				action: "inject",
-				message: "Instruction for step 1",
-			});
-			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-				{
-				  "additionalContext": "Instruction for step 1",
-				}
-			`);
+			expect(res.egress).toEqual({ exitCode: 0, stdout: "{}" });
+			expect(res.nextState).toBeNull();
 		});
 	});
 
 	describe("getSkillDirs", () => {
-		it("returns generic and Copilot skill directories", () => {
-			const dirs = copilotHarness.getSkillDirs?.("/workspace", {
+		it("returns Copilot skill directories", () => {
+			const dirs = copilotHarness.getSkillDirs("/workspace", {
 				HOME: "/home/user",
 			});
 			expect(dirs).toEqual([

@@ -38,23 +38,24 @@ export function getHarness(type: HarnessType): HarnessAdapter {
 export function resolveConversationIdFromHarnesses(
 	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
-	for (const harness of HARNESSES) {
-		const conversationId = harness.resolveConversationId?.(env);
-		if (conversationId) {
-			return conversationId;
-		}
-	}
-	return null;
+	return (
+		env.COPILOT_SESSION_ID ||
+		env.CODEX_SESSION_ID ||
+		env.CLAUDE_CODE_SESSION_ID ||
+		env.ANTIGRAVITY_CONVERSATION_ID ||
+		null
+	);
 }
 
 export function resolveStorageDirFromHarnesses(
 	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
-	for (const harness of HARNESSES) {
-		const dir = harness.resolveStorageDir?.(env);
-		if (dir) {
-			return dir;
-		}
-	}
-	return null;
+	return (
+		env.COPILOT_PLUGIN_DATA ||
+		env.PLUGIN_DATA ||
+		env.CLAUDE_PLUGIN_DATA ||
+		env.AGY_PLUGIN_DATA ||
+		null
+	);
 }
+

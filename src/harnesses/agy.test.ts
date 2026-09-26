@@ -1,26 +1,5 @@
-import assert from "node:assert/strict";
 import { describe, expect, it } from "vitest";
-import {
-	AGY_SKILL_PATH_REGEX,
-	agyHarness,
-	TERMINATION_CANCEL_REGEX,
-	USER_REQUEST_TAG_REGEX,
-} from "./agy.ts";
-import type { NormalizedEvent } from "./types.ts";
-
-function createMockEvent(
-	overrides: Partial<NormalizedEvent> = {},
-): NormalizedEvent {
-	return {
-		type: "pre",
-		harness: "agy",
-		conversationId: "test-agy-conv",
-		workspacePath: "/test/project",
-		prompt: "",
-		rawPayload: {},
-		...overrides,
-	} as NormalizedEvent;
-}
+import { agyHarness } from "./agy.ts";
 
 describe("agyHarness", () => {
 	describe("detect", () => {
@@ -58,194 +37,44 @@ describe("agyHarness", () => {
 		});
 
 		it("returns false for non-matching payload", () => {
-			expect(agyHarness.detect({ conversationId: "c1" }, {})).toBe(false);
+			expect(agyHarness.detect({}, {})).toBe(false);
 		});
 	});
 
-	describe("normalize", () => {
-		it("normalizes pre-invocation event", () => {
-			const event = agyHarness.normalize({
-				conversationId: "c-agy",
-				workspacePaths: ["/agy/project"],
-				prompt: "/next",
-			});
-			expect(event).toMatchInlineSnapshot(`
-				{
-				  "conversationId": "c-agy",
-				  "harness": "agy",
-				  "prompt": "/next",
-				  "rawPayload": {
-				    "conversationId": "c-agy",
-				    "prompt": "/next",
-				    "workspacePaths": [
-				      "/agy/project",
-				    ],
-				  },
-				  "type": "pre",
-				  "workspacePath": "/agy/project",
-				}
-			`);
+	describe("resolveConversationId", () => {
+		it("resolves from payload conversationId", () => {
+			expect(
+				agyHarness.resolveConversationId({ conversationId: "agy-conv-1" }, {}),
+			).toBe("agy-conv-1");
 		});
 
-		it("normalizes stop event", () => {
-			const event = agyHarness.normalize({
-				conversationId: "c-agy",
-				workspacePaths: ["/agy/project"],
-				terminationReason: "model_stop",
-			});
-			assert(event.type === "stop");
-			expect(event.isStop).toBe(true);
+		it("resolves from env ANTIGRAVITY_CONVERSATION_ID", () => {
+			expect(
+				agyHarness.resolveConversationId({}, { ANTIGRAVITY_CONVERSATION_ID: "env-conv" }),
+			).toBe("env-conv");
 		});
 
-		it("normalizes pre-invocation event with wrapped USER_REQUEST and SKILL metadata", () => {
-			const event = agyHarness.normalize({
-				conversationId: "ad572610-6787-4054-8cbf-77957f214fcf",
-				workspacePaths: ["/Users/Lukas.Steinbrecher/Downloads/skill-test"],
-				prompt: `<USER_REQUEST>\n/weekend \n</USER_REQUEST>\n<ADDITIONAL_METADATA>\n/weekend is a [Slash Command]:\n<SKILL>The user requested you read and use the "weekend" skill. The path to the skill file is:\n/Users/Lukas.Steinbrecher/Downloads/skill-test/.agents/skills/weekend/SKILL.md</SKILL>\n</ADDITIONAL_METADATA>`,
-			});
-			expect(event).toMatchInlineSnapshot(`
-				{
-				  "conversationId": "ad572610-6787-4054-8cbf-77957f214fcf",
-				  "harness": "agy",
-				  "prompt": "/weekend",
-				  "rawPayload": {
-				    "conversationId": "ad572610-6787-4054-8cbf-77957f214fcf",
-				    "prompt": "<USER_REQUEST>
-				/weekend 
-				</USER_REQUEST>
-				<ADDITIONAL_METADATA>
-				/weekend is a [Slash Command]:
-				<SKILL>The user requested you read and use the "weekend" skill. The path to the skill file is:
-				/Users/Lukas.Steinbrecher/Downloads/skill-test/.agents/skills/weekend/SKILL.md</SKILL>
-				</ADDITIONAL_METADATA>",
-				    "workspacePaths": [
-				      "/Users/Lukas.Steinbrecher/Downloads/skill-test",
-				    ],
-				  },
-				  "skillInvocationPath": "/Users/Lukas.Steinbrecher/Downloads/skill-test/.agents/skills/weekend/SKILL.md",
-				  "type": "pre",
-				  "workspacePath": "/Users/Lukas.Steinbrecher/Downloads/skill-test",
-				}
-			`);
-		});
-
-		it("normalizes tool event and extracts readTargetFilePath", () => {
-			const event = agyHarness.normalize({
-				conversationId: "c-agy",
-				workspacePaths: ["/agy/project"],
-				toolCall: {
-					name: "view_file",
-					args: { AbsolutePath: "/agy/project/SKILL.md" },
-				},
-			});
-			assert(event.type === "tool");
-			expect(event.readTargetFilePath).toBe("/agy/project/SKILL.md");
+		it("falls back to default", () => {
+			expect(agyHarness.resolveConversationId({}, {})).toBe("default");
 		});
 	});
 
-	describe("extractFileReadTarget", () => {
-		it("extracts AbsolutePath for view_file", () => {
-			const target = agyHarness.extractFileReadTarget?.(
-				{ name: "view_file", args: { AbsolutePath: "/path/to/SKILL.md" } },
-				"/workspace",
-			);
-			expect(target).toBe("/path/to/SKILL.md");
-		});
-
-		it("resolves relative path against workspace", () => {
-			const target = agyHarness.extractFileReadTarget?.(
-				{ name: "view_file", args: { AbsolutePath: "SKILL.md" } },
-				"/workspace",
-			);
-			expect(target).toBe("/workspace/SKILL.md");
-		});
-
-		it("returns null for non-reading tools", () => {
-			const target = agyHarness.extractFileReadTarget?.(
-				{ name: "run_command", args: { CommandLine: "ls" } },
-				"/workspace",
-			);
-			expect(target).toBeNull();
-		});
-	});
-
-	describe("formatEgress", () => {
-		it("formats Stop continue decision as continue", () => {
-			const event = createMockEvent({ type: "stop", isStop: true });
-			const egress = agyHarness.formatEgress(event, {
-				action: "continue",
-				reason: "Execute step 2",
+	describe("handle stub", () => {
+		it("returns empty egress and untouched state", () => {
+			const res = agyHarness.handle({}, {
+				conversationId: "c1",
+				state: null,
+				mode: "pre",
+				env: {},
 			});
-			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-				{
-				  "decision": "continue",
-				  "reason": "Execute step 2",
-				}
-			`);
-		});
-
-		it("formats Stop allow decision", () => {
-			const event = createMockEvent({ type: "stop", isStop: true });
-			const egress = agyHarness.formatEgress(event, { action: "allow" });
-			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-				{
-				  "decision": "allow",
-				}
-			`);
-		});
-
-		it("formats PreInvocation injectSteps", () => {
-			const event = createMockEvent({ type: "pre" });
-			const egress = agyHarness.formatEgress(event, {
-				action: "inject",
-				message: "Instruction for step 1",
-			});
-			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-				{
-				  "injectSteps": [
-				    {
-				      "ephemeralMessage": "Instruction for step 1",
-				    },
-				  ],
-				}
-			`);
-		});
-
-		it("formats tool deny decision", () => {
-			const event = createMockEvent({ type: "tool" });
-			const egress = agyHarness.formatEgress(event, {
-				action: "deny",
-				reason: "Blocked by Curtain",
-			});
-			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-				{
-				  "decision": "deny",
-				  "reason": "Blocked by Curtain",
-				}
-			`);
-		});
-
-		it("formats tool allow decision", () => {
-			const event = createMockEvent({ type: "tool" });
-			const egress = agyHarness.formatEgress(event, { action: "allow" });
-			expect(egress.exitCode).toBe(0);
-			expect(JSON.parse(egress.stdout ?? "{}")).toMatchInlineSnapshot(`
-				{
-				  "decision": "allow",
-				}
-			`);
+			expect(res.egress).toEqual({ exitCode: 0, stdout: "{}" });
+			expect(res.nextState).toBeNull();
 		});
 	});
 
 	describe("getSkillDirs", () => {
-		it("returns generic and AGY skill directories", () => {
-			const dirs = agyHarness.getSkillDirs?.("/workspace", {
-				HOME: "/home/user",
-			});
+		it("returns AGY skill search paths", () => {
+			const dirs = agyHarness.getSkillDirs("/workspace", { HOME: "/home/user" });
 			expect(dirs).toEqual([
 				"/workspace/.agents/skills",
 				"/workspace/skills",
@@ -254,103 +83,6 @@ describe("agyHarness", () => {
 				"/home/user/.gemini/config/plugins",
 				"/home/user/.gemini/antigravity/builtin/skills",
 			]);
-		});
-	});
-
-	describe("extractSkillTarget", () => {
-		it("extracts target from invoke_subagent tool call", () => {
-			expect(
-				agyHarness.extractSkillTarget?.({
-					name: "invoke_subagent",
-					args: {
-						Subagents: [
-							{ TypeName: "curtain-plugin:curtain-subagent", Role: "Runner" },
-						],
-					},
-				}),
-			).toBe("curtain-plugin:curtain-subagent");
-		});
-
-		it("extracts target from Skill tool call", () => {
-			expect(
-				agyHarness.extractSkillTarget?.({
-					name: "Skill",
-					args: { skill: "curtain:next" },
-				}),
-			).toBe("curtain:next");
-		});
-
-		it("returns null for other tool calls", () => {
-			expect(
-				agyHarness.extractSkillTarget?.({
-					name: "view_file",
-					args: { AbsolutePath: "/path/to/file" },
-				}),
-			).toBeNull();
-		});
-	});
-
-	describe("Regular Expressions & Prompt Parsing", () => {
-		it("strips user request tags", () => {
-			const tagged = "<USER_REQUEST>Write a function</USER_REQUEST>";
-			const untagged = "Write a function";
-
-			expect(tagged.replace(USER_REQUEST_TAG_REGEX, "$1")).toBe(
-				"Write a function",
-			);
-			expect(untagged.replace(USER_REQUEST_TAG_REGEX, "$1")).toBe(
-				"Write a function",
-			);
-		});
-
-		it("extracts skill path from AGY skill block", () => {
-			const agyPrompt =
-				"<SKILL>The path to the skill file is: /Users/dev/.gemini/skills/run/SKILL.md</SKILL>";
-			const match = agyPrompt.match(AGY_SKILL_PATH_REGEX);
-
-			expect(match ? match[1] : null).toMatchInlineSnapshot(
-				`"/Users/dev/.gemini/skills/run/SKILL.md"`,
-			);
-		});
-
-		it("detects termination cancel reasons", () => {
-			const reasons = [
-				"User cancelled the operation",
-				"Session aborted by user",
-				"Execution interrupted",
-				"Normal completion",
-				"Process timeout",
-			];
-
-			expect(
-				reasons.map((r) => ({
-					reason: r,
-					cancelled: TERMINATION_CANCEL_REGEX.test(r),
-				})),
-			).toMatchInlineSnapshot(`
-				[
-				  {
-				    "cancelled": true,
-				    "reason": "User cancelled the operation",
-				  },
-				  {
-				    "cancelled": true,
-				    "reason": "Session aborted by user",
-				  },
-				  {
-				    "cancelled": true,
-				    "reason": "Execution interrupted",
-				  },
-				  {
-				    "cancelled": false,
-				    "reason": "Normal completion",
-				  },
-				  {
-				    "cancelled": false,
-				    "reason": "Process timeout",
-				  },
-				]
-			`);
 		});
 	});
 });

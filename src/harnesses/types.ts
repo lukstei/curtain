@@ -1,4 +1,5 @@
-import type { HookResponse, ToolCall } from "../types.ts";
+import type { RunnerState } from "../state.ts";
+import type { HookMode } from "../types.ts";
 
 export type HarnessType = "claude" | "codex" | "agy" | "copilot";
 
@@ -8,50 +9,26 @@ export interface EgressOutput {
 	exitCode: number;
 }
 
-type BaseNormalizedEvent = {
-	harness: HarnessType;
-	conversationId: string;
-	workspacePath: string;
-	rawPayload: Record<string, unknown>;
-};
+export interface HarnessContext {
+	readonly conversationId: string;
+	readonly state: RunnerState | null;
+	readonly mode: HookMode;
+	readonly env: NodeJS.ProcessEnv;
+}
 
-export type NormalizedEvent = BaseNormalizedEvent &
-	(
-		| {
-				type: "pre";
-				prompt: string;
-				skillInvocationPath?: string;
-		  }
-		| {
-				type: "stop";
-				isStop: true;
-				stopHookActive: boolean;
-				isInterrupted: boolean;
-				terminationReason?: string;
-		  }
-		| {
-				type: "tool";
-				toolCall: ToolCall;
-				readTargetFilePath?: string | null;
-				skillTarget?: string | null;
-		  }
-	);
+export interface HarnessResult {
+	readonly egress: EgressOutput;
+	readonly nextState: RunnerState | null;
+}
 
 export interface HarnessAdapter {
 	readonly id: HarnessType;
 	detect(payload: Record<string, unknown>, env: NodeJS.ProcessEnv): boolean;
-	normalize(
+	resolveConversationId(
 		payload: Record<string, unknown>,
-		modeArg?: string,
-		env?: NodeJS.ProcessEnv,
-	): NormalizedEvent;
-	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput;
-	extractFileReadTarget?(
-		toolCall: ToolCall,
-		workspacePath: string,
-	): string | null;
-	extractSkillTarget?(toolCall: ToolCall): string | null;
-	resolveConversationId?(env: NodeJS.ProcessEnv): string | null;
-	resolveStorageDir?(env: NodeJS.ProcessEnv): string | null;
-	getSkillDirs?(workspacePath: string, env?: NodeJS.ProcessEnv): string[];
+		env: NodeJS.ProcessEnv,
+	): string;
+	handle(payload: Record<string, unknown>, ctx: HarnessContext): HarnessResult;
+	getSkillDirs(workspacePath: string, env?: NodeJS.ProcessEnv): string[];
 }
+

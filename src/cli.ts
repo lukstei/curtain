@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 import { runShim } from "./shim/runtime-shim.ts";
+import type { HookMode } from "./types.ts";
 import { getVersion } from "./version.ts";
 
 export interface ParsedCli {
@@ -80,8 +81,12 @@ export async function runCli(
 
 	if (parsed.command === "hook") {
 		// edge case: when invoked as 'curtain hook' without a subcommand, default to the stop hook
-		const modeArg = parsed.subcommand ?? "stop";
-		const egress = await runShim(modeArg, env);
+		const rawMode = parsed.subcommand ?? "stop";
+		const mode: HookMode =
+			rawMode === "pre" || rawMode === "tool" || rawMode === "stop"
+				? rawMode
+				: "stop";
+		const egress = await runShim(mode, env);
 		if (egress.stdout) writeOut(egress.stdout);
 		if (egress.stderr) writeErr(egress.stderr);
 		return { exitCode: egress.exitCode, output: egress.stdout };
