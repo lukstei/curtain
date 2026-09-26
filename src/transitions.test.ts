@@ -260,7 +260,21 @@ describe("transitions.ts", () => {
 			content: "Scaffold project",
 		};
 		expect(formatStepPrompt(stepWithoutInstruction, 3)).toBe(
-			"[STEP 1 OF 3]\n\nScaffold project\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+			`[STEP 1 OF 3]
+
+<curtain-info>
+Curtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.
+</curtain-info>
+
+<act-instructions>
+Scaffold project
+</act-instructions>
+
+<rules>
+- Perform ONLY the instructions in <act-instructions>.
+- Conclude when complete.
+- Do NOT anticipate or execute any future steps.
+</rules>`,
 		);
 
 		const stepWithPauseInstruction = {
@@ -270,7 +284,27 @@ describe("transitions.ts", () => {
 			instruction: "Ensure 100% pass rate",
 		};
 		expect(formatStepPrompt(stepWithPauseInstruction, 3)).toBe(
-			"[STEP 1 OF 3]\n\nRun test suite\n\n[INTERMISSION CRITERIA]\nEnsure 100% pass rate\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, summarize your work in the review sidebar/artifact (if available), inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step. Do NOT invoke runner tools or /next yourself.",
+			`[STEP 1 OF 3]
+
+<curtain-info>
+Curtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.
+</curtain-info>
+
+<act-instructions>
+Run test suite
+
+[INTERMISSION CRITERIA]
+Ensure 100% pass rate
+</act-instructions>
+
+<rules>
+- Perform ONLY the instructions in <act-instructions>.
+- Conclude when complete.
+- Do NOT anticipate or execute any future steps.
+- When concluding your turn, summarize your work in the review sidebar/artifact (if available).
+- Inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step.
+- Do NOT invoke runner tools or /next yourself.
+</rules>`,
 		);
 
 		const stepWithAutoInstruction = {
@@ -280,7 +314,24 @@ describe("transitions.ts", () => {
 			instruction: "Check bundle size",
 		};
 		expect(formatStepPrompt(stepWithAutoInstruction, 3)).toBe(
-			"[STEP 2 OF 3]\n\nBuild artifacts\n\n[TRANSITION CRITERIA]\nCheck bundle size\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+			`[STEP 2 OF 3]
+
+<curtain-info>
+Curtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.
+</curtain-info>
+
+<act-instructions>
+Build artifacts
+
+[TRANSITION CRITERIA]
+Check bundle size
+</act-instructions>
+
+<rules>
+- Perform ONLY the instructions in <act-instructions>.
+- Conclude when complete.
+- Do NOT anticipate or execute any future steps.
+</rules>`,
 		);
 	});
 
@@ -329,11 +380,24 @@ describe("transitions.ts", () => {
 				{
 				  "message": "[STEP 1 OF 3]
 
+				<curtain-info>
+				Curtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.
+				</curtain-info>
+
+				<act-instructions>
 				# Script Title
 
 				Step 1: Scaffolding
+				</act-instructions>
 
-				Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, summarize your work in the review sidebar/artifact (if available), inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step. Do NOT invoke runner tools or /next yourself.",
+				<rules>
+				- Perform ONLY the instructions in <act-instructions>.
+				- Conclude when complete.
+				- Do NOT anticipate or execute any future steps.
+				- When concluding your turn, summarize your work in the review sidebar/artifact (if available).
+				- Inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step.
+				- Do NOT invoke runner tools or /next yourself.
+				</rules>",
 				  "nextState": {
 				    "currentStep": 0,
 				    "script": "sample.md",
@@ -413,9 +477,19 @@ describe("transitions.ts", () => {
 				  "action": "advance",
 				  "message": "[STEP 2 OF 3]
 
-				Step 2: Verification
+				<curtain-info>
+				Curtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.
+				</curtain-info>
 
-				Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+				<act-instructions>
+				Step 2: Verification
+				</act-instructions>
+
+				<rules>
+				- Perform ONLY the instructions in <act-instructions>.
+				- Conclude when complete.
+				- Do NOT anticipate or execute any future steps.
+				</rules>",
 				  "nextState": {
 				    "currentStep": 1,
 				    "script": "sample.md",

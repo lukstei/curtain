@@ -116,18 +116,35 @@ export function formatIntermissionPrompt(instruction?: string): string {
 		.join("\n\n");
 }
 
+export const CURTAIN_INFO =
+	"Curtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.";
+
 /**
  * Formats step prompt injection with optional delimiter criteria.
  */
 export function formatStepPrompt(step: Step, totalSteps: number): string {
 	const criteria = step.instruction
-		? `[${step.type === "pause" ? "INTERMISSION" : "TRANSITION"} CRITERIA]\n${step.instruction}\n\n`
+		? `\n\n[${step.type === "pause" ? "INTERMISSION" : "TRANSITION"} CRITERIA]\n${step.instruction}`
 		: "";
-	const pauseNotice =
-		step.type === "pause"
-			? " When concluding your turn, summarize your work in the review sidebar/artifact (if available), inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step. Do NOT invoke runner tools or /next yourself."
-			: "";
-	return `[STEP ${step.index + 1} OF ${totalSteps}]\n\n${step.content}\n\n${criteria}Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.${pauseNotice}`;
+	const rules = [
+		"- Perform ONLY the instructions in <act-instructions>.",
+		"- Conclude when complete.",
+		"- Do NOT anticipate or execute any future steps.",
+		...(step.type === "pause"
+			? [
+					"- When concluding your turn, summarize your work in the review sidebar/artifact (if available).",
+					"- Inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step.",
+					"- Do NOT invoke runner tools or /next yourself.",
+				]
+			: []),
+	].join("\n");
+
+	return [
+		`[STEP ${step.index + 1} OF ${totalSteps}]`,
+		`<curtain-info>\n${CURTAIN_INFO}\n</curtain-info>`,
+		`<act-instructions>\n${step.content}${criteria}\n</act-instructions>`,
+		`<rules>\n${rules}\n</rules>`,
+	].join("\n\n");
 }
 
 export interface ExecuteStartResult {

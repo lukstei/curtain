@@ -82,9 +82,19 @@ describe("handlers/stop.ts", () => {
 			  "action": "continue",
 			  "reason": "[STEP 2 OF 2]
 
-			Step 2 instruction
+			<curtain-info>
+			Curtain is an orchestration tool running a multi-act playbook. Only the current act is revealed; downstream acts are withheld until prior acts complete.
+			</curtain-info>
 
-			Perform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+			<act-instructions>
+			Step 2 instruction
+			</act-instructions>
+
+			<rules>
+			- Perform ONLY the instructions in <act-instructions>.
+			- Conclude when complete.
+			- Do NOT anticipate or execute any future steps.
+			</rules>",
 			}
 		`);
 	});
