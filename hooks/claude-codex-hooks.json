@@ -6,7 +6,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.cjs\" hook pre",
+						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.mjs\" hook pre",
 						"timeout": 10
 					}
 				]
@@ -17,7 +17,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.cjs\" hook pre",
+						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.mjs\" hook pre",
 						"timeout": 10
 					}
 				]
@@ -29,7 +29,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.cjs\" hook tool",
+						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.mjs\" hook tool",
 						"timeout": 10
 					}
 				]
@@ -40,7 +40,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.cjs\" hook stop",
+						"command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.mjs\" hook stop",
 						"timeout": 10
 					}
 				]

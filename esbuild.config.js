@@ -5,15 +5,15 @@ await esbuild.build({
 	entryPoints: ["src/cli.ts"],
 	bundle: true,
 	platform: "node",
-	target: "node18",
-	format: "cjs",
-	outfile: "dist/curtain.cjs",
+	target: "node20",
+	format: "esm",
+	outfile: "dist/curtain.mjs",
 	banner: { js: "#!/usr/bin/env node" },
 	logLevel: "info",
 });
 
 fs.mkdirSync(".agents/plugins/curtain/dist", { recursive: true });
-fs.copyFileSync("dist/curtain.cjs", ".agents/plugins/curtain/dist/curtain.cjs");
+fs.copyFileSync("dist/curtain.mjs", ".agents/plugins/curtain/dist/curtain.mjs");
 if (fs.existsSync("skills")) {
 	fs.cpSync("skills", ".agents/plugins/curtain/skills", {
 		recursive: true,

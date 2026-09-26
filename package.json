@@ -30,7 +30,10 @@
 		"hooks.json"
 	],
 	"bin": {
-		"curtain": "dist/curtain.cjs"
+		"curtain": "dist/curtain.mjs"
+	},
+	"engines": {
+		"node": ">=20.11.0"
 	},
 	"scripts": {
 		"build": "node esbuild.config.js",

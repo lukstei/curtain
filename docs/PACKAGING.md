@@ -19,7 +19,7 @@ Maintaining separate plugins per harness leads to configuration drift and mainte
 1. **Shared Knowledge & Rules**: A single set of `skills/` (`SKILL.md`) and behavioral instructions (`rules/AGENTS.md`) shared across all harnesses.
 2. **Dedicated Manifest Zones**: Partitioned manifest directories (`.claude-plugin/`, `.codex-plugin/`, `.agents/`) that co-exist without collision.
 3. **Modular Harness Adapters**: Dedicated adapters in `src/harnesses/` implementing a common [`HarnessAdapter`](../src/harnesses/types.ts) interface.
-4. **Zero-Dependency Bundled Hook Shim**: A single, bundled script (`dist/curtain.cjs`) built via `esbuild` that auto-detects the host harness, normalizes events, executes core runner logic, and formats egress per harness specification.
+4. **Zero-Dependency Bundled Hook Shim**: A single, bundled script (`dist/curtain.mjs`) built via `esbuild` that auto-detects the host harness, normalizes events, executes core runner logic, and formats egress per harness specification.
 
 ---
 
@@ -66,15 +66,15 @@ Detailed specifications, wire schemas, lifecycle protocols, and egress formats a
 - **Issue**: Claude Code marketplace validators reject `commandWindows` as unrecognized schema.
 - **Fix**: Use a single cross-platform command string with quoted paths:
   ```json
-  "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.cjs\" hook pre"
+  "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/curtain.mjs\" hook pre"
   ```
   Avoid `exec node`, `command -v`, `&&`, or bashisms that crash PowerShell.
 
 ### 5. Zero-Dependency Bundling
 - **Issue**: Neither Claude Code nor Codex runs `npm install` during installation. Unbundled runtime dependencies cause `MODULE_NOT_FOUND`.
-- **Fix**: Bundle all dependencies into `dist/curtain.cjs` using `esbuild`:
+- **Fix**: Bundle all dependencies into `dist/curtain.mjs` using `esbuild`:
   ```bash
-  esbuild src/cli.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/curtain.cjs
+  esbuild src/cli.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/curtain.mjs
   ```
 
 ---
@@ -134,7 +134,7 @@ curtain/
 │   └── cli.ts                        # CLI entry point
 │
 ├── dist/
-│   └── curtain.cjs                   # Bundled zero-dependency production artifact
+│   └── curtain.mjs                   # Bundled zero-dependency production artifact
 │
 ├── esbuild.config.js                 # Bundler config
 ├── package.json                      # NPM configuration

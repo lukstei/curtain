@@ -95,7 +95,7 @@ Based on the evidence above, Curtain enforces the following structural rules:
 ### 4. No Standalone CLI Invocation
 - Curtain is an agent lifecycle hook plugin, not a standalone shell runner.
 - State is strictly scoped to the agent conversation session (`session_id`). Running `curtain <skill>` or `curtain next` in an external terminal cannot inject instructions or manipulate context inside the host agent's chat window.
-- The binary (`dist/curtain.cjs`) exclusively serves hook events dispatched by agent harnesses:
+- The binary (`dist/curtain.mjs`) exclusively serves hook events dispatched by agent harnesses:
   ```bash
   curtain hook pre
   curtain hook tool

@@ -3,7 +3,7 @@
 		"PreInvocation": [
 			{
 				"type": "command",
-				"command": "node ./dist/curtain.cjs hook pre"
+				"command": "node ./dist/curtain.mjs hook pre"
 			}
 		],
 		"PreToolUse": [
@@ -12,7 +12,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "node ./dist/curtain.cjs hook tool"
+						"command": "node ./dist/curtain.mjs hook tool"
 					}
 				]
 			}
@@ -20,7 +20,7 @@
 		"Stop": [
 			{
 				"type": "command",
-				"command": "node ./dist/curtain.cjs hook stop"
+				"command": "node ./dist/curtain.mjs hook stop"
 			}
 		]
 	}

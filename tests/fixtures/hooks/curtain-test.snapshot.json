@@ -3,7 +3,7 @@
 		"hook": "pre",
 		"injectSteps": [
 			{
-				"ephemeralMessage": "[STEP 1 OF 3]\n\nThis is a test skill to see if the the plugin works, follow instructions exactly.\n\nSay \"Step 1\"\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, summarize your work in the review sidebar/artifact (if available), inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step. Do NOT invoke runner tools or /next yourself."
+				"ephemeralMessage": "[STEP 1 OF 3]\n\nThis is a test skill to see if the the plugin works, follow instructions exactly.\n\nSay \"Step 1\"\n<!-- step-1 -->\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps. When concluding your turn, summarize your work in the review sidebar/artifact (if available), inform the user that execution is paused for review, and remind them that only typing /next will advance to the next step. Do NOT invoke runner tools or /next yourself."
 			}
 		],
 		"state": {
@@ -47,7 +47,7 @@
 		"hook": "pre",
 		"injectSteps": [
 			{
-				"ephemeralMessage": "[STEP 2 OF 3]\n\nSay \"Step 2\"\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps."
+				"ephemeralMessage": "[STEP 2 OF 3]\n\nSay \"Step 2\"\n<!-- step-2 -->\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps."
 			}
 		],
 		"state": {
@@ -59,7 +59,7 @@
 	{
 		"hook": "stop",
 		"decision": "continue",
-		"reason": "[STEP 3 OF 3]\n\nSay \"Step 3\"\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
+		"reason": "[STEP 3 OF 3]\n\nSay \"Step 3\"\n<!-- step-3 -->\n\nPerform ONLY this step. Conclude when complete. Do NOT anticipate or execute any future steps.",
 		"state": {
 			"script": "examples/.agents/skills/curtain-test/PLAYBOOK.md",
 			"status": "running",

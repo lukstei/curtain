@@ -123,7 +123,7 @@ Delimiters support optional instructions:
 ```bash
 npm install
 npm run verify      # runs tests, linter, and typecheck
-npm run build       # builds dist/curtain.cjs
+npm run build       # builds dist/curtain.mjs
 npm run test:watch  # test watcher
 ```
 
