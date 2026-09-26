@@ -80,6 +80,9 @@ describe("parseSkill", () => {
 		expect(parseSkill("a:b:c")).toBeNull();
 		expect(parseSkill("a:")).toBeNull();
 		expect(parseSkill(":b")).toBeNull();
+		expect(parseSkill("[TODO]")).toBeNull();
+		expect(parseSkill("[TODO] Fix auth bug")).toBeNull();
+		expect(parseSkill("[WIP]")).toBeNull();
 	});
 });
 

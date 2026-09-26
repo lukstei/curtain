@@ -24,8 +24,21 @@ export function formatSkill(skill: ParsedSkill): string {
  *    - Other namespaces and custom skills are preserved as-is.
  */
 export function parseSkill(raw: string): ParsedSkill | null {
-	const cleaned = raw
-		.trim()
+	const trimmed = raw.trim();
+	if (trimmed.startsWith("[")) {
+		const isSigil = trimmed.startsWith("[$");
+		const hasPath = /\]\([^)]+\)/.test(trimmed);
+		const name = trimmed
+			.replace(/^\[\$?([^\]]+)\].*$/, "$1")
+			.trim()
+			.toLowerCase();
+		const isCurtain = name === "next" || name === "curtain";
+		if (!isSigil && !hasPath && !isCurtain) {
+			return null;
+		}
+	}
+
+	const cleaned = trimmed
 		.replace(/^\[\$?([^\]]+)\](?:\([^)]*\))?.*$/, "$1")
 		.replace(/^[/$]+/, "")
 		.trim()

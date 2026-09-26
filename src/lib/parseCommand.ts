@@ -46,55 +46,77 @@ function handleCurtainIntent(
 	return null;
 }
 
+interface SkillSource {
+	rawSkill: string;
+	targetPath?: string;
+	rest?: string;
+	isCommandSigil: boolean;
+}
+
+function extractSkillSource(
+	trimmed: string | undefined,
+	skillInvocationPath: string | undefined,
+): SkillSource | undefined {
+	if (trimmed) {
+		const linkMatch = trimmed.match(SKILL_LINK_WITH_OPTIONAL_PATH_REGEX);
+		if (linkMatch) {
+			return {
+				rawSkill: linkMatch[3]
+					? trimmed.slice(0, -linkMatch[3].length).trim()
+					: trimmed,
+				targetPath: linkMatch[2]
+					?.replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "")
+					.trim(),
+				rest: linkMatch[3]?.trim(),
+				isCommandSigil: false,
+			};
+		}
+		if (trimmed.startsWith("/") || trimmed.startsWith("$")) {
+			const [first, ...trailing] = trimmed.split(WHITESPACE_SPLIT_REGEX);
+			return {
+				rawSkill: first,
+				rest: trailing.join(" ").trim() || undefined,
+				isCommandSigil: true,
+			};
+		}
+	}
+
+	if (skillInvocationPath) {
+		const name = resolveSkillNameFromPath(skillInvocationPath);
+		if (name) {
+			return {
+				rawSkill: name,
+				targetPath: skillInvocationPath,
+				rest: trimmed,
+				isCommandSigil: false,
+			};
+		}
+	}
+}
+
 export function parseCommand(
 	input?: string,
 	skillInvocationPath?: string,
 ): UserIntent {
-	const trimmed = input?.trim();
-	let rawSkill: string | undefined;
-	let targetPath: string | undefined;
-	let rest: string | undefined;
-	let isCommandSigil = false;
+	const source = extractSkillSource(input?.trim(), skillInvocationPath);
+	if (!source) return { type: "none" };
 
-	if (trimmed) {
-		const linkMatch = trimmed.match(SKILL_LINK_WITH_OPTIONAL_PATH_REGEX);
-		if (linkMatch && (trimmed.startsWith("[$") || linkMatch[2])) {
-			rawSkill = linkMatch[1];
-			targetPath = linkMatch[2]
-				?.replace(ANGLE_BRACKET_ENCLOSURE_REGEX, "")
-				.trim();
-			rest = linkMatch[3]?.trim();
-		} else if (trimmed.startsWith("/") || trimmed.startsWith("$")) {
-			const [first, ...trailing] = trimmed.split(WHITESPACE_SPLIT_REGEX);
-			rawSkill = first;
-			rest = trailing.join(" ").trim() || undefined;
-			isCommandSigil = true;
-		}
-	}
-
-	if (!rawSkill && skillInvocationPath) {
-		rawSkill = resolveSkillNameFromPath(skillInvocationPath) ?? undefined;
-		targetPath = skillInvocationPath;
-		rest = trimmed;
-	}
-
-	if (!rawSkill) {
-		return { type: "none" };
-	}
-
-	const parsed = parseSkill(rawSkill);
+	const parsed = parseSkill(source.rawSkill);
 	if (!parsed) return { type: "none" };
 
-	const curtain = handleCurtainIntent(parsed, rest);
+	const curtain = handleCurtainIntent(parsed, source.rest);
 	if (curtain) return curtain;
 
-	if (isCommandSigil && !BARE_SKILL_COMMAND_REGEX.test(rawSkill)) {
+	if (
+		source.isCommandSigil &&
+		!BARE_SKILL_COMMAND_REGEX.test(source.rawSkill)
+	) {
 		return { type: "none" };
 	}
 
 	return {
 		type: "skill",
 		skill: parsed,
-		...(targetPath ? { targetPath } : {}),
+		...(source.targetPath ? { targetPath: source.targetPath } : {}),
 	};
 }
