@@ -44,4 +44,45 @@ describe("logHookInvocation", () => {
 			fs.rmSync(tmp, { recursive: true, force: true });
 		}
 	});
+
+	it("serializes runner state when present", () => {
+		const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "curtain-loghook-"));
+		const env = { ...process.env, AGY_PLUGIN_DATA: tmp };
+		const convId = "test-conv-state";
+
+		try {
+			logHookInvocation(
+				convId,
+				{
+					timestamp: "2026-09-26T12:00:00.000Z",
+					hook: "stop",
+					input: "{}",
+					output: '{"decision":"allow"}',
+					state: {
+						script: "test.md",
+						status: "running",
+						currentStep: 1,
+						steps: [{ index: 0, type: "auto", content: "hello" }],
+					},
+				},
+				env,
+			);
+
+			const logFile = path.join(tmp, convId, "hooks.jsonl");
+			const lines = fs
+				.readFileSync(logFile, "utf-8")
+				.trim()
+				.split("\n")
+				.map((l) => JSON.parse(l));
+
+			expect(lines[0].state).toEqual({
+				script: "test.md",
+				status: "running",
+				currentStep: 1,
+				steps: [{ index: 0, type: "auto", content: "hello" }],
+			});
+		} finally {
+			fs.rmSync(tmp, { recursive: true, force: true });
+		}
+	});
 });

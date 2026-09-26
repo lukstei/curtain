@@ -1,20 +1,25 @@
+import { loadCurtainConfig } from "../config.ts";
 import { handle } from "../handlers/index.ts";
 import { detectHarness, getHarness } from "../harnesses/index.ts";
 import type { EgressOutput } from "../harnesses/types.ts";
 import { logDebug } from "../lib/logDebug.ts";
+import { logHookInvocation } from "../lib/logHook.ts";
 import { deleteState, loadState, saveState } from "../state.ts";
-import type { HookInfo } from "../types.ts";
+import type { HookInfo, LatestMessage } from "../types.ts";
 import { parseJsonSafe, readStdin } from "./stdin.ts";
 
-export async function runShim(
-	modeArg: string,
-	rawInput?: string,
-	env = process.env,
-): Promise<EgressOutput> {
-	const input = rawInput !== undefined ? rawInput : await readStdin();
-	const payload = parseJsonSafe(input);
+export interface ShimTestOptions {
+	latestMessage?: LatestMessage | null;
+}
 
+export function executeHook(
+	modeArg: string,
+	payload: Record<string, unknown>,
+	rawInput: string,
+	env = process.env,
+): EgressOutput {
 	const harnessId = detectHarness(payload, env);
+	// edge case: invocation without recognized harness signatures exits cleanly with 0
 	if (!harnessId) {
 		return { exitCode: 0 };
 	}
@@ -65,5 +70,46 @@ export async function runShim(
 		saveState(event.conversationId, nextState, env);
 	}
 
-	return adapter.formatEgress(event, response);
+	const egress = adapter.formatEgress(event, response);
+
+	const config = loadCurtainConfig(event.workspacePath);
+	if (config.debug) {
+		const latestMessage = "latestMessage" in event ? event.latestMessage : null;
+		logHookInvocation(
+			event.conversationId,
+			{
+				timestamp: new Date().toISOString(),
+				hook: modeArg,
+				input: rawInput,
+				output: egress.stdout ?? "{}",
+				...(latestMessage ? { latestMessage } : {}),
+				state: nextState,
+			},
+			env,
+		);
+	}
+
+	return egress;
+}
+
+export async function runShim(
+	modeArg: string,
+	env = process.env,
+): Promise<EgressOutput> {
+	const input = await readStdin();
+	const payload = parseJsonSafe(input);
+	return executeHook(modeArg, payload, input, env);
+}
+
+export async function runShimForTest(
+	modeArg: string,
+	rawInput: string,
+	env = process.env,
+	options?: ShimTestOptions,
+): Promise<EgressOutput> {
+	const payload = parseJsonSafe(rawInput);
+	if (options?.latestMessage !== undefined) {
+		payload.latestMessage = options.latestMessage;
+	}
+	return executeHook(modeArg, payload, rawInput, env);
 }

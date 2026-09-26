@@ -92,7 +92,7 @@ export async function runCli(
 }
 
 const isDirectExecution =
-	Boolean(process.argv[1]?.endsWith("curtain.cjs")) ||
+	Boolean(process.argv[1]?.endsWith("curtain.mjs")) ||
 	Boolean(process.argv[1]?.endsWith("cli.ts"));
 
 if (isDirectExecution && !process.env.VITEST) {

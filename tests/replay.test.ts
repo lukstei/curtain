@@ -1,14 +1,12 @@
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { HarnessType } from "../src/harnesses/types.ts";
-import { runShim } from "../src/shim/runtime-shim.ts";
+import type { HookLogEntry } from "../src/lib/logHook.ts";
+import { runShimForTest } from "../src/shim/runtime-shim.ts";
 import { loadState, type RunnerState } from "../src/state.ts";
-import {
-	findNormalizedTranscripts,
-	type NormalizedTranscriptItem,
-} from "./normalize-transcripts.ts";
 import { stripAbsolutePath } from "./test-utils.ts";
 
 const sanitizeState = (s: RunnerState | null) =>
@@ -16,22 +14,61 @@ const sanitizeState = (s: RunnerState | null) =>
 
 const sharedSnapshotPath = path.resolve(
 	import.meta.dirname,
-	"fixtures/transcripts/curtain-test.snapshot.json",
+	"fixtures/hooks/curtain-test.snapshot.json",
 );
 
-async function replayNormalizedTranscript(
-	harness: HarnessType,
-	conversationId: string,
-	filePath: string,
-) {
+function findHookFixtures(
+	fixturesDir = path.resolve(import.meta.dirname, "fixtures/hooks"),
+): Array<{
+	harness: HarnessType;
+	fixtureName: string;
+	filePath: string;
+}> {
+	assert(
+		fs.existsSync(fixturesDir),
+		`Fixtures directory does not exist: ${fixturesDir}`,
+	);
+
+	const results: Array<{
+		harness: HarnessType;
+		fixtureName: string;
+		filePath: string;
+	}> = [];
+
+	const entries = fs.readdirSync(fixturesDir, { withFileTypes: true });
+	for (const entry of entries) {
+		if (!entry.isDirectory()) continue;
+		const harness = entry.name as HarnessType;
+		const harnessDir = path.join(fixturesDir, entry.name);
+		const files = fs.readdirSync(harnessDir);
+		for (const file of files) {
+			if (!file.endsWith(".jsonl")) continue;
+			results.push({
+				harness,
+				fixtureName: path.basename(file, ".jsonl"),
+				filePath: path.join(harnessDir, file),
+			});
+		}
+	}
+
+	assert(results.length > 0, "No hook fixtures discovered");
+	return results;
+}
+
+async function replayHookLog(harness: HarnessType, filePath: string) {
 	const repoRoot = path.resolve(import.meta.dirname, "..");
 	const workspacePath = path.join(repoRoot, "examples");
 
-	const rawJson = fs.readFileSync(filePath, "utf-8");
-	const replacedJson = rawJson.replaceAll("{{workspace}}", workspacePath);
-	const items: NormalizedTranscriptItem[] = JSON.parse(replacedJson);
+	const rawContent = fs.readFileSync(filePath, "utf-8");
+	const lines = rawContent.trim().split("\n").filter(Boolean);
+	const entries: HookLogEntry[] = lines.map((l) => JSON.parse(l));
 
 	const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "curtain-replay-"));
+
+	const firstInput = JSON.parse(entries[0].input) as Record<string, unknown>;
+	const conversationId = String(
+		firstInput.conversationId ?? firstInput.session_id ?? "replay-session",
+	);
 
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
@@ -58,83 +95,77 @@ async function replayNormalizedTranscript(
 		injectSteps?: unknown[];
 		state: Omit<RunnerState, "steps"> | null;
 	}> = [];
-	let invocationNum = 0;
-
-	const invoke = async (
-		hook: "pre" | "stop",
-		extra: Record<string, unknown>,
-	) => {
-		const payload = {
-			conversationId,
-			session_id: conversationId,
-			workspacePaths: [workspacePath],
-			workspacePath,
-			cwd: workspacePath,
-			...extra,
-		};
-		const egress = await runShim(hook, JSON.stringify(payload), env);
-		const out = egress.stdout ? JSON.parse(egress.stdout) : {};
-
-		const injectedMessage =
-			out.injectSteps?.[0]?.ephemeralMessage ??
-			out.hookSpecificOutput?.additionalContext;
-
-		let decision: string | undefined;
-		let reason: string | undefined;
-		let injectSteps: unknown[] | undefined;
-
-		if (hook === "stop") {
-			if (
-				out.decision === "block" ||
-				out.decision === "continue" ||
-				injectedMessage
-			) {
-				decision = "continue";
-				reason = out.reason ?? injectedMessage;
-			} else {
-				decision = "allow";
-			}
-		} else {
-			decision = out.decision;
-			reason = out.reason;
-			if (injectedMessage) {
-				injectSteps = [{ ephemeralMessage: injectedMessage }];
-			}
-		}
-
-		trace.push({
-			hook,
-			...(decision ? { decision } : {}),
-			...(reason ? { reason } : {}),
-			...(injectSteps ? { injectSteps } : {}),
-			state: sanitizeState(loadState(conversationId, env)),
-		});
-	};
 
 	try {
-		for (const item of items) {
-			if (item.type === "user") {
-				await invoke("pre", {
-					prompt: item.content,
-					...(harness === "agy" && { invocationNum: invocationNum++ }),
-					...(harness === "codex" && {
-						hook_event_name: "UserPromptSubmit",
-					}),
-					...(harness === "claude" && {
-						hook_event_name: "UserPromptSubmit",
-					}),
-				});
-			} else if (item.type === "assistant") {
-				await invoke("stop", {
-					last_assistant_message: item.content,
-					...(harness === "agy" && {
-						terminationReason: "model_stop",
-						fullyIdle: true,
-					}),
-					...(harness === "codex" && { hook_event_name: "Stop" }),
-					...(harness === "claude" && { hook_event_name: "Stop" }),
-				});
+		for (const entry of entries) {
+			const replacedInput = entry.input.replaceAll(
+				"{{workspace}}",
+				workspacePath,
+			);
+
+			const resolvedLatestMessage = entry.latestMessage
+				? {
+						...entry.latestMessage,
+						...(entry.latestMessage.skillInvocationPath
+							? {
+									skillInvocationPath:
+										entry.latestMessage.skillInvocationPath.replaceAll(
+											"{{workspace}}",
+											workspacePath,
+										),
+								}
+							: {}),
+					}
+				: undefined;
+
+			const egress = await runShimForTest(
+				entry.hook,
+				replacedInput,
+				env,
+				resolvedLatestMessage
+					? { latestMessage: resolvedLatestMessage }
+					: undefined,
+			);
+
+			const out = egress.stdout ? JSON.parse(egress.stdout) : {};
+			const expectedOut = entry.output ? JSON.parse(entry.output) : {};
+
+			expect(out).toEqual(expectedOut);
+
+			const injectedMessage =
+				out.injectSteps?.[0]?.ephemeralMessage ??
+				out.hookSpecificOutput?.additionalContext;
+
+			let decision: string | undefined;
+			let reason: string | undefined;
+			let injectSteps: unknown[] | undefined;
+
+			if (entry.hook === "stop") {
+				if (
+					out.decision === "block" ||
+					out.decision === "continue" ||
+					injectedMessage
+				) {
+					decision = "continue";
+					reason = out.reason ?? injectedMessage;
+				} else {
+					decision = "allow";
+				}
+			} else {
+				decision = out.decision;
+				reason = out.reason;
+				if (injectedMessage) {
+					injectSteps = [{ ephemeralMessage: injectedMessage }];
+				}
 			}
+
+			trace.push({
+				hook: entry.hook,
+				...(decision ? { decision } : {}),
+				...(reason ? { reason } : {}),
+				...(injectSteps ? { injectSteps } : {}),
+				state: sanitizeState(loadState(conversationId, env)),
+			});
 		}
 	} finally {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -143,17 +174,13 @@ async function replayNormalizedTranscript(
 	return stripAbsolutePath(trace, repoRoot);
 }
 
-const fixtures = findNormalizedTranscripts();
+const fixtures = findHookFixtures();
 
-describe("Transcript Replay Integration", () => {
+describe("Hook Log Replay Integration", () => {
 	it.each(fixtures)(
-		"replays $harness transcript $conversationId against shared snapshot",
-		async ({ harness, conversationId, filePath }) => {
-			const trace = await replayNormalizedTranscript(
-				harness,
-				conversationId,
-				filePath,
-			);
+		"replays $harness $fixtureName hook log against exact output and shared snapshot",
+		async ({ harness, filePath }) => {
+			const trace = await replayHookLog(harness, filePath);
 			await expect(
 				`${JSON.stringify(trace, null, "\t")}\n`,
 			).toMatchFileSnapshot(sharedSnapshotPath);

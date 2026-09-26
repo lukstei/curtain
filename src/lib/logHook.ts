@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getHookLogPath } from "../state.ts";
+import { getHookLogPath, type RunnerState } from "../state.ts";
 import type { LatestMessage } from "../types.ts";
 
 export interface HookLogEntry {
@@ -9,6 +9,7 @@ export interface HookLogEntry {
 	input: string;
 	output: string;
 	latestMessage?: LatestMessage | null;
+	state?: RunnerState | null;
 }
 
 export function logHookInvocation(
