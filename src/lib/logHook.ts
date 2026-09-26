@@ -1,15 +1,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { getHookLogPath, type RunnerState } from "../state.ts";
-import type { LatestMessage } from "../types.ts";
 
 export interface HookLogEntry {
 	timestamp: string;
 	hook: string;
 	input: string;
 	output: string;
-	latestMessage?: LatestMessage | null;
-	state?: RunnerState | null;
+	state?: (RunnerState | Omit<RunnerState, "steps">) | null;
 }
 
 export function logHookInvocation(

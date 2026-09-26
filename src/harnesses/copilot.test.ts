@@ -12,7 +12,6 @@ function createMockEvent(
 		conversationId: "test-copilot-conv",
 		workspacePath: "/test/project",
 		prompt: "",
-		latestMessage: null,
 		rawPayload: {},
 		...overrides,
 	} as NormalizedEvent;
@@ -60,10 +59,6 @@ describe("copilotHarness", () => {
 				{
 				  "conversationId": "copilot-c1",
 				  "harness": "copilot",
-				  "latestMessage": {
-				    "content": "/next",
-				    "type": "USER_INPUT",
-				  },
 				  "prompt": "/next",
 				  "rawPayload": {
 				    "conversationId": "copilot-c1",
@@ -122,37 +117,6 @@ describe("copilotHarness", () => {
 				"/workspace",
 			);
 			expect(target).toBeNull();
-		});
-	});
-
-	describe("extractLatestMessage", () => {
-		it("extracts prompt on pre", () => {
-			const event = createMockEvent({
-				type: "pre",
-				prompt: "/next",
-			});
-			const res = copilotHarness.extractLatestMessage(event);
-			expect(res).toEqual({
-				type: "USER_INPUT",
-				content: "/next",
-			});
-		});
-
-		it("extracts last_assistant_message on stop", () => {
-			const event = createMockEvent({
-				type: "stop",
-				rawPayload: { last_assistant_message: "Copilot response" },
-			});
-			const res = copilotHarness.extractLatestMessage(event);
-			expect(res).toEqual({
-				type: "PLANNER_RESPONSE",
-				content: "Copilot response",
-			});
-		});
-
-		it("returns null when no prompt and no assistant message", () => {
-			const event = createMockEvent({ type: "stop" });
-			expect(copilotHarness.extractLatestMessage(event)).toBeNull();
 		});
 	});
 

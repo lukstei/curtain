@@ -29,7 +29,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1",
 			workspacePath: "/test",
-			harness: "agy",
+			harness: "claude",
 			prompt: "/next",
 		};
 
@@ -98,7 +98,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1-bare-link",
 			workspacePath: "/test",
-			harness: "agy",
+			harness: "claude",
 			prompt: "[$next]",
 		};
 
@@ -112,7 +112,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1-plain-next",
 			workspacePath: "/test",
-			harness: "agy",
+			harness: "claude",
 			prompt: "next",
 		};
 
@@ -142,7 +142,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c1-final",
 			workspacePath: "/test",
-			harness: "agy",
+			harness: "claude",
 			prompt: "/next",
 		};
 
@@ -161,7 +161,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c4-review",
 			workspacePath: "/test",
-			harness: "agy",
+			harness: "claude",
 			prompt: "I have added the missing migration column",
 		};
 
@@ -201,7 +201,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-c4-no-inst",
 			workspacePath: "/test",
-			harness: "agy",
+			harness: "claude",
 			prompt: "Please check this specific edge case first",
 		};
 
@@ -255,7 +255,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-skill-implicit",
 			workspacePath: tmpDir,
-			harness: "agy",
+			harness: "claude",
 			prompt: "/deploy-skill",
 		};
 
@@ -304,7 +304,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-skill-invoked",
 			workspacePath: tmpDir,
-			harness: "agy",
+			harness: "claude",
 			prompt: "/invoked-skill",
 			skillInvocationPath: skillFile,
 		};
@@ -349,7 +349,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-skill-invoked-empty",
 			workspacePath: tmpDir,
-			harness: "agy",
+			harness: "claude",
 			prompt: "",
 			skillInvocationPath: skillFile,
 		};
@@ -382,7 +382,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-skill-doc",
 			workspacePath: tmpDir,
-			harness: "agy",
+			harness: "claude",
 			prompt: "/doc-skill",
 		};
 
@@ -411,7 +411,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-skill-plain",
 			workspacePath: tmpDir,
-			harness: "agy",
+			harness: "claude",
 			prompt: "/plain-skill",
 		};
 
@@ -425,7 +425,7 @@ describe("handlers/pre.ts", () => {
 			type: "pre",
 			conversationId: "test-chat",
 			workspacePath: tmpDir,
-			harness: "agy",
+			harness: "claude",
 			prompt: "Can you help me write a new function?",
 		};
 
@@ -529,5 +529,19 @@ describe("handlers/pre.ts", () => {
 			action: "inject",
 			message: expect.stringContaining("Pure Step 1"),
 		});
+	});
+
+	it("always passes through for agy harness in pre hook even with prompt", () => {
+		const info: Extract<HookInfo, { type: "pre" }> = {
+			type: "pre",
+			conversationId: "test-c1-agy-pass",
+			workspacePath: "/test",
+			harness: "agy",
+			prompt: "/next",
+		};
+
+		const { state, response } = handlePre(info, sampleState);
+		expect(state).toBe(sampleState);
+		expect(response).toEqual({ action: "pass" });
 	});
 });

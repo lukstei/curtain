@@ -9,14 +9,14 @@ export type UserIntent =
 	| { type: "skill"; skill: ParsedSkill }
 	| { type: "none" };
 
-function resolveSkillNameFromPath(skillPath?: string): string | null {
+export function resolveSkillNameFromPath(skillPath?: string): string | null {
 	if (!skillPath) return null;
 	const fileName = path.basename(skillPath);
 	// edge case: directory-based skills name the file SKILL.md, so skill name is the parent folder
 	if (fileName.toLowerCase() === "skill.md") {
 		return path.basename(path.dirname(skillPath)).toLowerCase();
 	}
-	return path.parse(fileName).name.toLowerCase();
+	return null;
 }
 
 export function parseCommand(

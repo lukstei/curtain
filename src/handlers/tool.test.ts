@@ -1,7 +1,9 @@
+import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import type { RunnerState } from "../state.ts";
 import type { HookInfo } from "../types.ts";
 import { handlePreTool } from "./tool.ts";
@@ -245,5 +247,55 @@ describe("handlers/tool.ts", () => {
 		expect(handlePreTool(infoForeignNext, activeState).response.action).toBe(
 			"allow",
 		);
+	});
+
+	it("resumes execution when paused and view_file reads next SKILL.md", () => {
+		const pausedState: RunnerState = {
+			...activeState,
+			status: "paused",
+			currentStep: 0,
+		};
+		const nextSkillPath = path.join(testDir, ".agents/skills/next/SKILL.md");
+		const info: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			harness: "agy",
+			toolCall: { name: "view_file", args: { AbsolutePath: nextSkillPath } },
+			readTargetFilePath: nextSkillPath,
+		};
+
+		const result = handlePreTool(info, pausedState);
+		expect(result.state?.status).toBe("running");
+		expect(result.state?.currentStep).toBe(1);
+		assert(result.response.action === "deny");
+		expect(result.response.reason).toContain("Act 2");
+	});
+
+	it("launches playbook when state is null and view_file reads a skill SKILL.md", () => {
+		const skillDir = path.join(testDir, ".agents/skills/my-playbook");
+		fs.mkdirSync(skillDir, { recursive: true });
+		const skillFile = path.join(skillDir, "SKILL.md");
+		const playbookFile = path.join(skillDir, "PLAYBOOK.md");
+		fs.writeFileSync(skillFile, "# Launcher\n");
+		fs.writeFileSync(
+			playbookFile,
+			"# My Playbook\nAct 1 content\n> [!CURTAIN]\nAct 2 content\n",
+		);
+
+		const info: HookInfo = {
+			type: "tool",
+			conversationId: "c1",
+			workspacePath: testDir,
+			harness: "agy",
+			toolCall: { name: "view_file", args: { AbsolutePath: skillFile } },
+			readTargetFilePath: skillFile,
+		};
+
+		const result = handlePreTool(info, null);
+		expect(result.state?.status).toBe("running");
+		expect(result.state?.script).toBe(playbookFile);
+		assert(result.response.action === "deny");
+		expect(result.response.reason).toContain("Act 1 content");
 	});
 });

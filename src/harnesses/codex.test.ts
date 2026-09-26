@@ -4,7 +4,6 @@ import {
 	ANGLE_BRACKET_ENCLOSURE_REGEX,
 	codexHarness,
 	extractCodexSkillPath,
-	parseCodexMessage,
 	SKILL_LINK_PATH_CAPTURE_REGEX,
 	XML_SKILL_PATH_REGEX,
 } from "./codex.ts";
@@ -19,7 +18,6 @@ function createMockEvent(
 		conversationId: "test-codex-conv",
 		workspacePath: "/test/project",
 		prompt: "",
-		latestMessage: null,
 		rawPayload: {},
 		...overrides,
 	} as NormalizedEvent;
@@ -68,10 +66,6 @@ describe("codexHarness", () => {
 				{
 				  "conversationId": "codex-s1",
 				  "harness": "codex",
-				  "latestMessage": {
-				    "content": "/next",
-				    "type": "USER_INPUT",
-				  },
 				  "prompt": "/next",
 				  "rawPayload": {
 				    "cwd": "/codex/workspace",
@@ -227,38 +221,6 @@ describe("codexHarness", () => {
 		});
 	});
 
-	describe("extractLatestMessage", () => {
-		it("extracts last_assistant_message on stop", () => {
-			const event = createMockEvent({
-				type: "stop",
-				isStop: true,
-				rawPayload: { last_assistant_message: "Assistant response" },
-			});
-			const res = codexHarness.extractLatestMessage(event);
-			expect(res).toEqual({
-				type: "PLANNER_RESPONSE",
-				content: "Assistant response",
-			});
-		});
-
-		it("extracts user prompt on pre", () => {
-			const event = createMockEvent({
-				type: "pre",
-				prompt: "User question",
-			});
-			const res = codexHarness.extractLatestMessage(event);
-			expect(res).toEqual({
-				type: "USER_INPUT",
-				content: "User question",
-			});
-		});
-
-		it("returns null when neither is present", () => {
-			const event = createMockEvent({ type: "pre", prompt: undefined });
-			expect(codexHarness.extractLatestMessage(event)).toBeNull();
-		});
-	});
-
 	describe("formatEgress", () => {
 		it("formats Stop continue decision as block", () => {
 			const event = createMockEvent({ type: "stop", isStop: true });
@@ -342,48 +304,6 @@ describe("codexHarness", () => {
 				"/home/user/.codex/plugins/cache",
 				"/home/user/.codex/plugins/marketplaces",
 			]);
-		});
-	});
-
-	describe("parseCodexMessage", () => {
-		it("parses assistant response item", () => {
-			const item = {
-				type: "response_item",
-				payload: {
-					type: "message",
-					role: "assistant",
-					content: [{ type: "output_text", text: "Assistant response" }],
-				},
-			};
-			expect(parseCodexMessage(item)).toEqual({
-				type: "PLANNER_RESPONSE",
-				content: "Assistant response",
-			});
-		});
-
-		it("parses user response item", () => {
-			const item = {
-				type: "response_item",
-				payload: {
-					type: "message",
-					role: "user",
-					content: [{ type: "input_text", text: "User prompt" }],
-				},
-			};
-			expect(parseCodexMessage(item)).toEqual({
-				type: "USER_INPUT",
-				content: "User prompt",
-			});
-		});
-
-		it("returns null for non-message items", () => {
-			expect(parseCodexMessage({ type: "event_msg" })).toBeNull();
-			expect(
-				parseCodexMessage({
-					type: "response_item",
-					payload: { type: "other" },
-				}),
-			).toBeNull();
 		});
 	});
 

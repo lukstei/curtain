@@ -111,6 +111,11 @@ export function handlePre(
 	info: Extract<HookInfo, { type: "pre" }>,
 	state: RunnerState | null,
 ): HandlerResult<PreHookResponse> {
+	// edge case: AGY does not process user prompts on PreInvocation; all execution is driven by PreToolUse
+	if (info.harness === "agy") {
+		return { state, response: { action: "pass" } };
+	}
+
 	const intent = parseCommand(info.prompt, info.skillInvocationPath);
 	const resolved = resolvePreScript(intent, info, state);
 	return evaluatePreIntent(intent, state, resolved);

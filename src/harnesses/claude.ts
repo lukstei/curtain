@@ -5,7 +5,6 @@ import { normalizeSkillName } from "../resolver/index.ts";
 import type { HookResponse, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,
-	defaultExtractLatestMessage,
 	extractToolCall,
 	getGenericSkillDirs,
 	resolveToolReadPath,
@@ -69,11 +68,6 @@ export const claudeHarness: HarnessAdapter = {
 		const skillTarget = toolCall
 			? (this.extractSkillTarget?.(toolCall) ?? null)
 			: null;
-		const latestMessage = this.extractLatestMessage({
-			type,
-			prompt,
-			rawPayload: payload,
-		});
 
 		return createNormalizedEvent({
 			harness: "claude",
@@ -85,7 +79,6 @@ export const claudeHarness: HarnessAdapter = {
 			toolCall,
 			readTargetFilePath,
 			skillTarget,
-			latestMessage,
 			prompt,
 		});
 	},
@@ -115,8 +108,6 @@ export const claudeHarness: HarnessAdapter = {
 		const skill = toolCall.args.skill;
 		return typeof skill === "string" ? normalizeSkillName(skill) : null;
 	},
-
-	extractLatestMessage: defaultExtractLatestMessage,
 
 	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput {
 		if (event.type === "stop") {

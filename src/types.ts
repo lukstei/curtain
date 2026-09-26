@@ -1,12 +1,6 @@
 import type { HarnessType } from "./harnesses/types.ts";
 import type { Script } from "./parser/index.ts";
 
-export interface LatestMessage {
-	type: string;
-	content: string;
-	skillInvocationPath?: string;
-}
-
 export type HookType = "pre" | "stop" | "tool";
 
 export interface ToolCall {

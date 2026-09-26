@@ -1,7 +1,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { formatSkill, parseSkill } from "../resolver/index.ts";
+import { resolveSkillNameFromPath } from "../lib/parseCommand.ts";
+import { formatSkill, loadSkillScript, parseSkill } from "../resolver/index.ts";
+
 import type { RunnerState } from "../state.ts";
+import { executeResume, executeStart } from "../transitions.ts";
 import type { HookInfo, ToolHookResponse } from "../types.ts";
 import type { HandlerResult } from "./pre.ts";
 
@@ -20,7 +23,9 @@ function isSameFile(p1: string, p2: string): boolean {
 
 /**
  * Intercepts tool calls before execution (PreToolUse).
- * Hard-blocks file reading tools attempting to inspect the active Curtain script.
+ * Hard-blocks file reading tools attempting to inspect the active Curtain script,
+ * advances paused intermissions when the next skill is accessed,
+ * and boots playbook execution in harnesses where skills are launched via file reads.
  */
 export function handlePreTool(
 	info: Extract<HookInfo, { type: "tool" }>,
@@ -35,6 +40,7 @@ export function handlePreTool(
 		response: { action: "deny", reason },
 	});
 
+	// edge case: models attempt to invoke skills directly via tool calls (e.g. Claude Code Skill tool or AGY invoke_subagent)
 	if (info.skillTarget) {
 		const parsed = parseSkill(info.skillTarget);
 
@@ -70,6 +76,51 @@ export function handlePreTool(
 		return deny(
 			`BLOCKED BY CURTAIN: You are executing this skill behind curtains. Step instructions are already provided in your context. Do not inspect ${path.basename(state.script)}.`,
 		);
+	}
+
+	// edge case: in AGY, playbook launch and /next resumption occur when the model reads the skill file
+	if (info.harness === "agy") {
+		if (info.readTargetFilePath) {
+			const skillName = resolveSkillNameFromPath(info.readTargetFilePath);
+			if (skillName === "next") {
+				if (state?.status === "paused") {
+					const res = executeResume(state);
+					return {
+						state: res.nextState,
+						response: {
+							action: "deny",
+							reason: res.message,
+						},
+					};
+				}
+
+				return deny(
+					state
+						? "BLOCKED BY CURTAIN: You cannot advance execution at an intermission. Only the user can advance execution by typing /next. Conclude your turn and wait for user review."
+						: "BLOCKED BY CURTAIN: No script is currently loaded.",
+				);
+			}
+
+			if (!state && skillName) {
+				const script = loadSkillScript(
+					{ name: skillName, path: info.readTargetFilePath },
+					info.workspacePath,
+					"agy",
+				);
+				if (script) {
+					const res = executeStart(script, skillName);
+					return {
+						state: res.nextState,
+						response: {
+							action: "deny",
+							reason: res.message,
+						},
+					};
+				}
+			}
+		}
+
+		return allow;
 	}
 
 	return allow;

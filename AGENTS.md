@@ -25,8 +25,8 @@
 - `handlers/stop.ts`: Handles Stop lifecycle hook, auto-advancing, pausing at review curtains, and completing runs.
 - `harnesses/`: Adapters for agent environments (AGY, Claude Code, Codex, Copilot) normalizing ingress/egress.
 - `lib/assertNever.ts`: Exhaustiveness checking helper for union types.
-- `lib/getLatestMessage.ts`: Extracts the latest message from conversation transcript files across harnesses.
 - `lib/logDebug.ts`: File-based debug logger active when debug flags are set.
+
 - `lib/parseCommand.ts`: Extracts and parses runner slash commands from text inputs.
 - `shim/runtime-shim.ts`: Entry point for agent hook execution, detecting the harness and dispatching to handlers.
 - `shim/stdin.ts`: Reads and parses JSON payloads from standard input with timeout handling.

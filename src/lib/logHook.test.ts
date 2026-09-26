@@ -18,7 +18,6 @@ describe("logHookInvocation", () => {
 					hook: "pre",
 					input: '{"prompt":"/next"}',
 					output: '{"injectSteps":[]}',
-					latestMessage: { type: "USER_INPUT", content: "/next" },
 				},
 				env,
 			);
@@ -38,7 +37,6 @@ describe("logHookInvocation", () => {
 				hook: "pre",
 				input: '{"prompt":"/next"}',
 				output: '{"injectSteps":[]}',
-				latestMessage: { type: "USER_INPUT", content: "/next" },
 			});
 		} finally {
 			fs.rmSync(tmp, { recursive: true, force: true });

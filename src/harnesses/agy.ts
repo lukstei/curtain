@@ -1,7 +1,6 @@
 // see reference docs: docs/harnesses/agy.md
 import * as os from "node:os";
 import * as path from "node:path";
-import { getLatestMessage } from "../lib/getLatestMessage.ts";
 import { normalizeSkillName } from "../resolver/index.ts";
 
 /** Extracts the skill file path from an Antigravity `<SKILL>` prompt block. */
@@ -15,7 +14,7 @@ export const TERMINATION_CANCEL_REGEX = /cancel|abort|interrupt/i;
 export const USER_REQUEST_TAG_REGEX =
 	/<USER_REQUEST>([\s\S]*?)<\/USER_REQUEST>/i;
 
-import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
+import type { HookResponse, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,
 	extractToolCall,
@@ -32,33 +31,6 @@ export function stripUserRequest(text: string): string {
 export function extractSkillPath(text: string): string | undefined {
 	const skillMatch = text.match(AGY_SKILL_PATH_REGEX);
 	return skillMatch ? skillMatch[1].trim() : undefined;
-}
-
-export function parseAgyMessage(
-	item: Record<string, unknown>,
-): LatestMessage | null {
-	const isUser = item.type === "USER_INPUT" || item.source === "USER_EXPLICIT";
-	const isModel =
-		(item.type === "PLANNER_RESPONSE" || item.source === "MODEL") &&
-		item.type !== "GENERIC";
-
-	if (isModel && typeof item.content === "string") {
-		return {
-			type: "PLANNER_RESPONSE",
-			content: item.content,
-		};
-	}
-
-	if (isUser && typeof item.content === "string") {
-		const skillInvocationPath = extractSkillPath(item.content);
-		return {
-			type: "USER_INPUT",
-			content: stripUserRequest(item.content),
-			...(skillInvocationPath ? { skillInvocationPath } : {}),
-		};
-	}
-
-	return null;
 }
 
 export const agyHarness: HarnessAdapter = {
@@ -115,10 +87,14 @@ export const agyHarness: HarnessAdapter = {
 				? "stop"
 				: "pre";
 
-		const prompt =
-			typeof payload.prompt === "string"
-				? stripUserRequest(payload.prompt)
-				: undefined;
+		const rawPrompt =
+			typeof payload.prompt === "string" ? payload.prompt : undefined;
+		const prompt = rawPrompt ? stripUserRequest(rawPrompt) : undefined;
+		const skillInvocationPath =
+			(rawPrompt ? extractSkillPath(rawPrompt) : undefined) ??
+			(typeof payload.skillInvocationPath === "string"
+				? payload.skillInvocationPath
+				: undefined);
 
 		const isInterrupted = Boolean(
 			terminationReason && TERMINATION_CANCEL_REGEX.test(terminationReason),
@@ -135,25 +111,6 @@ export const agyHarness: HarnessAdapter = {
 			? (this.extractSkillTarget?.(toolCall) ?? null)
 			: null;
 
-		const latestMessage = this.extractLatestMessage({
-			type,
-			prompt,
-			rawPayload: payload,
-		});
-
-		// edge case: AGY PreInvocation payloads omit prompt, so user prompt must be read from transcript
-		const derivedPrompt =
-			prompt ??
-			(latestMessage?.type === "USER_INPUT"
-				? latestMessage.content
-				: undefined);
-
-		const skillInvocationPath =
-			latestMessage?.skillInvocationPath ??
-			(typeof payload.prompt === "string"
-				? extractSkillPath(payload.prompt)
-				: undefined);
-
 		return createNormalizedEvent({
 			harness: "agy",
 			conversationId,
@@ -164,8 +121,7 @@ export const agyHarness: HarnessAdapter = {
 			toolCall,
 			readTargetFilePath,
 			skillTarget,
-			latestMessage,
-			prompt: derivedPrompt,
+			prompt,
 			skillInvocationPath,
 			isInterrupted,
 			terminationReason,
@@ -196,64 +152,6 @@ export const agyHarness: HarnessAdapter = {
 				const target = first.TypeName ?? first.Role;
 				return typeof target === "string" ? normalizeSkillName(target) : null;
 			}
-		}
-		return null;
-	},
-
-	extractLatestMessage(event: {
-		type: "pre" | "stop" | "tool";
-		prompt?: string;
-		rawPayload: Record<string, unknown>;
-	}): LatestMessage | null {
-		if (
-			event.rawPayload.latestMessage &&
-			typeof event.rawPayload.latestMessage === "object"
-		) {
-			return event.rawPayload.latestMessage as LatestMessage;
-		}
-
-		const invocationNum =
-			typeof event.rawPayload.invocationNum === "number"
-				? event.rawPayload.invocationNum
-				: undefined;
-		// edge case: AGY fires PreInvocation on intermediate sub-steps (invocationNum > 0) which should not re-trigger on turn-0 prompt
-		if (
-			event.type === "pre" &&
-			invocationNum !== undefined &&
-			invocationNum > 0
-		) {
-			return null;
-		}
-
-		const rawTranscript =
-			event.rawPayload.transcriptPath ?? event.rawPayload.transcript_path;
-		if (typeof rawTranscript === "string") {
-			const msg = getLatestMessage(rawTranscript, parseAgyMessage);
-			if (msg) return msg;
-		}
-
-		if (event.type === "stop") {
-			const rawAssistant =
-				event.rawPayload.last_assistant_message ??
-				event.rawPayload.lastAssistantMessage;
-			if (typeof rawAssistant === "string" && rawAssistant.length > 0) {
-				return {
-					type: "PLANNER_RESPONSE",
-					content: rawAssistant,
-				};
-			}
-		}
-
-		if (event.prompt) {
-			const skillInvocationPath =
-				typeof event.rawPayload.prompt === "string"
-					? extractSkillPath(event.rawPayload.prompt)
-					: undefined;
-			return {
-				type: "USER_INPUT",
-				content: stripUserRequest(event.prompt),
-				...(skillInvocationPath ? { skillInvocationPath } : {}),
-			};
 		}
 		return null;
 	},

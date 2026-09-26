@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
 	AGY_SKILL_PATH_REGEX,
 	agyHarness,
-	parseAgyMessage,
 	TERMINATION_CANCEL_REGEX,
 	USER_REQUEST_TAG_REGEX,
 } from "./agy.ts";
@@ -18,7 +17,6 @@ function createMockEvent(
 		conversationId: "test-agy-conv",
 		workspacePath: "/test/project",
 		prompt: "",
-		latestMessage: null,
 		rawPayload: {},
 		...overrides,
 	} as NormalizedEvent;
@@ -75,10 +73,6 @@ describe("agyHarness", () => {
 				{
 				  "conversationId": "c-agy",
 				  "harness": "agy",
-				  "latestMessage": {
-				    "content": "/next",
-				    "type": "USER_INPUT",
-				  },
 				  "prompt": "/next",
 				  "rawPayload": {
 				    "conversationId": "c-agy",
@@ -113,11 +107,6 @@ describe("agyHarness", () => {
 				{
 				  "conversationId": "ad572610-6787-4054-8cbf-77957f214fcf",
 				  "harness": "agy",
-				  "latestMessage": {
-				    "content": "/weekend",
-				    "skillInvocationPath": "/Users/Lukas.Steinbrecher/Downloads/skill-test/.agents/skills/weekend/SKILL.md",
-				    "type": "USER_INPUT",
-				  },
 				  "prompt": "/weekend",
 				  "rawPayload": {
 				    "conversationId": "ad572610-6787-4054-8cbf-77957f214fcf",
@@ -154,49 +143,6 @@ describe("agyHarness", () => {
 		});
 	});
 
-	describe("parseAgyMessage", () => {
-		it("unwraps USER_REQUEST and extracts SKILL path", () => {
-			const res = parseAgyMessage({
-				type: "USER_INPUT",
-				content: `<USER_REQUEST>\n/weekend \n</USER_REQUEST>\n<ADDITIONAL_METADATA>\n<SKILL>The user requested you read and use the "weekend" skill. The path to the skill file is:\n/path/to/weekend/SKILL.md</SKILL>\n</ADDITIONAL_METADATA>`,
-			});
-			expect(res).toMatchInlineSnapshot(`
-				{
-				  "content": "/weekend",
-				  "skillInvocationPath": "/path/to/weekend/SKILL.md",
-				  "type": "USER_INPUT",
-				}
-			`);
-		});
-
-		it("extracts SKILL path with spaces", () => {
-			const res = parseAgyMessage({
-				type: "USER_INPUT",
-				content: `<USER_REQUEST>\n/weekend \n</USER_REQUEST>\n<ADDITIONAL_METADATA>\n<SKILL>The user requested you read and use the "weekend" skill. The path to the skill file is:\n/Users/Jane Doe/my skills/weekend/SKILL.md</SKILL>\n</ADDITIONAL_METADATA>`,
-			});
-			expect(res).toMatchInlineSnapshot(`
-				{
-				  "content": "/weekend",
-				  "skillInvocationPath": "/Users/Jane Doe/my skills/weekend/SKILL.md",
-				  "type": "USER_INPUT",
-				}
-			`);
-		});
-
-		it("parses model response as PLANNER_RESPONSE", () => {
-			const res = parseAgyMessage({
-				type: "PLANNER_RESPONSE",
-				content: "All done!",
-			});
-			expect(res).toMatchInlineSnapshot(`
-				{
-				  "content": "All done!",
-				  "type": "PLANNER_RESPONSE",
-				}
-			`);
-		});
-	});
-
 	describe("extractFileReadTarget", () => {
 		it("extracts AbsolutePath for view_file", () => {
 			const target = agyHarness.extractFileReadTarget?.(
@@ -220,47 +166,6 @@ describe("agyHarness", () => {
 				"/workspace",
 			);
 			expect(target).toBeNull();
-		});
-	});
-
-	describe("extractLatestMessage", () => {
-		it("extracts user prompt when present on first invocation", () => {
-			const event = createMockEvent({
-				type: "pre",
-				prompt: "/next",
-				rawPayload: { invocationNum: 0 },
-			});
-			const res = agyHarness.extractLatestMessage(event);
-			expect(res).toEqual({
-				type: "USER_INPUT",
-				content: "/next",
-			});
-		});
-
-		it("returns null on pre when invocationNum > 0 (prevent stale input re-injection)", () => {
-			const event = createMockEvent({
-				type: "pre",
-				prompt: "/next",
-				rawPayload: { invocationNum: 1 },
-			});
-			expect(agyHarness.extractLatestMessage(event)).toBeNull();
-		});
-
-		it("extracts last_assistant_message on stop when transcript is absent", () => {
-			const event = createMockEvent({
-				type: "stop",
-				rawPayload: { last_assistant_message: "AGY response" },
-			});
-			const res = agyHarness.extractLatestMessage(event);
-			expect(res).toEqual({
-				type: "PLANNER_RESPONSE",
-				content: "AGY response",
-			});
-		});
-
-		it("returns null when no transcript, no assistant message, and no prompt", () => {
-			const event = createMockEvent({ type: "stop" });
-			expect(agyHarness.extractLatestMessage(event)).toBeNull();
 		});
 	});
 

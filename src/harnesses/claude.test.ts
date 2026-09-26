@@ -12,7 +12,6 @@ function createMockEvent(
 		conversationId: "test-claude-conv",
 		workspacePath: "/test/project",
 		prompt: "",
-		latestMessage: null,
 		rawPayload: {},
 		...overrides,
 	} as NormalizedEvent;
@@ -48,10 +47,6 @@ describe("claudeHarness", () => {
 				{
 				  "conversationId": "claude-s1",
 				  "harness": "claude",
-				  "latestMessage": {
-				    "content": "/next",
-				    "type": "USER_INPUT",
-				  },
 				  "prompt": "/next",
 				  "rawPayload": {
 				    "cwd": "/claude/workspace",
@@ -130,33 +125,6 @@ describe("claudeHarness", () => {
 				"/workspace",
 			);
 			expect(target).toBeNull();
-		});
-	});
-
-	describe("extractLatestMessage", () => {
-		it("extracts last_assistant_message on stop", () => {
-			const event = createMockEvent({
-				type: "stop",
-				isStop: true,
-				rawPayload: { last_assistant_message: "Claude answer" },
-			});
-			const res = claudeHarness.extractLatestMessage(event);
-			expect(res).toEqual({
-				type: "PLANNER_RESPONSE",
-				content: "Claude answer",
-			});
-		});
-
-		it("extracts user prompt on pre", () => {
-			const event = createMockEvent({
-				type: "pre",
-				prompt: "/next",
-			});
-			const res = claudeHarness.extractLatestMessage(event);
-			expect(res).toEqual({
-				type: "USER_INPUT",
-				content: "/next",
-			});
 		});
 	});
 

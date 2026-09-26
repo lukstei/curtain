@@ -103,18 +103,21 @@ async function replayHookLog(harness: HarnessType, filePath: string) {
 				workspacePath,
 			);
 
-			const resolvedLatestMessage = entry.latestMessage
+			const fixtureLatest = (
+				entry as {
+					latestMessage?: {
+						content?: string;
+						skillInvocationPath?: string;
+					};
+				}
+			).latestMessage;
+			const testOptions = fixtureLatest
 				? {
-						...entry.latestMessage,
-						...(entry.latestMessage.skillInvocationPath
-							? {
-									skillInvocationPath:
-										entry.latestMessage.skillInvocationPath.replaceAll(
-											"{{workspace}}",
-											workspacePath,
-										),
-								}
-							: {}),
+						prompt: fixtureLatest.content,
+						skillInvocationPath: fixtureLatest.skillInvocationPath?.replaceAll(
+							"{{workspace}}",
+							workspacePath,
+						),
 					}
 				: undefined;
 
@@ -122,9 +125,7 @@ async function replayHookLog(harness: HarnessType, filePath: string) {
 				entry.hook,
 				replacedInput,
 				env,
-				resolvedLatestMessage
-					? { latestMessage: resolvedLatestMessage }
-					: undefined,
+				testOptions,
 			);
 
 			const out = egress.stdout ? JSON.parse(egress.stdout) : {};

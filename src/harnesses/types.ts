@@ -1,4 +1,4 @@
-import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
+import type { HookResponse, ToolCall } from "../types.ts";
 
 export type HarnessType = "claude" | "codex" | "agy" | "copilot";
 
@@ -20,7 +20,6 @@ export type NormalizedEvent = BaseNormalizedEvent &
 		| {
 				type: "pre";
 				prompt: string;
-				latestMessage: LatestMessage | null;
 				skillInvocationPath?: string;
 		  }
 		| {
@@ -29,7 +28,6 @@ export type NormalizedEvent = BaseNormalizedEvent &
 				stopHookActive: boolean;
 				isInterrupted: boolean;
 				terminationReason?: string;
-				latestMessage: LatestMessage | null;
 		  }
 		| {
 				type: "tool";
@@ -48,11 +46,6 @@ export interface HarnessAdapter {
 		env?: NodeJS.ProcessEnv,
 	): NormalizedEvent;
 	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput;
-	extractLatestMessage(event: {
-		type: "pre" | "stop" | "tool";
-		prompt?: string;
-		rawPayload: Record<string, unknown>;
-	}): LatestMessage | null;
 	extractFileReadTarget?(
 		toolCall: ToolCall,
 		workspacePath: string,

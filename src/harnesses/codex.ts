@@ -1,7 +1,16 @@
 // see reference docs: docs/harnesses/codex.md
 import * as os from "node:os";
 import * as path from "node:path";
-import { getLatestMessage } from "../lib/getLatestMessage.ts";
+import type { HookResponse, ToolCall } from "../types.ts";
+import {
+	createNormalizedEvent,
+	defaultExtractSkillTarget,
+	extractToolCall,
+	getGenericSkillDirs,
+	resolveToolReadPath,
+} from "./common.ts";
+import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
+
 /** Extracts skill name and target file path from an embedded Markdown link mention. */
 export const SKILL_LINK_PATH_CAPTURE_REGEX =
 	/\[\$?([a-zA-Z0-9_.:-]+)\]\(([^)]+)\)/;
@@ -12,16 +21,6 @@ export const XML_SKILL_PATH_REGEX =
 
 /** Strips enclosing `<` and `>` angle brackets from paths in Markdown links. */
 export const ANGLE_BRACKET_ENCLOSURE_REGEX = /^<|>$/g;
-
-import type { HookResponse, LatestMessage, ToolCall } from "../types.ts";
-import {
-	createNormalizedEvent,
-	defaultExtractSkillTarget,
-	extractToolCall,
-	getGenericSkillDirs,
-	resolveToolReadPath,
-} from "./common.ts";
-import type { EgressOutput, HarnessAdapter, NormalizedEvent } from "./types.ts";
 
 export function extractCodexSkillPath(
 	text: string,
@@ -38,35 +37,6 @@ export function extractCodexSkillPath(
 		return resolveToolReadPath(raw, workspacePath) ?? undefined;
 	}
 	return undefined;
-}
-
-export function parseCodexMessage(
-	item: Record<string, unknown>,
-): LatestMessage | null {
-	if (
-		item.type === "response_item" &&
-		item.payload &&
-		typeof item.payload === "object"
-	) {
-		const payload = item.payload as Record<string, unknown>;
-		if (payload.type === "message") {
-			const content = Array.isArray(payload.content) ? payload.content : [];
-			const text = content
-				.map((c) => (c as { text?: string }).text ?? "")
-				.filter(Boolean)
-				.join("\n")
-				.trim();
-			if (!text) return null;
-
-			if (payload.role === "assistant") {
-				return { type: "PLANNER_RESPONSE", content: text };
-			}
-			if (payload.role === "user") {
-				return { type: "USER_INPUT", content: text };
-			}
-		}
-	}
-	return null;
 }
 
 export const codexHarness: HarnessAdapter = {
@@ -118,11 +88,6 @@ export const codexHarness: HarnessAdapter = {
 		const skillTarget = toolCall
 			? (this.extractSkillTarget?.(toolCall) ?? null)
 			: null;
-		const latestMessage = this.extractLatestMessage({
-			type,
-			prompt,
-			rawPayload: payload,
-		});
 		const skillInvocationPath = prompt
 			? extractCodexSkillPath(prompt, workspacePath)
 			: undefined;
@@ -137,7 +102,6 @@ export const codexHarness: HarnessAdapter = {
 			toolCall,
 			readTargetFilePath,
 			skillTarget,
-			latestMessage,
 			prompt,
 			skillInvocationPath,
 		});
@@ -168,39 +132,6 @@ export const codexHarness: HarnessAdapter = {
 	},
 
 	extractSkillTarget: defaultExtractSkillTarget,
-
-	extractLatestMessage(event: {
-		type: "pre" | "stop" | "tool";
-		prompt?: string;
-		rawPayload: Record<string, unknown>;
-	}): LatestMessage | null {
-		if (event.type === "stop") {
-			const raw =
-				event.rawPayload.last_assistant_message ??
-				event.rawPayload.lastAssistantMessage;
-			if (typeof raw === "string" && raw.length > 0) {
-				return {
-					type: "PLANNER_RESPONSE",
-					content: raw,
-				};
-			}
-			const transcript =
-				event.rawPayload.transcript_path ?? event.rawPayload.transcriptPath;
-			if (typeof transcript === "string") {
-				return getLatestMessage(transcript, parseCodexMessage);
-			}
-			return null;
-		}
-
-		if (event.prompt) {
-			return {
-				type: "USER_INPUT",
-				content: event.prompt,
-			};
-		}
-
-		return null;
-	},
 
 	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput {
 		if (event.type === "stop") {

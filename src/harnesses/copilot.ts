@@ -4,7 +4,6 @@ import * as path from "node:path";
 import type { HookResponse, ToolCall } from "../types.ts";
 import {
 	createNormalizedEvent,
-	defaultExtractLatestMessage,
 	defaultExtractSkillTarget,
 	extractToolCall,
 	getGenericSkillDirs,
@@ -72,11 +71,6 @@ export const copilotHarness: HarnessAdapter = {
 		const skillTarget = toolCall
 			? (this.extractSkillTarget?.(toolCall) ?? null)
 			: null;
-		const latestMessage = this.extractLatestMessage({
-			type,
-			prompt,
-			rawPayload: payload,
-		});
 
 		return createNormalizedEvent({
 			harness: "copilot",
@@ -88,7 +82,6 @@ export const copilotHarness: HarnessAdapter = {
 			toolCall,
 			readTargetFilePath,
 			skillTarget,
-			latestMessage,
 			prompt,
 		});
 	},
@@ -107,8 +100,6 @@ export const copilotHarness: HarnessAdapter = {
 	},
 
 	extractSkillTarget: defaultExtractSkillTarget,
-
-	extractLatestMessage: defaultExtractLatestMessage,
 
 	formatEgress(event: NormalizedEvent, response: HookResponse): EgressOutput {
 		if (event.type === "stop") {

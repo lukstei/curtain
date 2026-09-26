@@ -4,11 +4,12 @@ import type { EgressOutput } from "../harnesses/types.ts";
 import { logDebug } from "../lib/logDebug.ts";
 import { logHookInvocation } from "../lib/logHook.ts";
 import { deleteState, loadState, saveState } from "../state.ts";
-import type { HookInfo, LatestMessage } from "../types.ts";
+import type { HookInfo } from "../types.ts";
 import { parseJsonSafe, readStdin } from "./stdin.ts";
 
 export interface ShimTestOptions {
-	latestMessage?: LatestMessage | null;
+	prompt?: string;
+	skillInvocationPath?: string;
 }
 
 export function executeHook(
@@ -73,7 +74,9 @@ export function executeHook(
 
 	const isDebug = Boolean(env.CURTAIN_DEBUG ?? process.env.CURTAIN_DEBUG);
 	if (isDebug) {
-		const latestMessage = "latestMessage" in event ? event.latestMessage : null;
+		const loggedState = nextState
+			? (({ steps, ...rest }) => rest)(nextState)
+			: null;
 		logHookInvocation(
 			event.conversationId,
 			{
@@ -81,8 +84,7 @@ export function executeHook(
 				hook: modeArg,
 				input: rawInput,
 				output: egress.stdout ?? "{}",
-				...(latestMessage ? { latestMessage } : {}),
-				state: {...nextState||{}, ...{steps: undefined}},
+				state: loggedState,
 			},
 			env,
 		);
@@ -107,8 +109,11 @@ export async function runShimForTest(
 	options?: ShimTestOptions,
 ): Promise<EgressOutput> {
 	const payload = parseJsonSafe(rawInput);
-	if (options?.latestMessage !== undefined) {
-		payload.latestMessage = options.latestMessage;
+	if (options?.prompt !== undefined) {
+		payload.prompt = options.prompt;
+	}
+	if (options?.skillInvocationPath !== undefined) {
+		payload.skillInvocationPath = options.skillInvocationPath;
 	}
 	return executeHook(modeArg, payload, rawInput, env);
 }
