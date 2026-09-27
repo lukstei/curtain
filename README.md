@@ -17,9 +17,9 @@ Executes multi-act Markdown playbooks one step at a time, keeping future instruc
 - [FAQ](#faq)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Authoring Playbooks](#authoring-playbooks)
 - [Syntax & Delimiters](#syntax--delimiters)
 - [Commands & Controls](#commands--controls)
-- [Adopting & Ejecting Skills](#adopting--ejecting-skills)
 - [Architecture](#architecture)
 - [Development](#development)
 - [Changelog](#changelog)
@@ -65,7 +65,7 @@ Curtain enforces physical token withholding across a four-step lifecycle:
 ```
 
 ### 1. Structure instructions into Acts
-Write your playbook in `PLAYBOOK.md` using callout delimiters to separate sequential phases:
+Convert an existing skill with `/curtain-adopt <skill>`, or write a playbook in `PLAYBOOK.md` using callout delimiters to separate sequential phases:
 
 ```markdown
 # Database Migration
@@ -120,7 +120,7 @@ When Act 2 completes, its concluding `> [!CURTAIN]` delimiter triggers an automa
 - **[Zero schema overhead](#syntax--delimiters):** Standard Markdown playbooks parsed by a generic AST tokenizer without complex YAML workflow configs.
 - **[Backstage file protection](#can-an-agent-bypass-curtain-or-read-future-acts):** Intercepts file-reading tools and runner commands to prevent agents from peeking backstage at `PLAYBOOK.md`.
 - **[Universal environment support](#how-does-curtain-run-across-different-agent-environments):** Shared single-source architecture supporting Google Antigravity, Anthropic Claude Code, and OpenAI Codex.
-- **[Skill adoption and ejection](#adopting--ejecting-skills):** Built-in skills to migrate single-file skills into playbooks (`/curtain-adopt`) and reverse them cleanly (`/curtain-eject`).
+- **[Skill adoption and ejection](#quick-start):** Built-in skills to migrate single-file skills into playbooks (`/curtain-adopt`) and reverse them cleanly (`/curtain-eject`).
 - **Zero-dependency bundled shim:** Packaged into a single ESM file (`dist/curtain.mjs`) executed directly by host harness hooks without `npm install`.
 
 ## FAQ
@@ -228,7 +228,48 @@ codex plugin add curtain@curtain
 
 ## Quick Start
 
-### 1. Create a skill directory
+### 1. Adopt an existing skill (`/curtain-adopt`)
+Convert any existing single-file skill into a multi-act playbook:
+
+```bash
+/curtain-adopt <skill-name-or-path>
+```
+
+Curtain automatically:
+- Preserves original prose and headings verbatim without inventing artificial titles.
+- Prunes redundant wait instructions (e.g. "Wait for user confirmation") handled natively by `> [!INTERMISSION]`.
+- Prunes forward-context leaks (e.g. "In Step 3 we will apply...") rendered obsolete by physical token withholding.
+- Strips Tables of Contents to prevent leaking future step names into Act 1 context.
+- Inserts `> [!INTERMISSION]` at approval boundaries and `> [!CURTAIN]` at automatic section boundaries.
+- Previews the proposed playbook in the review sidebar before writing `PLAYBOOK.md` and wrapping `SKILL.md`.
+
+### 2. Run in chat
+Invoke the adopted skill directly using its slash command:
+- **Claude Code & AGY:** `/<skill-name>`
+- **Codex:** `$<skill-name>`
+
+When paused at an intermission, review the agent's work and resume with `/next` (Codex: `$curtain:next`).
+
+> [!NOTE]
+> - **Antigravity**: Antigravity executes skills by instructing the agent to read `SKILL.md` via `view_file`. Curtain intercepts any `view_file` call on a skill backed by a `PLAYBOOK.md` to begin Act 1. To inspect or edit a Curtain `SKILL.md` in Antigravity without triggering playbook execution, open the file directly in your editor.
+> - **Codex**: Hook output is visible in chat until [openai/codex#25403](https://github.com/openai/codex/issues/25403) is resolved.
+
+### 3. Eject anytime (`/curtain-eject`)
+Restore an adopted playbook back to a standard single-file skill with zero lock-in:
+
+```bash
+/curtain-eject <skill-name-or-path>
+```
+
+- Recombines YAML frontmatter from `SKILL.md` with instructions from `PLAYBOOK.md`.
+- Strips all `> [!CURTAIN]` and `> [!INTERMISSION]` callouts.
+- Previews the restored `SKILL.md` in the review sidebar, deleting `PLAYBOOK.md` upon confirmation.
+
+## Authoring Playbooks
+
+To create a new multi-act skill from scratch without adopting an existing one:
+
+### 1. Directory layout
 Organize your workflow inside a skill directory with `SKILL.md` for manifest metadata and `PLAYBOOK.md` for instructions:
 
 ```text
@@ -258,17 +299,6 @@ Run the migration script against local test Postgres. Run the test suite to chec
 ## Act 3: Cleanup & Documentation
 Update ORM models, export types, and update schema docs in `docs/db.md`.
 ```
-
-### 3. Run in chat
-Invoke the skill directly using its slash command:
-- **Claude Code & AGY:** `/db-migrate`
-- **Codex:** `$db-migrate`
-
-When paused at an intermission, review the changes and resume with `/next` (Codex: `$curtain:next`).
-
-> [!NOTE]
-> - **Antigravity**: Antigravity executes skills by instructing the agent to read `SKILL.md` via `view_file`. Curtain intercepts any `view_file` call on a skill backed by a `PLAYBOOK.md` to begin Act 1. To inspect or edit a Curtain `SKILL.md` in Antigravity without triggering playbook execution, open the file directly in your editor.
-> - **Codex**: Hook output is visible in chat until [openai/codex#25403](https://github.com/openai/codex/issues/25403) is resolved.
 
 ## Syntax & Delimiters
 
@@ -306,35 +336,6 @@ Multi-line instructions are supported:
 | `/next` | `$curtain:next` | Advance to the next Act when paused at an intermission. |
 | `/curtain-adopt <skill>` | `$curtain-adopt <skill>` | Convert an existing single-file skill into a multi-act Curtain playbook. |
 | `/curtain-eject <skill>` | `$curtain-eject <skill>` | Reverse an adopted playbook back into a standard single-file skill. |
-
-## Adopting & Ejecting Skills
-
-Curtain provides built-in skills to convert existing skills into playbooks and back:
-
-### Adopting a skill (`/curtain-adopt`)
-Converts an existing single-file skill (`SKILL.md`) into a multi-act playbook:
-
-```bash
-/curtain-adopt <skill-name-or-path>
-```
-
-- Preserves original prose and headings verbatim without inventing artificial titles.
-- Prunes redundant wait instructions (e.g. "Wait for user confirmation") handled natively by `> [!INTERMISSION]`.
-- Prunes forward-context leaks (e.g. "In Step 3 we will apply...") rendered obsolete by physical token withholding.
-- Strips Tables of Contents to prevent leaking future step names into Act 1 context.
-- Inserts `> [!INTERMISSION]` at approval boundaries and `> [!CURTAIN]` at automatic section boundaries.
-- Previews the proposed playbook in the review sidebar before writing `PLAYBOOK.md` and wrapping `SKILL.md`.
-
-### Ejecting a playbook (`/curtain-eject`)
-Restores an adopted playbook back to a standard single-file skill:
-
-```bash
-/curtain-eject <skill-name-or-path>
-```
-
-- Recombines YAML frontmatter from `SKILL.md` with instructions from `PLAYBOOK.md`.
-- Strips all `> [!CURTAIN]` and `> [!INTERMISSION]` callouts.
-- Previews the restored `SKILL.md` in the review sidebar, deleting `PLAYBOOK.md` upon confirmation.
 
 ## Architecture
 
