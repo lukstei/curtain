@@ -99,7 +99,8 @@ Invoke the skill directly via its natural command:
 When paused at an intermission, resume with `/next` (Codex: `$curtain:next`).
 
 > [!NOTE]
-> **Antigravity Limitation**: Antigravity executes skills by instructing the agent to read `SKILL.md` via `view_file`. Curtain intercepts any `view_file` call on a skill backed by a `PLAYBOOK.md` to begin Act 1. To view or edit a Curtain `SKILL.md` in Antigravity without triggering playbook execution, inspect or modify the file directly in your editor rather than asking the agent to view it.
+> - **Antigravity**: Antigravity executes skills by instructing the agent to read `SKILL.md` via `view_file`. Curtain intercepts any `view_file` call on a skill backed by a `PLAYBOOK.md` to begin Act 1. To view or edit a Curtain `SKILL.md` in Antigravity without triggering playbook execution, inspect or modify the file directly in your editor rather than asking the agent to view it.
+> - **Codex**: Hook output is visible in chat until [openai/codex#25403](https://github.com/openai/codex/issues/25403) is resolved.
 
 ## Syntax & Delimiters
 

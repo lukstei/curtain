@@ -31,30 +31,37 @@ describe("detectHarness", () => {
 			expect(harness).toBe("copilot");
 		});
 
-		it("detects Codex from hookEventName in payload", () => {
-			const harness = detectHarness({ hookEventName: "UserPromptSubmit" }, {});
-			expect(harness).toBe("codex");
-		});
-
-		it("detects Codex from turn_id in payload", () => {
-			const harness = detectHarness(
-				{
-					hook_event_name: "UserPromptSubmit",
-					turn_id: "turn-123",
-				},
-				{},
-			);
-			expect(harness).toBe("codex");
-		});
-
 		it("detects Codex when CODEX_SESSION_ID is set", () => {
 			const harness = detectHarness({}, { CODEX_SESSION_ID: "session-123" });
 			expect(harness).toBe("codex");
 		});
 
 		it("detects Codex when PLUGIN_DATA is set", () => {
-			const harness = detectHarness({}, { PLUGIN_DATA: "/tmp/codex" });
+			const harness = detectHarness({}, { PLUGIN_DATA: "/path/to/data" });
 			expect(harness).toBe("codex");
+		});
+
+		it("detects Codex when both PLUGIN_DATA and CLAUDE_PLUGIN_DATA are set", () => {
+			const harness = detectHarness(
+				{},
+				{
+					PLUGIN_DATA: "/path/to/data",
+					CLAUDE_PLUGIN_DATA: "/path/to/data",
+				},
+			);
+			expect(harness).toBe("codex");
+		});
+
+		it("does not detect Codex from payload-only fields without environment", () => {
+			expect(
+				detectHarness(
+					{
+						hook_event_name: "UserPromptSubmit",
+						turn_id: "turn-123",
+					},
+					{},
+				),
+			).toBeNull();
 		});
 
 		it("detects AGY when AGY_HOOK_ACTIVE is set", () => {
@@ -108,7 +115,7 @@ describe("detectHarness", () => {
 			expect(harness).toBe("claude");
 		});
 
-		it("does not misdetect Codex with turn_id as Claude Code", () => {
+		it("does not misdetect payload with turn_id as Claude Code", () => {
 			const harness = detectHarness(
 				{
 					hook_event_name: "PreToolUse",
@@ -117,7 +124,7 @@ describe("detectHarness", () => {
 				},
 				{},
 			);
-			expect(harness).toBe("codex");
+			expect(harness).toBeNull();
 		});
 
 		it("does not misdetect Copilot with timestamp as Claude Code", () => {

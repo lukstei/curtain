@@ -69,7 +69,7 @@ export function resolveSkillPath(
 	skill: ParsedSkill,
 	harness: HarnessType,
 	workspacePaths: string[] = ["."],
-	env: NodeJS.ProcessEnv = process.env,
+	_env: NodeJS.ProcessEnv = process.env,
 ): string | null {
 	const skillName = skill.name.trim();
 	if (!skillName) return null;
