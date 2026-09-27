@@ -1,7 +1,7 @@
 # curtain
 
 > **Nobody likes spoilers, especially agents.**  
-> Show them the ending and they skip the plot. Curtain keeps the script backstage until the curtain rises.
+> Show them the ending and they skip the plot. Curtain keeps the script backstage until it's time to act.
 
 [![CI](https://github.com/lukstei/curtain/actions/workflows/ci.yml/badge.svg)](https://github.com/lukstei/curtain/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
