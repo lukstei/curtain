@@ -337,30 +337,6 @@ Multi-line instructions are supported:
 | `/curtain-adopt <skill>` | `$curtain-adopt <skill>` | Convert an existing single-file skill into a multi-act Curtain playbook. |
 | `/curtain-eject <skill>` | `$curtain-eject <skill>` | Reverse an adopted playbook back into a standard single-file skill. |
 
-## Architecture
-
-Curtain uses a universal, single-source design where manifest zones, lifecycle adapters, and execution logic reside in a single repository:
-
-```text
-curtain/
-├── .agents/plugins/curtain/          # Google Antigravity manifest & hooks
-├── .claude-plugin/                   # Claude Code plugin manifest
-├── .codex-plugin/                    # OpenAI Codex plugin manifest
-├── hooks/
-│   └── claude-codex-hooks.json       # Shared Claude & Codex hook declarations
-├── skills/                           # Packaged skills (curtain-adopt, curtain-eject, next)
-├── src/
-│   ├── harnesses/                    # Adapters (agy.ts, claude.ts, codex.ts, copilot.ts)
-│   ├── handlers/                     # Lifecycle handlers (pre.ts, stop.ts)
-│   ├── parser/                       # Markdown AST act tokenizer
-│   ├── resolver/                     # Skill & playbook path resolution
-│   ├── state.ts                      # Disk state serialization (.curtain-state.json)
-│   ├── transitions.ts                # Pure lifecycle state transitions
-│   └── cli.ts                        # CLI entry point
-└── dist/
-    └── curtain.mjs                   # Zero-dependency bundled ESM production shim
-```
-
 ## Development
 
 ```bash
