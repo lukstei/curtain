@@ -89,7 +89,7 @@ const commitLogs = capture(`git log ${previousTag}..${currentTag} --oneline`);
 
 const changelogPrompt = `Add entries for ${currentTag} to docs/CHANGELOG.md based on the commit log below.
 Follow the existing format in docs/CHANGELOG.md (1 line per change, grouped by Features and Bug Fixes).
-Use header format: ## [${currentTag}](https://github.com/lukstei/slop-grader/compare/${previousTag}...${currentTag})
+Use header format: ## [${currentTag}](https://github.com/lukstei/curtain/compare/${previousTag}...${currentTag})
 Include all functional changes (user-facing features, behavior changes, CLI flags, rules, and fixes).
 Skip documentation, minor architectural refactors, chores, tests, and internal technical changes.
 If there are no notable changes, still add an entry for ${currentTag} with one generic line: "- Internal technical changes".
