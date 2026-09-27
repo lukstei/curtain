@@ -121,6 +121,38 @@ Delimiters support optional instructions:
 | :--- | :--- | :--- |
 | `/<skill-name>` | `$<skill-name>` | Start execution of a multi-act skill. |
 | `/next` | `$curtain:next` | Advance to the next Act when paused at an intermission. |
+| `/curtain-adopt <skill>` | `$curtain-adopt <skill>` | Convert an existing skill into a multi-act Curtain playbook. |
+| `/curtain-eject <skill>` | `$curtain-eject <skill>` | Reverse an adopted playbook back into a standard single-file skill. |
+
+## Adopting & Ejecting Skills
+
+Curtain includes built-in skills to migrate existing skills into playbooks and back:
+
+### Adopting a Skill (`/curtain-adopt`)
+
+Convert an existing single-file skill (`SKILL.md`) into a multi-act playbook:
+
+```bash
+/curtain-adopt <skill-name-or-path>
+```
+
+- Preserves original prose and headings verbatim without inventing artificial phase titles.
+- Prunes redundant wait instructions, forward context leaks, and Tables of Contents.
+- Inserts bare `> [!INTERMISSION]` delimiters where the skill explicitly pauses for approval or plans; inserts `> [!CURTAIN]` at other section boundaries.
+- Previews the proposed playbook and delimiter quick-reference card in the review sidebar before writing `PLAYBOOK.md` and wrapping `SKILL.md`.
+
+### Ejecting a Playbook (`/curtain-eject`)
+
+Restore an adopted playbook back to a standard single-file skill:
+
+```bash
+/curtain-eject <skill-name-or-path>
+```
+
+- Recombines the preserved YAML frontmatter in `SKILL.md` with the body from `PLAYBOOK.md`.
+- Strips all `> [!CURTAIN]` and `> [!INTERMISSION]` callouts.
+- Previews the restored `SKILL.md` in the review sidebar, then deletes `PLAYBOOK.md` upon confirmation.
+
 
 ## Development
 

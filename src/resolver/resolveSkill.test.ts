@@ -165,5 +165,25 @@ describe("lib/resolveSkill.ts", () => {
 				]),
 			).toBe(pb2);
 		});
+
+		it("resolves curtain-adopt skill playbook in workspace skills directory", () => {
+			const projectRoot = process.cwd();
+			const resolved = resolvePlaybookPath({ name: "curtain-adopt" }, "agy", [
+				projectRoot,
+			]);
+			expect(resolved).toBe(
+				path.join(projectRoot, "skills/curtain-adopt/PLAYBOOK.md"),
+			);
+		});
+
+		it("resolves curtain-eject skill playbook in workspace skills directory", () => {
+			const projectRoot = process.cwd();
+			const resolved = resolvePlaybookPath({ name: "curtain-eject" }, "agy", [
+				projectRoot,
+			]);
+			expect(resolved).toBe(
+				path.join(projectRoot, "skills/curtain-eject/PLAYBOOK.md"),
+			);
+		});
 	});
 });
