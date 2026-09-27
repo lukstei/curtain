@@ -3,9 +3,7 @@ import * as path from "node:path";
 import { normalizeSkillName } from "../resolver/index.ts";
 import type { ToolCall } from "../types.ts";
 
-export function getGenericSkillDirs(
-	workspacePaths: readonly string[],
-): string[] {
+export function getGenericSkillDirs(workspacePaths: string[]): string[] {
 	return workspacePaths.flatMap((wp) => [
 		path.join(wp, ".agents/skills"),
 		path.join(wp, "skills"),
@@ -52,7 +50,7 @@ export function extractToolCall(
 
 export function resolveToolReadPath(
 	rawPath: unknown,
-	workspacePaths: readonly string[],
+	workspacePaths: string[],
 ): string {
 	const target = typeof rawPath === "string" ? rawPath.trim() : "";
 	if (path.isAbsolute(target)) {

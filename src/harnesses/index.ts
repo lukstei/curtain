@@ -9,7 +9,7 @@ export * from "./common.ts";
 export * from "./types.ts";
 export { agyHarness, claudeHarness, codexHarness, copilotHarness };
 
-export const HARNESSES: readonly HarnessAdapter[] = [
+export const HARNESSES: HarnessAdapter[] = [
 	copilotHarness,
 	codexHarness,
 	claudeHarness,

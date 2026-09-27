@@ -20,7 +20,7 @@ export * from "./resolveSkill.ts";
  */
 export function loadSkillScript(
 	skill: ParsedSkill,
-	workspacePaths: readonly string[],
+	workspacePaths: string[],
 	harness: HarnessType,
 ): Script | null {
 	const playbookPath = resolvePlaybookPath(skill, harness, workspacePaths);
@@ -44,7 +44,7 @@ export function loadSkillScript(
  */
 export function resolveIntentScript(
 	intent: UserIntent,
-	workspacePaths: readonly string[],
+	workspacePaths: string[],
 	harness: HarnessType,
 ): ResolvedScriptResult {
 	if (intent.type === "skill") {

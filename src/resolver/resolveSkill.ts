@@ -68,7 +68,7 @@ function findSkillInBaseDir(
 export function resolveSkillPath(
 	skill: ParsedSkill,
 	harness: HarnessType,
-	workspacePaths: readonly string[] = ["."],
+	workspacePaths: string[] = ["."],
 	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
 	const skillName = skill.name.trim();
@@ -121,7 +121,7 @@ function checkPlaybookPath(resolvedPath: string): string | null {
 export function resolvePlaybookPath(
 	skill: ParsedSkill,
 	harness: HarnessType,
-	workspacePaths: readonly string[] = ["."],
+	workspacePaths: string[] = ["."],
 	env: NodeJS.ProcessEnv = process.env,
 ): string | null {
 	if (skill.path) {

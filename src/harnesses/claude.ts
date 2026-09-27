@@ -36,7 +36,7 @@ export const claudeHarness: HarnessAdapter = {
 		};
 	},
 
-	getSkillDirs(workspacePaths: readonly string[]): string[] {
+	getSkillDirs(workspacePaths: string[]): string[] {
 		const home = os.homedir();
 		const dirs = [
 			...getGenericSkillDirs(workspacePaths),

@@ -14,7 +14,7 @@ This document provides the reference index and integration architecture for **Go
 
 ## Skill Locations
 
-As implemented in [`src/harnesses/agy.ts`](../../src/harnesses/agy.ts#L210), AGY resolves skills in:
+As implemented in [`src/harnesses/agy.ts`](../../src/harnesses/agy.ts), AGY resolves skills in:
 - Workspace generic: `<workspace>/.agents/skills/`, `<workspace>/skills/`
 - Workspace plugins: `<workspace>/.agents/plugins/`
 - Global user skills: `~/.gemini/config/skills/`
@@ -32,11 +32,11 @@ As implemented in [`src/harnesses/agy.ts`](../../src/harnesses/agy.ts#L210), AGY
 | **Hook Manifest** | `.agents/plugins/curtain/hooks.json` |
 | **Payload Casing** | **camelCase** (protojson serialization) |
 | **Lifecycle Events** | `PreInvocation`, `Stop`, `PreToolUse`, `PostToolUse` |
-| **Tool Matchers** | Regular expressions in `matcher`: `"run_command|view_file"` |
+| **Tool Matchers** | Regular expressions in `matcher`: `"view_file\|read_file\|Read\|View\|Skill\|invoke_subagent"` |
 | **Blocking Mechanism** | JSON stdout: `{"decision": "deny", "reason": "..."}` with exit code `0` |
-| **Context Injection** | `PreInvocation`: `{"injectSteps": [{"ephemeralMessage": "..."}]}` |
+| **Context Injection** | Pass-through (`{}`) on `PreInvocation`; prompt execution intercepted via `view_file` |
 | **Autonomous Loop Continuation** | `Stop`: `{"decision": "continue", "reason": "..."}` |
-| **Harness Detection** | `process.env.GEMINI_CLI === "1"` or `process.env.ANTIGRAVITY === "1"` or `raw.conversation_id` present with `artifactDirectoryPath` / `cwd` |
+| **Harness Detection** | Authoritative env flags: `env.AGY_HOOK_ACTIVE`, `env.ANTIGRAVITY_CONVERSATION_ID`, `env.GEMINI_CLI === "1"`, or `env.ANTIGRAVITY === "1"` |
 
 ---
 

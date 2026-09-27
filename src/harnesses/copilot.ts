@@ -40,7 +40,7 @@ export const copilotHarness: HarnessAdapter = {
 		};
 	},
 
-	getSkillDirs(workspacePaths: readonly string[]): string[] {
+	getSkillDirs(workspacePaths: string[]): string[] {
 		const home = os.homedir();
 		return [
 			...getGenericSkillDirs(workspacePaths),

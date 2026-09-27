@@ -10,24 +10,24 @@ export interface EgressOutput {
 }
 
 export interface HarnessContext {
-	readonly conversationId: string;
-	readonly state: RunnerState | null;
-	readonly mode: HookMode;
-	readonly env: NodeJS.ProcessEnv;
+	conversationId: string;
+	state: RunnerState | null;
+	mode: HookMode;
+	env: NodeJS.ProcessEnv;
 }
 
 export interface HarnessResult {
-	readonly egress: EgressOutput;
-	readonly nextState: RunnerState | null;
+	egress: EgressOutput;
+	nextState: RunnerState | null;
 }
 
 export interface HarnessAdapter {
-	readonly id: HarnessType;
+	id: HarnessType;
 	detect(payload: Record<string, unknown>, env: NodeJS.ProcessEnv): boolean;
 	resolveConversationId(
 		payload: Record<string, unknown>,
 		env: NodeJS.ProcessEnv,
 	): string;
 	handle(payload: Record<string, unknown>, ctx: HarnessContext): HarnessResult;
-	getSkillDirs(workspacePaths: readonly string[]): string[];
+	getSkillDirs(workspacePaths: string[]): string[];
 }

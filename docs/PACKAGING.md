@@ -163,7 +163,7 @@ Each harness implements the [`HarnessAdapter`](../src/harnesses/types.ts) interf
 
 ```typescript
 export interface HarnessAdapter {
-  readonly id: HarnessType;
+  id: HarnessType;
   detect(payload: Record<string, unknown>, env: NodeJS.ProcessEnv): boolean;
   normalize(
     payload: Record<string, unknown>,

@@ -69,14 +69,14 @@ class MismatchError extends Error {
 }
 
 class MarkdownParser {
-	private readonly chars: string[];
+	private chars: string[];
 
 	private index = 0;
 
-	private static readonly NEWLINE = ["\r\n", "\r", "\n"];
+	private static NEWLINE = ["\r\n", "\r", "\n"];
 
-	private static readonly NEW_PARAGRAPH = MarkdownParser.NEWLINE.flatMap(
-		(prefix) => MarkdownParser.NEWLINE.map((suffix) => prefix + suffix),
+	private static NEW_PARAGRAPH = MarkdownParser.NEWLINE.flatMap((prefix) =>
+		MarkdownParser.NEWLINE.map((suffix) => prefix + suffix),
 	);
 
 	private constructor(input: string) {
