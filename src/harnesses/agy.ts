@@ -78,7 +78,8 @@ export const agyHarness: HarnessAdapter = {
 			}
 
 			const workspacePaths: readonly string[] =
-				Array.isArray(payload.workspacePaths) && payload.workspacePaths.length > 0
+				Array.isArray(payload.workspacePaths) &&
+				payload.workspacePaths.length > 0
 					? (payload.workspacePaths as unknown[]).map(String)
 					: [String(payload.cwd ?? ctx.env.PWD ?? ".")];
 
@@ -111,7 +112,7 @@ export const agyHarness: HarnessAdapter = {
 
 			if (ctx.state) {
 				// edge case: prevent model from re-invoking or reading the active skill definition during an ongoing run
-				if (ctx.state.skillName.toLowerCase() === skillName.toLowerCase()) {
+				if (ctx.state.skillName?.toLowerCase() === skillName.toLowerCase()) {
 					return agyResult(
 						"deny",
 						ctx.state,

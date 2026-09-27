@@ -10,13 +10,11 @@ import { loadState, type RunnerState } from "../src/state.ts";
 import type { HookMode } from "../src/types.ts";
 import { stripAbsolutePath } from "./test-utils.ts";
 
-const sanitizeState = (s: RunnerState | null) =>
-	s ? { script: s.script, status: s.status, currentStep: s.currentStep } : null;
-
-const sharedSnapshotPath = path.resolve(
-	import.meta.dirname,
-	"fixtures/hooks/curtain-test.snapshot.json",
-);
+function extractState(
+	state: RunnerState | null,
+): Omit<RunnerState, "steps"> | null {
+	return state ? (({ steps, ...rest }) => rest)(state) : null;
+}
 
 function findHookFixtures(
 	fixturesDir = path.resolve(import.meta.dirname, "fixtures/hooks"),
@@ -71,6 +69,21 @@ async function replayHookLog(harness: HarnessType, filePath: string) {
 		firstInput.conversationId ?? firstInput.session_id ?? "replay-session",
 	);
 
+	const rawRecordedWorkspace =
+		Array.isArray(firstInput.workspacePaths) &&
+		typeof firstInput.workspacePaths[0] === "string"
+			? firstInput.workspacePaths[0]
+			: typeof firstInput.cwd === "string"
+				? firstInput.cwd
+				: null;
+
+	const recordedRepoRoot = rawRecordedWorkspace?.includes("/examples")
+		? rawRecordedWorkspace.slice(
+				0,
+				rawRecordedWorkspace.lastIndexOf("/examples"),
+			)
+		: rawRecordedWorkspace;
+
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
 		HOME: tmpDir,
@@ -89,20 +102,15 @@ async function replayHookLog(harness: HarnessType, filePath: string) {
 		}),
 	};
 
-	const trace: Array<{
-		hook: string;
-		decision?: string;
-		reason?: string;
-		injectSteps?: unknown[];
-		state: Omit<RunnerState, "steps"> | null;
-	}> = [];
-
 	try {
-		for (const entry of entries) {
-			const replacedInput = entry.input.replaceAll(
+		for (const [index, entry] of entries.entries()) {
+			let replacedInput = entry.input.replaceAll(
 				"{{workspace}}",
 				workspacePath,
 			);
+			if (recordedRepoRoot && recordedRepoRoot !== repoRoot) {
+				replacedInput = replacedInput.replaceAll(recordedRepoRoot, repoRoot);
+			}
 
 			const egress = await runShimForTest(
 				entry.hook as HookMode,
@@ -110,70 +118,43 @@ async function replayHookLog(harness: HarnessType, filePath: string) {
 				env,
 			);
 
-			const out = egress.stdout ? JSON.parse(egress.stdout) : {};
-			const expectedOut = entry.output ? JSON.parse(entry.output) : {};
-
-			expect(out).toEqual(expectedOut);
-
-			const injectedMessage =
-				out.injectSteps?.[0]?.ephemeralMessage ??
-				out.hookSpecificOutput?.additionalContext;
-
-			let decision: string | undefined;
-			let reason: string | undefined;
-			let injectSteps: unknown[] | undefined;
-
-			if (entry.hook === "stop") {
-				if (
-					out.decision === "block" ||
-					out.decision === "continue" ||
-					injectedMessage
-				) {
-					decision = "continue";
-					reason = out.reason ?? injectedMessage;
-				} else {
-					decision = "allow";
-				}
-			} else {
-				decision = out.decision;
-				reason = out.reason;
-				if (injectedMessage) {
-					injectSteps = [{ ephemeralMessage: injectedMessage }];
-				}
+			const actualOutput = egress.stdout ? JSON.parse(egress.stdout) : {};
+			let expectedOutputStr = entry.output;
+			if (recordedRepoRoot && recordedRepoRoot !== repoRoot) {
+				expectedOutputStr = expectedOutputStr.replaceAll(
+					recordedRepoRoot,
+					repoRoot,
+				);
 			}
+			const expectedOutput = expectedOutputStr
+				? JSON.parse(expectedOutputStr)
+				: {};
 
-			trace.push({
-				hook: entry.hook,
-				...(decision ? { decision } : {}),
-				...(reason ? { reason } : {}),
-				...(injectSteps ? { injectSteps } : {}),
-				state: sanitizeState(loadState(conversationId, env)),
-			});
+			expect(
+				stripAbsolutePath(actualOutput, repoRoot),
+				`Step ${index + 1} (${entry.hook}) stdout mismatch`,
+			).toEqual(stripAbsolutePath(expectedOutput, repoRoot));
+
+			const actualState = extractState(loadState(conversationId, env));
+			const expectedState = entry.state ?? null;
+
+			expect(
+				stripAbsolutePath(actualState, repoRoot),
+				`Step ${index + 1} (${entry.hook}) state mismatch`,
+			).toEqual(stripAbsolutePath(expectedState, recordedRepoRoot ?? repoRoot));
 		}
 	} finally {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 	}
-
-	return stripAbsolutePath(trace, repoRoot);
 }
 
 const fixtures = findHookFixtures();
 
 describe("Hook Log Replay Integration", () => {
 	it.each(fixtures)(
-		"replays $harness $fixtureName hook log against exact output and snapshot",
-		async ({ harness, filePath, fixtureName }) => {
-			const trace = await replayHookLog(harness, filePath);
-			const harnessSnapshotPath = path.resolve(
-				import.meta.dirname,
-				`fixtures/hooks/${harness}/${fixtureName}.snapshot.json`,
-			);
-			const snapshotTarget = fs.existsSync(harnessSnapshotPath)
-				? harnessSnapshotPath
-				: sharedSnapshotPath;
-			await expect(
-				`${JSON.stringify(trace, null, "\t")}\n`,
-			).toMatchFileSnapshot(snapshotTarget);
+		"replays $harness $fixtureName hook log against exact output and state",
+		async ({ harness, filePath }) => {
+			await replayHookLog(harness, filePath);
 		},
 	);
 });
