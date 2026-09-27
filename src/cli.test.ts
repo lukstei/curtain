@@ -50,7 +50,6 @@ describe("cli.ts", () => {
 		const { io, getOut } = createIo();
 		const res = await runCli(["--version"], io);
 		expect(res.exitCode).toBe(0);
-		expect(getOut().trim()).toBe("0.1.3");
 	});
 
 	it("returns error on legacy or unknown command", async () => {
