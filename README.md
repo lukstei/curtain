@@ -1,3 +1,5 @@
+<img src="assets/logo.png" alt="Curtain logo" width="150" />
+
 # curtain
 
 > **Nobody likes spoilers, especially agents.**  
